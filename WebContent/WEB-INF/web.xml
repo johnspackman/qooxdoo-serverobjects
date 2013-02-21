@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	id="WebApp_ID" version="2.5">
+	
+	<display-name>Qooxdoo Remote Java Objects</display-name>
+	
+	<servlet>
+		<servlet-name>sampleServlet</servlet-name>
+		<servlet-class>com.zenesis.qx.remote.test.SampleServlet</servlet-class>
+		<load-on-startup>0</load-on-startup> 
+	</servlet>
+	
+	<servlet>
+		<servlet-name>explorerServlet</servlet-name>
+		<servlet-class>com.zenesis.qx.remote.explorer.FileExplorerServlet</servlet-class>
+		<load-on-startup>0</load-on-startup> 
+	</servlet>
+	
+  <servlet>
+    <description></description>
+    <display-name>MyServlet</display-name>
+    <servlet-name>MyServlet</servlet-name>
+    <servlet-class>it.servlet.myservlet.MyServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>MyServlet</servlet-name>
+    <url-pattern>/MyServlet/*</url-pattern>
+  </servlet-mapping>
+  
+	<servlet-mapping>
+		<servlet-name>sampleServlet</servlet-name>
+		<url-pattern>/sampleServlet/*</url-pattern>
+	</servlet-mapping>
+	
+	<servlet-mapping>
+		<servlet-name>explorerServlet</servlet-name>
+		<url-pattern>/explorerServlet/*</url-pattern>
+	</servlet-mapping>
+	
+	<filter>
+		<filter-name>QxUrlRewriteFilter</filter-name>
+		<filter-class>com.zenesis.qx.utils.QxUrlRewriteFilter</filter-class>
+		<init-param>
+			<param-name>rewrite-root</param-name>
+			<param-value>/Users/john/dev/Qooxdoo Server Objects</param-value>
+		</init-param>
+		<init-param>
+			<param-name>rewrite-1</param-name>
+			<param-value>/qooxdoo=/Users/john/os/qooxdoo</param-value>
+		</init-param>
+		<init-param>
+			<param-name>rewrite-2</param-name>
+			<param-value>/explorer/cache-downloads=/Users/john/os/qooxdoo-1.4.1-sdk/cache/downloads</param-value>
+		</init-param>
+	</filter>
+	
+	<filter-mapping>
+		<filter-name>QxUrlRewriteFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<welcome-file-list>
+		<welcome-file>index.html</welcome-file>
+		<welcome-file>index.htm</welcome-file>
+		<welcome-file>index.jsp</welcome-file>
+		<welcome-file>default.html</welcome-file>
+		<welcome-file>default.htm</welcome-file>
+		<welcome-file>default.jsp</welcome-file>
+	</welcome-file-list>
+</web-app>

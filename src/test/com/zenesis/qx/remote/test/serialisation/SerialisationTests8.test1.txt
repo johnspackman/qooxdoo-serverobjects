@@ -1,0 +1,66 @@
+{
+  "serverId" : 0,
+  "clazz" : {
+    "className" : "com.zenesis.qx.remote.test.serialisation.EightA",
+    "interfaces" : [ {
+      "className" : "com.zenesis.qx.remote.test.serialisation.IEightA",
+      "isInterface" : true
+    } ],
+    "properties" : {
+      "eightB" : {
+        "sync" : "queue",
+        "event" : "changeEightB",
+        "nullable" : true,
+        "readOnly" : true,
+        "array" : "native",
+        "clazz" : {
+          "className" : "com.zenesis.qx.remote.test.serialisation.IEightB",
+          "isInterface" : true,
+          "methods" : {
+            "doSomething" : {
+            }
+          }
+        }
+      }
+    },
+    "events" : {
+      "changeEightB" : {
+        "isProperty" : true
+      }
+    }
+  },
+  "values" : {
+    "eightB" : null
+  },
+  "order" : [ "eightB" ]
+}
+{
+  "serverId" : 1,
+  "clazz" : {
+    "className" : "com.zenesis.qx.remote.test.serialisation.EightC",
+    "interfaces" : [ {
+      "className" : "com.zenesis.qx.remote.test.serialisation.IEightC",
+      "isInterface" : true
+    } ],
+    "properties" : {
+      "eightB" : {
+        "sync" : "queue",
+        "event" : "changeEightB",
+        "nullable" : true,
+        "readOnly" : true,
+        "array" : "native",
+        "clazz" : "com.zenesis.qx.remote.test.serialisation.IEightB"
+      }
+    },
+    "events" : {
+      "changeEightB" : {
+        "isProperty" : true
+      }
+    }
+  },
+  "values" : {
+    "eightB" : null
+  },
+  "order" : [ "eightB" ]
+}
+

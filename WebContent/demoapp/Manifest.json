@@ -1,0 +1,34 @@
+{
+  "info" : 
+  {
+    "name" : "demoapp",
+
+    "summary" : "Demo application for testing Qooxdoo Server Objects",
+    "description" : "Demo application for testing Qooxdoo Server Objects",
+    
+    "homepage" : "http://qooxdoo.org/contrib/project/ServerObjects",
+
+    "license" : "Same as Qooxdoo",
+    "authors" : 
+    [
+      {
+        "name" : "John Spackman (spackers)",
+        "email" : "john.spackman@zenesis.com"
+      }
+    ],
+
+    "version" : "trunk",
+    "qooxdoo-versions": ["1.6", "2.0", "2.1" ]
+  },
+  
+  "provides" : 
+  {
+    "namespace"   : "demoapp",
+    "encoding"    : "utf-8",
+    "class"       : "source/class",
+    "resource"    : "source/resource",
+    "translation" : "source/translation",
+    "type"        : "application"
+  }
+}
+

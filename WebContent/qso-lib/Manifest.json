@@ -1,0 +1,34 @@
+{
+  "info" : 
+  {
+    "name" : "qrjo",
+
+    "summary" : "Qooxdoo Remote Java Objects",
+    "description" : "Provides for seamless interoperation of remote, server base Java objects with Qooxdoo clients",
+    
+    "homepage" : "http://www.zenesis.com/",
+
+    "license" : "LGPL",
+    "authors" : 
+    [
+      {
+        "name" : "John Spackman (spackers)",
+        "email" : "john.spackman@zenesis.com"
+      }
+    ],
+
+    "version" : "trunk",
+    "qooxdoo-versions": ["1.6", "2.0", "2.1" ]
+  },
+  
+  "provides" : 
+  {
+    "namespace"   : "com.zenesis.qx.remote",
+    "encoding"    : "utf-8",
+    "class"       : "source/class",
+    "resource"    : "source/resource",
+    "translation" : "source/translation",
+    "type"        : "application"
+  }
+}
+

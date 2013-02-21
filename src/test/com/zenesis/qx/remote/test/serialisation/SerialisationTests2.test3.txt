@@ -1,0 +1,20 @@
+{
+  serverId : 0,
+  clazz : {
+    className : "com.zenesis.qx.remote.test.serialisation.TestAlwaysProxy",
+    interfaces : [ {
+      className : "com.zenesis.qx.remote.test.serialisation.ITestDoNotProxy",
+      isInterface : true,
+      methods : {
+        exportedMethod : {
+        }
+      }
+    } ],
+    methods : {
+      additionalMethod : {
+      },
+      exportedMethod : {
+      }
+    }
+  }
+}

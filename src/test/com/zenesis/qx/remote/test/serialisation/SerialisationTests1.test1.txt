@@ -1,0 +1,115 @@
+{
+  serverId : 0,
+  clazz : {
+    className : "com.zenesis.qx.remote.test.serialisation.A",
+    interfaces : [ {
+      className : "com.zenesis.qx.remote.test.serialisation.IA",
+      isInterface : true,
+      methods : {
+        getE : {
+          returnType : {
+            className : "com.zenesis.qx.remote.test.serialisation.IE",
+            isInterface : true,
+            methods : {
+              getValueE : {
+                parameters : [ null ]
+              }
+            }
+          },
+          parameters : [ null ]
+        },
+        getValueA : {
+          parameters : [ null ]
+        },
+        wasMyE : {
+          parameters : [ "com.zenesis.qx.remote.test.serialisation.IE" ]
+        }
+      }
+    } ],
+    methods : {
+      getE : {
+        returnType : "com.zenesis.qx.remote.test.serialisation.IE",
+        parameters : [ null ]
+      },
+      getValueA : {
+        parameters : [ null ]
+      },
+      wasMyE : {
+        parameters : [ "com.zenesis.qx.remote.test.serialisation.IE" ]
+      }
+    }
+  }
+}
+{
+  serverId : 1,
+  clazz : {
+    className : "com.zenesis.qx.remote.test.serialisation.B",
+    "extend" : "com.zenesis.qx.remote.test.serialisation.A",
+    interfaces : [ {
+      className : "com.zenesis.qx.remote.test.serialisation.IB",
+      isInterface : true,
+      interfaces : [ "com.zenesis.qx.remote.test.serialisation.IA" ],
+      methods : {
+        getValueA : {
+          parameters : [ null ]
+        },
+        getValueB : {
+          parameters : [ null, "com.zenesis.qx.remote.test.serialisation.A" ]
+        }
+      }
+    } ],
+    methods : {
+      getValueB : {
+        parameters : [ null, "com.zenesis.qx.remote.test.serialisation.A" ]
+      }
+    }
+  }
+}
+{
+  serverId : 2,
+  clazz : "com.zenesis.qx.remote.test.serialisation.B"
+}
+{
+  pojo : {
+    C : "C"
+  }
+}
+{
+  serverId : 3,
+  clazz : {
+    className : "com.zenesis.qx.remote.test.serialisation.D",
+    interfaces : [ "com.zenesis.qx.remote.test.serialisation.IB" ],
+    methods : {
+      getE : {
+        returnType : "com.zenesis.qx.remote.test.serialisation.IE",
+        parameters : [ null ]
+      },
+      getValueA : {
+        parameters : [ null ]
+      },
+      getValueB : {
+        parameters : [ null, "com.zenesis.qx.remote.test.serialisation.A" ]
+      },
+      wasMyE : {
+        parameters : [ "com.zenesis.qx.remote.test.serialisation.IE" ]
+      }
+    }
+  }
+}
+{
+  serverId : 0
+}
+{
+  serverId : 1
+}
+{
+  serverId : 2
+}
+{
+  pojo : {
+    C : "C"
+  }
+}
+{
+  serverId : 3
+}

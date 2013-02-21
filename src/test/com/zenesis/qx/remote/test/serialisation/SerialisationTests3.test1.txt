@@ -1,0 +1,53 @@
+{
+  "serverId" : 0,
+  "clazz" : {
+    "className" : "com.zenesis.qx.remote.test.serialisation.TestScalars",
+    "interfaces" : [ {
+      "className" : "com.zenesis.qx.remote.test.serialisation.ITestScalars",
+      "isInterface" : true,
+      "methods" : {
+        "getBoolean" : {
+          "parameters" : [ null ]
+        },
+        "getDouble" : {
+          "parameters" : [ null ]
+        },
+        "getFloat" : {
+          "parameters" : [ null ]
+        },
+        "getInt" : {
+          "parameters" : [ null ]
+        },
+        "getString" : {
+          "parameters" : [ null ]
+        },
+        "getStringArray" : {
+          "returnArray" : "native",
+          "parameters" : [ null ]
+        }
+      }
+    } ],
+    "methods" : {
+      "getBoolean" : {
+        "parameters" : [ null ]
+      },
+      "getDouble" : {
+        "parameters" : [ null ]
+      },
+      "getFloat" : {
+        "parameters" : [ null ]
+      },
+      "getInt" : {
+        "parameters" : [ null ]
+      },
+      "getString" : {
+        "parameters" : [ null ]
+      },
+      "getStringArray" : {
+        "returnArray" : "native",
+        "parameters" : [ null ]
+      }
+    }
+  }
+}
+

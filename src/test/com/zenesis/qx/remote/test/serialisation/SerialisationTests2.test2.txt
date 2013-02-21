@@ -1,0 +1,34 @@
+{
+  "serverId" : 0,
+  "clazz" : {
+    "className" : "com.zenesis.qx.remote.test.serialisation.TestTwoDeep",
+    "extend" : {
+      "className" : "com.zenesis.qx.remote.test.serialisation.TestDoNotProxy",
+      "interfaces" : [ {
+        "className" : "com.zenesis.qx.remote.test.serialisation.ITestDoNotProxy",
+        "isInterface" : true,
+        "methods" : {
+          "exportedMethod" : {
+          }
+        }
+      } ],
+      "methods" : {
+        "exportedMethod" : {
+        }
+      }
+    },
+    "interfaces" : [ {
+      "className" : "com.zenesis.qx.remote.test.serialisation.ITestTwoDeep",
+      "isInterface" : true,
+      "interfaces" : [ "com.zenesis.qx.remote.test.serialisation.ITestDoNotProxy" ],
+      "methods" : {
+        "exportedByInheritanceMethod" : {
+        }
+      }
+    } ],
+    "methods" : {
+      "exportedByInheritanceMethod" : {
+      }
+    }
+  }
+}

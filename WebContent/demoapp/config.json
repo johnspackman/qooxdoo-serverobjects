@@ -1,0 +1,92 @@
+{
+  "name"    : "demoapp",
+
+  "include" :
+  [
+    {
+      "path" : "${QOOXDOO_PATH}/tool/data/config/application.json"
+    }
+  ],
+
+  "export" :
+  [
+    "api",
+    "api-data",
+    "build",
+    "clean",
+    "distclean",
+    "fix",
+    "info",
+    "inspector",
+    "lint",
+    "migration",
+    "pretty",
+    "profiling",
+    "source",
+    "source-all",
+    "source-hybrid",
+    "simulation-build",
+    "simulation-run",
+    "test",
+    "test-source",
+    "translation"
+  ],
+  
+  "default-job" : "source",
+
+  "let" :
+  {
+    "APPLICATION"  : "demoapp",
+    "QOOXDOO_PATH" : "/Users/john/os/qooxdoo",
+    "QXTHEME"      : "qx.theme.Modern",
+    "API_EXCLUDE"  : ["qx.test.*", "${APPLICATION}.theme.*", "${APPLICATION}.test.*", "${APPLICATION}.simulation.*"],
+    "LOCALES"      : [ "en" ],
+    "CACHE"        : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache",
+    "ROOT"         : "."
+  },
+
+  "jobs" :
+  {
+	"common" : {
+		"environment" : {
+			"qx.aspects": "true",
+			"com.zenesis.qx.remote.enableGC" : "true"
+		}
+	},
+	
+    "libraries" : 
+    {
+      "library" :
+      [
+        {
+          "manifest" : "${QOOXDOO_PATH}/framework/Manifest.json",
+          "uri" : "/qooxdoo/framework"
+        },
+        {
+          "manifest" : "../qso-lib/Manifest.json",
+          "uri" : "/qso-lib"
+        },
+        {
+          "manifest" : "../qx-gc/Manifest.json",
+          "uri" : "/qx-gc"
+        }
+      ]
+    },
+    
+    "source-hybrid": {
+    	"compile-options": {
+    		"code": {
+    			"=except": [ "com.zenesis.*", "demoapp.*" ]
+    		}
+    	}
+    },
+    
+    "source-script": {
+	    "compile-options" : {
+		  "uris" : {
+		    "add-nocache-param":	true
+		  }
+		}
+	}
+  }
+}

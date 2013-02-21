@@ -1,0 +1,13 @@
+{
+  serverId : 0,
+  clazz : {
+    className : "com.zenesis.qx.remote.test.serialisation.TestManualExport2",
+    methods : {
+      anotherMethod : {
+      },
+      manualExportMethod : {
+      }
+    }
+  }
+}
+

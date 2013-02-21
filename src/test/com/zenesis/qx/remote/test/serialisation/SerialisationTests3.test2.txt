@@ -1,0 +1,40 @@
+{
+  serverId : 0,
+  clazz : {
+    className : "com.zenesis.qx.remote.test.serialisation.TestComplexAlpha",
+    interfaces : [ {
+      className : "com.zenesis.qx.remote.test.serialisation.ITestComplexAlpha",
+      isInterface : true,
+      methods : {
+        getBravo : {
+          returnType : {
+            className : "com.zenesis.qx.remote.test.serialisation.ITestComplexBravo",
+            isInterface : true,
+            methods : {
+              setAlpha : {
+                parameters : [ "com.zenesis.qx.remote.test.serialisation.ITestComplexAlpha" ]
+              }
+            }
+          }
+        },
+        getRecursive : {
+          returnType : "com.zenesis.qx.remote.test.serialisation.ITestComplexAlpha"
+        },
+        setBravo : {
+          parameters : [ "com.zenesis.qx.remote.test.serialisation.ITestComplexBravo" ]
+        }
+      }
+    } ],
+    methods : {
+      getBravo : {
+        returnType : "com.zenesis.qx.remote.test.serialisation.ITestComplexBravo"
+      },
+      getRecursive : {
+        returnType : "com.zenesis.qx.remote.test.serialisation.ITestComplexAlpha"
+      },
+      setBravo : {
+        parameters : [ "com.zenesis.qx.remote.test.serialisation.ITestComplexBravo" ]
+      }
+    }
+  }
+}

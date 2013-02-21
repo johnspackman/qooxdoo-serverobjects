@@ -1,0 +1,15 @@
+{
+  "serverId" : 0,
+  "clazz" : {
+    "className" : "com.zenesis.qx.remote.test.serialisation.C10",
+    "methods" : {
+      "getA" : {
+      },
+      "getB" : {
+      },
+      "getValue" : {
+      }
+    }
+  }
+}
+

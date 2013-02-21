@@ -1,0 +1,87 @@
+{
+  "serverId" : 0,
+  "clazz" : {
+    "className" : "com.zenesis.qx.remote.test.properties.TestProperties",
+    "interfaces" : [ {
+      "className" : "com.zenesis.qx.remote.test.properties.ITestProperties",
+      "isInterface" : true,
+      "methods" : {
+        "getChangeLog" : {
+        },
+        "triggerChangeWatchedString" : {
+        },
+        "triggerSomeEvent" : {
+        }
+      }
+    } ],
+    "methods" : {
+      "getChangeLog" : {
+      },
+      "triggerChangeWatchedString" : {
+      },
+      "triggerSomeEvent" : {
+      }
+    },
+    "properties" : {
+      "immediate" : {
+        "sync" : "immediate",
+        "event" : "changeImmediate",
+        "nullable" : true,
+        "check" : "String"
+      },
+      "watchedString" : {
+        "sync" : "queue",
+        "event" : "changeWatchedString",
+        "nullable" : true,
+        "check" : "String"
+      },
+      "onDemandString" : {
+        "sync" : "queue",
+        "event" : "changeDemandString",
+        "nullable" : true,
+        "onDemand" : true,
+        "check" : "String"
+      },
+      "queued" : {
+        "sync" : "queue",
+        "event" : "changeQueued",
+        "nullable" : true,
+        "check" : "String"
+      },
+      "readOnlyString" : {
+        "sync" : "queue",
+        "event" : "changeReadOnlyString",
+        "nullable" : true,
+        "readOnly" : true,
+        "check" : "String"
+      }
+    },
+    "events" : {
+      "changeQueued" : {
+        "isProperty" : true
+      },
+      "someEvent" : {
+      },
+      "changeWatchedString" : {
+        "isProperty" : true
+      },
+      "changeDemandString" : {
+        "isProperty" : true
+      },
+      "changeImmediate" : {
+        "isProperty" : true
+      },
+      "changeReadOnlyString" : {
+        "isProperty" : true
+      }
+    }
+  },
+  "values" : {
+    "immediate" : "Server Immediate",
+    "watchedString" : null,
+    "queued" : "Server Queued",
+    "readOnlyString" : "read-only"
+  },
+  "order" : [ "immediate", "watchedString", "queued", "readOnlyString" ]
+}
+

@@ -1,0 +1,203 @@
+{
+  "serverId" : 0,
+  "clazz" : {
+    "className" : "com.zenesis.qx.remote.test.simple.TestBootstrap",
+    "interfaces" : [ {
+      "className" : "com.zenesis.qx.remote.test.simple.ITestBootstrap",
+      "isInterface" : true,
+      "methods" : {
+        "checkClientTestProperties" : {
+        },
+        "checkNewTestProperties" : {
+          "parameters" : [ {
+            "className" : "com.zenesis.qx.remote.test.properties.ITestProperties",
+            "isInterface" : true,
+            "methods" : {
+              "getChangeLog" : {
+              },
+              "triggerChangeWatchedString" : {
+              },
+              "triggerSomeEvent" : {
+              }
+            }
+          } ]
+        },
+        "getTestArrays" : {
+          "returnType" : {
+            "className" : "com.zenesis.qx.remote.test.properties.ITestArrays",
+            "isInterface" : true,
+            "methods" : {
+              "testObjectArray" : {
+                "parameters" : [ null ]
+              },
+              "testObjectArrayList" : {
+                "parameters" : [ null ]
+              },
+              "testScalarArray" : {
+                "parameters" : [ null ]
+              },
+              "testScalarArrayList" : {
+                "parameters" : [ null ]
+              }
+            }
+          }
+        },
+        "getTestExceptions" : {
+          "returnType" : {
+            "className" : "com.zenesis.qx.remote.test.properties.ITestExceptions",
+            "isInterface" : true,
+            "methods" : {
+              "throwException" : {
+              }
+            }
+          }
+        },
+        "getTestScalars" : {
+          "returnType" : {
+            "className" : "com.zenesis.qx.remote.test.simple.ITestScalars",
+            "isInterface" : true,
+            "methods" : {
+              "addUp" : {
+                "parameters" : [ null ]
+              },
+              "getFourtyThree" : {
+              },
+              "getHelloWorld" : {
+              },
+              "getNames" : {
+                "returnArray" : "native"
+              },
+              "getSixPointSeven" : {
+              }
+            }
+          }
+        },
+        "verifyTestScalars" : {
+          "parameters" : [ "com.zenesis.qx.remote.test.simple.ITestScalars" ]
+        }
+      }
+    } ],
+    "methods" : {
+      "checkClientTestProperties" : {
+      },
+      "checkNewTestProperties" : {
+        "parameters" : [ "com.zenesis.qx.remote.test.properties.ITestProperties" ]
+      },
+      "getTestArrays" : {
+        "returnType" : "com.zenesis.qx.remote.test.properties.ITestArrays"
+      },
+      "getTestExceptions" : {
+        "returnType" : "com.zenesis.qx.remote.test.properties.ITestExceptions"
+      },
+      "getTestScalars" : {
+        "returnType" : "com.zenesis.qx.remote.test.simple.ITestScalars"
+      },
+      "verifyTestScalars" : {
+        "parameters" : [ "com.zenesis.qx.remote.test.simple.ITestScalars" ]
+      }
+    },
+    "properties" : {
+      "testProperties" : {
+        "sync" : "queue",
+        "event" : "changeTestProperties",
+        "nullable" : true,
+        "readOnly" : true,
+        "clazz" : "com.zenesis.qx.remote.test.properties.ITestProperties"
+      },
+      "clientTestProperties" : {
+        "sync" : "queue",
+        "event" : "changeClientTestProperties",
+        "nullable" : true,
+        "clazz" : {
+          "className" : "com.zenesis.qx.remote.test.properties.TestProperties",
+          "interfaces" : [ "com.zenesis.qx.remote.test.properties.ITestProperties" ],
+          "methods" : {
+            "getChangeLog" : {
+            },
+            "triggerChangeWatchedString" : {
+            },
+            "triggerSomeEvent" : {
+            }
+          },
+          "properties" : {
+            "immediate" : {
+              "sync" : "immediate",
+              "event" : "changeImmediate",
+              "nullable" : true,
+              "check" : "String"
+            },
+            "watchedString" : {
+              "sync" : "queue",
+              "event" : "changeWatchedString",
+              "nullable" : true,
+              "check" : "String"
+            },
+            "onDemandString" : {
+              "sync" : "queue",
+              "event" : "changeDemandString",
+              "nullable" : true,
+              "onDemand" : true,
+              "check" : "String"
+            },
+            "queued" : {
+              "sync" : "queue",
+              "event" : "changeQueued",
+              "nullable" : true,
+              "check" : "String"
+            },
+            "readOnlyString" : {
+              "sync" : "queue",
+              "event" : "changeReadOnlyString",
+              "nullable" : true,
+              "readOnly" : true,
+              "check" : "String"
+            }
+          },
+          "events" : {
+            "changeQueued" : {
+              "isProperty" : true
+            },
+            "someEvent" : {
+            },
+            "changeWatchedString" : {
+              "isProperty" : true
+            },
+            "changeDemandString" : {
+              "isProperty" : true
+            },
+            "changeImmediate" : {
+              "isProperty" : true
+            },
+            "changeReadOnlyString" : {
+              "isProperty" : true
+            }
+          }
+        }
+      }
+    },
+    "events" : {
+      "changeClientTestProperties" : {
+        "isProperty" : true
+      },
+      "changeTestProperties" : {
+        "isProperty" : true
+      }
+    }
+  },
+  "values" : {
+    "testProperties" : {
+      "serverId" : 1,
+      "clazz" : "com.zenesis.qx.remote.test.properties.TestProperties",
+      "values" : {
+        "immediate" : "Server Immediate",
+        "watchedString" : null,
+        "queued" : "Server Queued",
+        "readOnlyString" : "read-only"
+      },
+      "order" : [ "immediate", "watchedString", "queued", "readOnlyString" ]
+    },
+    "clientTestProperties" : null
+  },
+  "order" : [ "testProperties", "clientTestProperties" ]
+}
+
