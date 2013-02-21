@@ -112,7 +112,7 @@ public class TestBootstrap implements ITestBootstrap {
 	@Method
 	public boolean wasLastPippoDisposed() {
 		boolean has = ProxyManager.getTracker().hasProxied(lastPippo);
-		return has;
+		return !has;
 	}
 
 	@Method

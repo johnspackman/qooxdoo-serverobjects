@@ -29,6 +29,7 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 	extend: qx.core.Object,
 	
 	construct: function(serverId) {
+		this.base(arguments);
 		qx.core.Assert.assertTrue(!serverId || serverId > 0, "Invalid use of Proxy - invalid serverId " + (serverId||"null") + " specified");
 		var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
 		this.__serverClass = PM.getClassInfo(this.classname);
@@ -156,7 +157,7 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 		 * @returns
 		 */
 		__storePropertyOnDemand: function(propDef, value) {
-			var GC = com.zenesis.gc.GC.getInstance();
+			var GC = com.zenesis.gc.GC;
 			var oldValue;
 			if (this.$$proxyUser && (oldValue = this.$$proxyUser[propDef.name])) {
 				if (propDef.array = "wrap" && propDef.changeListenerId) {

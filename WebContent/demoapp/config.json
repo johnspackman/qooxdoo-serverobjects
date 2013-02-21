@@ -50,7 +50,7 @@
 	"common" : {
 		"environment" : {
 			"qx.aspects": "true",
-			"com.zenesis.qx.remote.enableGC" : "true"
+			"com.zenesis.gc.GC.enableAutoCollect" : "true"
 		}
 	},
 	
@@ -84,7 +84,7 @@
     "source-script": {
 	    "compile-options" : {
 		  "uris" : {
-		    "add-nocache-param":	true
+		    "add-nocache-param":	false
 		  }
 		}
 	}

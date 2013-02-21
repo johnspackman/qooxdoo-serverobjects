@@ -132,7 +132,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 		
 		/**
 		 * The Servlet at the other end is configured to return an initial object for this
-		 * session; it can be any arbitrary object because QRJO will instantiate it correctly
+		 * session; it can be any arbitrary object because QSO will instantiate it correctly
 		 * at this end.  That becomes the entry point for the application from here on in.
 		 * 
 		 * Can be called multiple times, the first object is always returned.
@@ -144,12 +144,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 			var msg = { cmd: "bootstrap" };
 			this._sendCommandToServer(msg, function(evt) {
 					result = this._processResponse(evt, true);
+					if (result) {
+						var GC = com.zenesis.gc.GC.getInstance();
+						GC.addRoot(result);
+					}
 				}, this);
 			var ex = this.clearException();
 			if (ex)
 				throw ex;
-			var GC = com.zenesis.gc.GC.getInstance();
-			GC.addRoot(result);
 			return result;
 		},
 		
