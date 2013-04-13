@@ -75,6 +75,7 @@ public class RequestHandler {
 	private static final String CMD_EXPIRE = "expire";			// Expires a flushed property value 
 	private static final String CMD_LISTEN = "listen";			// Add an event listener 
 	private static final String CMD_NEW = "new";				// Create a new object 
+	private static final String CMD_POLL = "poll";				// Poll for changes (ie do nothing) 
 	private static final String CMD_SET = "set";				// Set a property value 
 	private static final String CMD_UNLISTEN = "unlisten";		// Remove an event listener
 
@@ -186,11 +187,13 @@ public class RequestHandler {
 				objectMapper.writeValue(response, tracker.getQueue());
 			
 		} catch(ProxyException e) {
-			Throwable cause = e.getCause();
-			if (cause == null)
-				cause = e;
 			tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
 			objectMapper.writeValue(response, tracker.getQueue());
+			
+		} catch(Exception e) {
+			tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
+			objectMapper.writeValue(response, tracker.getQueue());
+			
 		} finally {
 			s_currentHandler.set(null);
 		}
@@ -234,6 +237,9 @@ public class RequestHandler {
 		
 		else if (cmd.equals(CMD_NEW))
 			cmdNewObject(jp);
+		
+		else if (cmd.equals(CMD_POLL))
+			cmdPoll(jp);
 		
 		else if (cmd.equals(CMD_SET))
 			cmdSetProperty(jp);
@@ -590,6 +596,17 @@ public class RequestHandler {
 	}
 	
 	/**
+	 * Handles creating a server object to match one created on the client; expects className,
+	 * clientId, properties
+	 * @param jp
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	protected void cmdPoll(JsonParser jp) throws ServletException, IOException {
+		jp.nextToken();
+	}
+	
+	/**
 	 * Handles adding an event listener; expects serverId, eventName
 	 * @param jp
 	 * @throws ServletException
@@ -657,7 +674,7 @@ public class RequestHandler {
 	 * @param propertyName
 	 * @param value
 	 */
-	protected void setPropertyValue(ProxyType type, Proxied proxied, String propertyName, Object value) {
+	protected void setPropertyValue(ProxyType type, Proxied proxied, String propertyName, Object value) throws ProxyException {
 		if (setPropertyObject != null || setPropertyName != null)
 			throw new IllegalStateException("Recursive property setting!");
 		setPropertyObject = proxied;
@@ -762,6 +779,13 @@ public class RequestHandler {
 				} else
 					result.add(null);
 				
+			} else if (type != null && Enum.class.isAssignableFrom(type)) {
+				Object obj = jp.readValueAs(Object.class);
+				if (obj != null) {
+					String str = camelCaseToEnum(obj.toString());
+					obj = Enum.valueOf(type, str);
+					result.add(obj);
+				}
 			} else {
 				Object obj = jp.readValueAs(type != null ? type : Object.class);
 				result.add(obj);
@@ -793,7 +817,15 @@ public class RequestHandler {
 				} else
 					result.add(null);
 			} else {
-				Object obj = jp.readValueAs(clazz);
+				Object obj;
+				if (Enum.class.isAssignableFrom(clazz)) {
+					obj = jp.readValueAs(Object.class);
+					if (obj != null) {
+						String str = camelCaseToEnum(obj.toString());
+						obj = Enum.valueOf(clazz, str);
+					}
+				} else
+					obj = jp.readValueAs(clazz);
 				result.add(obj);
 			}
 		}

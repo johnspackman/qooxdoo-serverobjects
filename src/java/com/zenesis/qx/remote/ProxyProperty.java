@@ -80,14 +80,14 @@ public interface ProxyProperty extends JsonSerializable {
 	 * @param proxied
 	 * @return
 	 */
-	public Object getValue(Proxied proxied);
+	public Object getValue(Proxied proxied) throws ProxyException;
 	
 	/**
 	 * Sets the value of a property in an object
 	 * @param proxied
 	 * @param value
 	 */
-	public void setValue(Proxied proxied, Object value);
+	public void setValue(Proxied proxied, Object value) throws ProxyException;
 
 	/**
 	 * Expires the cached value, in response to the same event on the client

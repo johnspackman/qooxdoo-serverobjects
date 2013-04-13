@@ -24,7 +24,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	protected ProxyEvent event;
 	
 	// Whether null is a valid value
-	protected boolean nullable;
+	protected Boolean nullable;
 	
 	// Whether to send exceptions which occur while setting a value received from teh client
 	protected Boolean sendExceptions;
@@ -48,13 +48,29 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		gen.writeStringField("sync", sync.remoteId);
 		if (event != null)
 			gen.writeStringField("event", event.getName());
-		gen.writeBooleanField("nullable", nullable);
 		if (onDemand)
 			gen.writeBooleanField("onDemand", true);
 		if (isReadOnly())
 			gen.writeBooleanField("readOnly", true);
 		
 		Class clazz = propertyClass.getJavaType();
+		boolean nullable;
+		if (this.nullable == null) {
+			if (clazz == Boolean.TYPE || 
+				clazz == Character.TYPE || 
+				clazz == Byte.TYPE || 
+				clazz == Short.TYPE || 
+				clazz == Integer.TYPE || 
+				clazz == Long.TYPE || 
+				clazz == Float.TYPE || 
+				clazz == Double.TYPE)
+				nullable = false;
+			else
+				nullable = true;
+		} else
+			nullable = this.nullable;
+		gen.writeBooleanField("nullable", nullable);
+			
 		if (propertyClass.isArray() || propertyClass.isCollection()) {
 			if (!propertyClass.isWrapArray())
 				gen.writeStringField("array", "native");

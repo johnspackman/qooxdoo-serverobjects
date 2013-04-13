@@ -136,6 +136,11 @@ public class TestBootstrap implements ITestBootstrap {
 	}
 	
 	@Method
+	public TestMap getTestMap() {
+		return new TestMap();
+	}
+	
+	@Method
 	public int waitForMillis(int millis) {
 		try {
 			Thread.sleep(millis);

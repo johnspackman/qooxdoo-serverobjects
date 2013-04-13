@@ -176,6 +176,51 @@ public class ProxyObjectMapper extends ObjectMapper {
 		}
 	};
 
+/*	
+	private static final class EnumDeserializer extends JsonDeserializer<Enum> {
+
+		@Override
+		public Enum deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+			String value = jp.getText();
+			if (value == null || value.length() == 0)
+				return null;
+			return null;
+		}
+		
+		private static <T extends Enum> T camelCaseToEnum(String str, Class<T> clz) {
+			str = camelCaseToEnumStr(str);
+			if (str == null)
+				return null;
+			try {
+				T value = (T)T.valueOf(clz, str);
+				return value;
+			}catch(IllegalArgumentException e) {
+				return null;
+			}
+		}
+		
+		private static String camelCaseToEnumStr(String str) {
+			if (str == null)
+				return null;
+			StringBuilder sb = new StringBuilder(str);
+			char lastC = 0;
+			for (int i = 0; i < sb.length(); i++) {
+				char c = sb.charAt(i);
+				if (Character.isUpperCase(c)) {
+					if (lastC != 0 && Character.isLowerCase(lastC)) {
+						sb.insert(i, '_');
+						i++;
+					}
+				} else if (Character.isLowerCase(c))
+					sb.setCharAt(i, Character.toUpperCase(c));
+				lastC = c;
+			}
+			return sb.toString();
+		}
+		
+	}
+*/
+	
 	/*
 	 * Serialises a file, but only showing the part of the path relative to the "root" dir of
 	 * the web application

@@ -101,7 +101,7 @@ public @interface Property {
 	 * Whether the property supports null values
 	 * @return
 	 */
-	public boolean nullable() default true;
+	public Remote.Toggle nullable() default Remote.Toggle.DEFAULT;
 	
 	/**
 	 * The name of the method to use to serialize the property value for

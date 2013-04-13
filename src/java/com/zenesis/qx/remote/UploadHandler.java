@@ -143,6 +143,10 @@ public class UploadHandler {
 	 * @throws IOException
 	 */
     protected void receiveOctetStream(HttpServletRequest request) throws IOException {
+    	FileApi api = getFileApi();
+    	Object tmp = request.getParameter("apiServerObjectId");
+    	if (tmp != null && tmp instanceof FileApi)
+    		api = (FileApi)tmp;
         String filename = request.getHeader("X-File-Name");
         int pos = filename.lastIndexOf('/');
         if (pos > -1)
@@ -150,8 +154,7 @@ public class UploadHandler {
 		File file = ProxyManager.getInstance().createTemporaryFile(filename);
 		UploadingFile uploading = new UploadingFile("0", file, filename, Collections.EMPTY_MAP);
         ArrayList<FileApi.FileInfo> files = new ArrayList<FileApi.FileInfo>();
-        file = receiveFile(request.getInputStream(), uploading);
-        FileApi api = ((FileApiProvider)tracker.getBootstrap()).getFileApi();
+        file = receiveFile(api, request.getInputStream(), uploading);
         FileApi.FileInfo info = api.getFileInfo(file);
         if (info != null)
         	files.add(info);
@@ -169,6 +172,7 @@ public class UploadHandler {
         ArrayList<FileApi.FileInfo> files = new ArrayList<FileApi.FileInfo>();
         
 		MultipartParser parser = new MultipartParser(request, Integer.MAX_VALUE, true, true, null);
+		FileApi api = getFileApi();
 		Part part;
 		while ((part = parser.readNextPart()) != null) {
 			String name = part.getName();
@@ -192,6 +196,8 @@ public class UploadHandler {
 							value = URLDecoder.decode((String)value, "utf-8");				
 					}
 				}
+				if (name.equals("apiServerObjectId") && value instanceof FileApi)
+					api = (FileApi)value;
 				params.put(name, value);
 				
 			} else {
@@ -209,8 +215,8 @@ public class UploadHandler {
 				log.info("Starting receive of " + file.getAbsolutePath());
 				UploadingFile uploading = new UploadingFile(uploadId, file, fileName, params);
 				
-				File receivedFile = receiveFile(filePart.getInputStream(), uploading);
-				FileInfo info = getFileApi().getFileInfo(receivedFile);
+				File receivedFile = receiveFile(api, filePart.getInputStream(), uploading);
+				FileInfo info = api.getFileInfo(receivedFile);
 				if (info != null)
 					files.add(info);
 			}
@@ -225,9 +231,7 @@ public class UploadHandler {
      * @return
      * @throws IOException
      */
-    protected File receiveFile(InputStream is, UploadingFile uploading) throws IOException {
-        FileApi api = getFileApi();
-        
+    protected File receiveFile(FileApi api, InputStream is, UploadingFile uploading) throws IOException {
 		api.beginUploadingFile(uploading);
 		
 		FileOutputStream os = null;

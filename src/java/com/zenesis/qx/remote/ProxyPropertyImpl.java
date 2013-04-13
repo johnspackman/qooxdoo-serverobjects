@@ -7,11 +7,16 @@ import java.lang.reflect.Method;
 import java.util.Comparator;
 import java.util.Date;
 
+import org.apache.log4j.Logger;
+
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote;
+import com.zenesis.qx.remote.annotations.Remote.Toggle;
 
 public class ProxyPropertyImpl extends AbstractProxyProperty {
+	
+	private static final Logger log = Logger.getLogger(ProxyPropertyImpl.class); 
 
 	public static final Comparator<ProxyProperty> ALPHA_COMPARATOR = new Comparator<ProxyProperty>() {
 
@@ -58,7 +63,8 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 				event = null;
 		} else 
 			event = new ProxyEvent(anno.event());
-		nullable = anno.nullable();
+		if (anno.nullable() != Toggle.DEFAULT)
+			nullable = anno.nullable() == Toggle.TRUE;
 		onDemand = anno.onDemand();
 		sendExceptions = anno.exceptions().booleanValue;
 		if (anno.readOnly() != Remote.Toggle.DEFAULT)
@@ -169,6 +175,8 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 				propertyClass.setJavaType(anno.arrayType());
 			else if (!readOnly)
 				throw new IllegalArgumentException("Missing @Property.arrayType for property " + this);
+			else
+				log.warn("Missing @Property.arrayType for property " + this);
 			propertyClass.setWrapArray(anno.array() != Remote.Array.NATIVE);
 			
 		// Array
@@ -200,7 +208,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 	 * @return
 	 */
 	@Override
-	public Object getValue(Proxied proxied) {
+	public Object getValue(Proxied proxied) throws ProxyException {
 		getAccessors();
 		Object result = null;
 		try {
@@ -212,9 +220,9 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			result = serialize(proxied, result);
 		} catch(InvocationTargetException e) {
 			Throwable t = e.getTargetException();
-			throw new IllegalArgumentException("Cannot read property " + name + " in class " + clazz + " in object " + proxied + ": " + t.getMessage(), t);
+			throw new ProxyException(proxied, "Cannot read property " + name + " in class " + clazz + " in object " + proxied + ": " + t.getMessage(), t);
 		} catch(IllegalAccessException e) {
-			throw new IllegalArgumentException("Cannot read property " + name + " in class " + clazz + " in object " + proxied + ": " + e.getMessage(), e);
+			throw new ProxyException(proxied, "Cannot read property " + name + " in class " + clazz + " in object " + proxied + ": " + e.getMessage(), e);
 		}
 		return result;
 	}
@@ -225,7 +233,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 	 * @param value
 	 */
 	@Override
-	public void setValue(Proxied proxied, Object value) {
+	public void setValue(Proxied proxied, Object value) throws ProxyException {
 		getAccessors();
 		value = deserialize(proxied, value);
 		try {
@@ -236,11 +244,11 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 				setMethod.invoke(proxied, value);
 		} catch(InvocationTargetException e) {
 			Throwable t = e.getTargetException();
-			throw new IllegalArgumentException("Cannot write property " + name + " in class " + clazz + " in object " + proxied + ": " + t.getMessage(), t);
+			throw new ProxyException(proxied, "Cannot write property " + name + " in class " + clazz + " in object " + proxied + ": " + t.getMessage(), t);
 		} catch(IllegalAccessException e) {
-			throw new IllegalArgumentException("Cannot write property " + name + " in class " + clazz + " in object " + proxied + ": " + e.getMessage(), e);
+			throw new ProxyException(proxied, "Cannot write property " + name + " in class " + clazz + " in object " + proxied + ": " + e.getMessage(), e);
 		} catch(IllegalArgumentException e) {
-			throw new IllegalArgumentException("Failed to set value for property " + name + " in class " + clazz + " to value " + value + ", method=" + setMethod + ", field=" + field, e);
+			throw new ProxyException(proxied, "Failed to set value for property " + name + " in class " + clazz + " to value " + value + ", method=" + setMethod + ", field=" + field, e);
 		}
 	}
 

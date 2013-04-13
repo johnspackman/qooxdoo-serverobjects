@@ -46,6 +46,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.zenesis.qx.event.EventManager;
 
 
 /**
@@ -137,9 +138,13 @@ public class ProxySessionTracker {
 								jgen.writeObjectFieldStart("values");
 								sentValues = true;
 							}
-							Object value = prop.getValue(proxied);
-							jgen.writeObjectField(prop.getName(), value);
-							order.add(prop.getName());
+							try {
+								Object value = prop.getValue(proxied);
+								jgen.writeObjectField(prop.getName(), value);
+								order.add(prop.getName());
+							}catch(ProxyException e) {
+								throw new IllegalStateException(e.getMessage(), e);
+							}
 						}
 					}
 					if (sentValues)
@@ -509,6 +514,74 @@ public class ProxySessionTracker {
 	}
 	
 	/**
+	 * Registers that a property has changed; this also fires a server event for
+	 * the property if an event is defined
+	 * @param proxied
+	 * @param propertyName
+	 * @param oldValue
+	 * @param newValue
+	 */
+	public void propertyChanged(Proxied keyObject, ProxyProperty property, Object newValue, Object oldValue) {
+		CommandQueue queue = getQueue();
+		if (!doesClientHaveObject(keyObject))
+			return;
+		if (property.isOnDemand() && !doesClientHaveValue(keyObject, property))
+			return; //queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, propertyName, null);
+		else
+			queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(), property.serialize(keyObject, newValue));
+		if (property.getEvent() != null) {
+			EventManager.fireDataEvent(keyObject, property.getEvent().getName(), newValue);
+		}
+	}
+	
+	/**
+	 * Forces the value of an on demand property to be sent to the client 
+	 * @param keyObject
+	 * @param propertyName
+	 * @param value
+	 */
+	public void preloadProperty(Proxied keyObject, ProxyProperty property, Object value) {
+		CommandQueue queue = getQueue();
+		if (!property.isOnDemand())
+			return;
+		queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(), property.serialize(keyObject, value));
+	}
+	
+	/**
+	 * Forces the value of an on demand property to be sent to the client 
+	 * @param keyObject
+	 * @param propertyName
+	 * @param value
+	 */
+	public void sendProperty(Proxied keyObject, ProxyProperty property) {
+		CommandQueue queue = getQueue();
+		if (!property.isOnDemand())
+			return;
+		try {
+			Object value = property.getValue(keyObject);
+			queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(), property.serialize(keyObject, value));
+		}catch(ProxyException e) {
+			throw new IllegalStateException(e.getMessage(), e);
+		}
+	}
+	
+	/**
+	 * Helper static method to register that an on-demand property has changed and it's value should be
+	 * expired on the client, so that the next attempt to access it causes a refresh
+	 * @param proxied
+	 * @param propertyName
+	 * @param oldValue
+	 * @param newValue
+	 */
+	public void expireProperty(Proxied keyObject, ProxyProperty property) {
+		if (!doesClientHaveObject(keyObject))
+			return;
+		CommandQueue queue = getQueue();
+		if (property.isOnDemand())
+			queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, property.getName(), null);
+	}
+	
+	/**
 	 * Expires the on-demand property value
 	 * @param proxied
 	 * @param propertyName
@@ -517,6 +590,18 @@ public class ProxySessionTracker {
 	public boolean expireOnDemandProperty(Proxied proxied, String propertyName) {
 		boolean existed = knownOnDemandProperties.remove(new PropertyId(proxied, propertyName));
 		return existed;
+	}
+	
+	/**
+	 * Loads a proxy type onto the client
+	 * @param clazz
+	 */
+	public void loadProxyType(Class<? extends Proxied> clazz) {
+		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(clazz);
+		if (type == null || isTypeDelivered(type))
+			return;
+		CommandQueue queue = getQueue();
+		queue.queueCommand(CommandId.CommandType.LOAD_TYPE, type, null, null);
 	}
 	
 	/**

@@ -67,6 +67,9 @@ public class ProxyManager implements EventListener {
 	// Current Tracker for this thread
 	private static final ThreadLocal<ProxySessionTracker> s_currentTracker = new ThreadLocal<ProxySessionTracker>();
 	
+	// Trackers whose objects are synchronised between each other
+	private static final ArrayList<ProxySessionTracker> s_syncedTrackers = new ArrayList<ProxySessionTracker>();
+	
 	// MIME type mapper, null until first use
 	private static MimetypesFileTypeMap s_fileTypeMap;
 	
@@ -197,7 +200,7 @@ public class ProxyManager implements EventListener {
 	 */
 	public static void deselectTracker(ProxySessionTracker tracker) throws IllegalArgumentException {
 		if (s_currentTracker.get() != tracker)
-			throw new IllegalArgumentException("Cannot unselect the wrong tracker");
+			throw new IllegalArgumentException("Cannot unselect the wrong tracker, tracker=" + tracker + ", current=" + s_currentTracker.get());
 		s_currentTracker.set(null);
 	}
 	
@@ -207,6 +210,29 @@ public class ProxyManager implements EventListener {
 	 */
 	public static ProxySessionTracker getTracker() {
 		return s_currentTracker.get();
+	}
+	
+	/**
+	 * Adds a synchronised Tracker
+	 * @param tracker
+	 */
+	public static void addSyncTracker(ProxySessionTracker tracker) {
+		synchronized(s_syncedTrackers) {
+			if (s_syncedTrackers.contains(tracker))
+				throw new IllegalArgumentException("Cannot add tracker more than once, tracker=" + tracker);
+			s_syncedTrackers.add(tracker);
+		}
+	}
+	
+	/**
+	 * Removes a synchronised Tracker
+	 * @param tracker
+	 */
+	public static void removeSyncTracker(ProxySessionTracker tracker) {
+		synchronized(s_syncedTrackers) {
+			if (!s_syncedTrackers.remove(tracker))
+				throw new IllegalArgumentException("Cannot remove tracker because it does not exist, tracker=" + tracker);
+		}
 	}
 	
 	/**
@@ -242,40 +268,47 @@ public class ProxyManager implements EventListener {
 	 * @param newValue
 	 */
 	public static void propertyChanged(Proxied keyObject, String propertyName, Object newValue, Object oldValue) {
-		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return;
-		CommandQueue queue = tracker.getQueue();
-		/* can't do this because we don't want to stop server events firing
-		RequestHandler handler = tracker.getRequestHandler();
-		if (handler != null && handler.isSettingProperty(keyObject, propertyName))
-			return;*/
 		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(keyObject.getClass());
 		ProxyProperty property = getProperty(type, propertyName);
 		if (property == null) {
 			log.warn("Cannot find a property called " + propertyName + " in " + keyObject);
 			return;
 		}
-		if (!tracker.doesClientHaveObject(keyObject))
-			return;
-		if (property.isOnDemand() && !tracker.doesClientHaveValue(keyObject, property))
-			return; //queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, propertyName, null);
-		else
-			queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, propertyName, property.serialize(keyObject, newValue));
-		if (property.getEvent() != null) {
-			EventManager.fireDataEvent(keyObject, property.getEvent().getName(), newValue);
+		ProxySessionTracker tracker = getTracker();
+		if (tracker != null)
+			tracker.propertyChanged(keyObject, property, newValue, oldValue);
+		synchronized(s_syncedTrackers) {
+			for (ProxySessionTracker tmp : s_syncedTrackers)
+				if (tmp != tracker)
+					tmp.propertyChanged(keyObject, property, newValue, oldValue);
 		}
 	}
 	
+	/**
+	 * Forces the value of an on demand property to be sent to the client 
+	 * @param keyObject
+	 * @param propertyName
+	 * @param value
+	 */
 	public static void preloadProperty(Proxied keyObject, String propertyName, Object value) {
-		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
+		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(keyObject.getClass());
+		ProxyProperty property = getProperty(type, propertyName);
+		if (property == null) {
+			log.warn("Cannot find a property called " + propertyName + " in " + keyObject);
 			return;
-		CommandQueue queue = tracker.getQueue();
-		/* can't do this because we don't want to stop server events firing
-		RequestHandler handler = tracker.getRequestHandler();
-		if (handler != null && handler.isSettingProperty(keyObject, propertyName))
-			return;*/
+		}
+		ProxySessionTracker tracker = getTracker();
+		if (tracker != null)
+			tracker.preloadProperty(keyObject, property, value);
+	}
+	
+	/**
+	 * Forces the value of an on demand property to be sent to the client 
+	 * @param keyObject
+	 * @param propertyName
+	 * @param value
+	 */
+	public static void sendProperty(Proxied keyObject, String propertyName) {
 		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(keyObject.getClass());
 		ProxyProperty property = getProperty(type, propertyName);
 		if (property == null) {
@@ -284,7 +317,9 @@ public class ProxyManager implements EventListener {
 		}
 		if (!property.isOnDemand())
 			return;
-		queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, propertyName, property.serialize(keyObject, value));
+		ProxySessionTracker tracker = getTracker();
+		if (tracker != null)
+			tracker.sendProperty(keyObject, property);
 	}
 	
 	/**
@@ -296,25 +331,20 @@ public class ProxyManager implements EventListener {
 	 * @param newValue
 	 */
 	public static void expireProperty(Proxied keyObject, String propertyName) {
-		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return;
-		if (!tracker.doesClientHaveObject(keyObject))
-			return;
-		CommandQueue queue = tracker.getQueue();
-		/* can't do this because we don't want to stop server events firing
-		RequestHandler handler = tracker.getRequestHandler();
-		if (handler != null && handler.isSettingProperty(keyObject, propertyName))
-			return;
-			*/
 		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(keyObject.getClass());
 		ProxyProperty property = getProperty(type, propertyName);
 		if (property == null) {
 			log.warn("Cannot find a property called " + propertyName + " in " + keyObject);
 			return;
 		}
-		if (property.isOnDemand() && tracker.doesClientHaveValue(keyObject, property))
-			queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, propertyName, null);
+		ProxySessionTracker tracker = getTracker();
+		if (tracker != null)
+			tracker.expireProperty(keyObject, property);
+		synchronized(s_syncedTrackers) {
+			for (ProxySessionTracker tmp : s_syncedTrackers)
+				if (tmp != tracker)
+					tmp.expireProperty(keyObject, property);
+		}
 	}
 	
 	/**
@@ -324,9 +354,6 @@ public class ProxyManager implements EventListener {
 	 * @return
 	 */
 	public static boolean hasProperty(Proxied keyObject, String propertyName) {
-		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return false;
 		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(keyObject.getClass());
 		ProxyProperty property = getProperty(type, propertyName);
 		return property != null;
@@ -337,14 +364,12 @@ public class ProxyManager implements EventListener {
 	 * @param clazz
 	 */
 	public static void loadProxyType(Class<? extends Proxied> clazz) {
-		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return;
 		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(clazz);
-		if (type == null || tracker.isTypeDelivered(type))
+		if (type == null)
 			return;
-		CommandQueue queue = tracker.getQueue();
-		queue.queueCommand(CommandId.CommandType.LOAD_TYPE, type, null, null);
+		ProxySessionTracker tracker = getTracker();
+		if (tracker != null)
+			tracker.loadProxyType(clazz);
 	}
 	
 	/**
@@ -456,9 +481,13 @@ public class ProxyManager implements EventListener {
 	 */
 	public static void invalidateCache(Proxied keyObject) {
 		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return;
-		tracker.invalidateCache(keyObject);
+		if (tracker != null)
+			tracker.invalidateCache(keyObject);
+		synchronized(s_syncedTrackers) {
+			for (ProxySessionTracker tmp : s_syncedTrackers)
+				if (tmp != tracker)
+					tmp.invalidateCache(keyObject);
+		}
 	}
 
 	/**
@@ -467,10 +496,16 @@ public class ProxyManager implements EventListener {
 	 */
 	public static void invalidateCache(Proxied[] keyObjects) {
 		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return;
-		for (Proxied obj : keyObjects)
-			tracker.invalidateCache(obj);
+		if (tracker != null) {
+			for (Proxied obj : keyObjects)
+				tracker.invalidateCache(obj);
+		}
+		synchronized(s_syncedTrackers) {
+			for (ProxySessionTracker tmp : s_syncedTrackers)
+				for (Proxied obj : keyObjects)
+					if (tmp != tracker)
+						tmp.invalidateCache(obj);
+		}
 	}
 
 	/**
@@ -479,12 +514,21 @@ public class ProxyManager implements EventListener {
 	 */
 	public static void invalidateCache(Iterable list) {
 		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return;
-		for (Iterator iter = list.iterator(); iter.hasNext(); ) {
-			Object obj = iter.next();
-			if (obj instanceof Proxied)
-				tracker.invalidateCache((Proxied)obj);
+		if (tracker != null) {
+			for (Iterator iter = list.iterator(); iter.hasNext(); ) {
+				Object obj = iter.next();
+				if (obj instanceof Proxied)
+					tracker.invalidateCache((Proxied)obj);
+			}
+		}
+		synchronized(s_syncedTrackers) {
+			for (ProxySessionTracker tmp : s_syncedTrackers)
+				if (tmp != tracker)
+					for (Iterator iter = list.iterator(); iter.hasNext(); ) {
+						Object obj = iter.next();
+						if (obj instanceof Proxied)
+							tmp.invalidateCache((Proxied)obj);
+					}
 		}
 	}
 	
@@ -494,9 +538,8 @@ public class ProxyManager implements EventListener {
 	 */
 	public static void forget(Proxied keyObject) {
 		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return;
-		tracker.forget(keyObject);
+		if (tracker != null)
+			tracker.forget(keyObject);
 	}
 
 	/**
@@ -505,10 +548,10 @@ public class ProxyManager implements EventListener {
 	 */
 	public static void forget(Proxied[] keyObjects) {
 		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return;
-		for (Proxied obj : keyObjects)
-			tracker.forget(obj);
+		if (tracker != null) {
+			for (Proxied obj : keyObjects)
+				tracker.forget(obj);
+		}
 	}
 
 	/**
@@ -517,12 +560,12 @@ public class ProxyManager implements EventListener {
 	 */
 	public static void forget(Iterable list) {
 		ProxySessionTracker tracker = getTracker();
-		if (tracker == null)
-			return;
-		for (Iterator iter = list.iterator(); iter.hasNext(); ) {
-			Object obj = iter.next();
-			if (obj instanceof Proxied)
-				tracker.forget((Proxied)obj);
+		if (tracker != null) {
+			for (Iterator iter = list.iterator(); iter.hasNext(); ) {
+				Object obj = iter.next();
+				if (obj instanceof Proxied)
+					tracker.forget((Proxied)obj);
+			}
 		}
 	}
 
