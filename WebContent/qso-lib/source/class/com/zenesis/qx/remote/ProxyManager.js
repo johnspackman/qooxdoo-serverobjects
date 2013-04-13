@@ -54,6 +54,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 		else
 			com.zenesis.qx.remote.ProxyManager.setInstance(this);
 		
+		this.__onPollTimeoutBinding = qx.lang.Function.bind(this.__onPollTimeout, this);
+		
 		this.__serverObjects = [];
 		this.setProxyUrl(proxyUrl);
 		
@@ -86,10 +88,34 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 	},
 	
 	properties: {
+		/** URL to connect to */
 		proxyUrl: {
 			init: null,
 			nullable: false,
 			check: "String"
+		},
+		
+		/** 
+		 * Whether to poll the server periodically for updates, even if there is nothing
+		 * to send
+		 */
+		pollServer: {
+			init: false,
+			check: "Boolean",
+			nullable: false,
+			event: "changePollServer",
+			apply: "_applyPollServer"
+		},
+		
+		/**
+		 * How often to poll the server in milliseconds if pollServer is true
+		 */
+		pollFrequency: {
+			init: 5000,
+			check: "Integer",
+			nullable: false,
+			event: "changePollFrequency",
+			apply: "_applyPollFrequency"
 		}
 	},
 	
@@ -120,6 +146,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 		// Queue of commands to send to the server at the next flush
 		__queue: null,
 
+		// Polling timer
+		__onPollTimeoutBinding: null,
+		__pollTimerId: null,
+		
 		// The property currently being set, if any (used to prevent recursive sets)
 		__setPropertyObject: null,
 		__setPropertyName: null,
@@ -301,7 +331,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 			if (cos && cos.length > 1) {
 				var isEmpty = true;
 				for (var i = 1; i < cos.length; i++)
-					if (cos[i] != null) {
+					if (cos[i] !== null) {
 						isEmpty = false;
 						break;
 					}
@@ -344,7 +374,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 			} else if (typeof data == "object") {
 				
 				// It's a server object
-				if (data.serverId != undefined) {
+				if (data.serverId !== undefined) {
 					var serverId = data.serverId;
 					
 					// Get or create it
@@ -512,6 +542,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 						
 						// Define the property
 						toDef.nullable = fromDef.nullable;
+						if (!toDef.nullable && fromDef.check) {
+							var defaultValue = com.zenesis.qx.remote.ProxyManager.__NON_NULLABLE_DEFAULTS[fromDef.check];
+							if (defaultValue !== undefined) {
+								if (typeof defaultValue == "function")
+									toDef.init = defaultValue();
+								else
+									toDef.init = defaultValue;
+							}
+						}
 						if (fromDef.event)
 							toDef.event = fromDef.event;
 						
@@ -589,10 +628,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 			clazz.prototype["expire" + upname] = function(sendToServer) {
 				return this._expirePropertyOnDemand(propName, sendToServer);
 			};
-			if (!readOnly)
-				clazz.prototype["set" + upname] = function(value) {
-					return this._setPropertyOnDemand(propName, value);
-				};
+			clazz.prototype["set" + upname] = function(value) {
+				return this._setPropertyOnDemand(propName, value);
+			};
 		},
 		
 		/**
@@ -834,20 +872,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 				var upname = qx.lang.String.firstUp(propertyName);
 				if (def) {
 					if (def.check && def.check == "Date")
-						value = value != null ? new Date(value) : null;
+						value = value !== null ? new Date(value) : null;
 					else if (def.array && def.array == "wrap") {
 						var current = serverObject["get" + upname]();
-						if (value != null)
-							value = qx.lang.Array.cast(value, Array);
-						if (current == null) {
-							var arr = new qx.data.Array();
-							arr.append(value);
-							serverObject["set" + upname](arr);
+						if (value == null) {
+							serverObject["set" + upname](null);
 						} else {
-							value.unshift(0, current.getLength());
-							current.splice.apply(current, value);
-							//current.removeAll();
-							//current.append(value);
+							value = qx.lang.Array.cast(value, Array);
+							if (current === null) {
+								var arr = new qx.data.Array();
+								arr.append(value);
+								serverObject["set" + upname](arr);
+							} else {
+								value.unshift(0, current.getLength());
+								current.splice.apply(current, value);
+							}
 						}
 						return;
 					}
@@ -922,6 +961,24 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 		},
 		
 		/**
+		 * Flushes the outbound queue, but does nothing if there is nothing to send unless
+		 * force is true
+		 * @param force {Boolean?} if true, the server will be connected to regardless of whether
+		 * 	there is anything to send, default is to only poll if there is something to send
+		 * @param callback {function} callback
+		 * @param context {Object?} context for the callback
+		 * @param async {Boolean?} if true, connection is async, default is false
+		 * @returns
+		 */
+		flushQueue: function(force, callback, context, async) {
+			this._sendCommandToServer(!!force ? { cmd: "poll" } : null, function(evt) {
+				var result = this._processResponse(evt);
+				if (callback)
+					callback.call(context||this, evt, result);
+			}, this, async);
+		},
+		
+		/**
 		 * Method called to send data to the server; this is to be implemented by the host
 		 * framework on the client.
 		 * 
@@ -962,16 +1019,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 	      	this.debug("Sending to server: " + text);
       		req.addListener("completed", callback||this._processResponse, context||this);
       		req.addListener("failed", callback||this._processResponse, context||this);
+      		req.addListener("timeout", callback||this._processResponse, context||this);
 	      	req.send();
 	      	this.__numberOfCalls++;
-		},
-		
-		/**
-		 * Flushes the outbound queue, but does nothing if there is nothing to send
-		 * @returns
-		 */
-		flushQueue: function() {
-			this._sendCommandToServer();
 		},
 		
 		/**
@@ -1025,6 +1075,64 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 				clientObject.setSentToServer();
 			}
 		},
+
+		/**
+		 * Apply callback for pollServer property
+		 * @param value
+		 * @param oldValue
+		 */
+		_applyPollServer: function(value, oldValue) {
+			this._killPollTimer();
+			if (value)
+				this._startPollTimer();
+		},
+
+		/**
+		 * Apply callback for pollFrqeuency property
+		 * @param value
+		 * @param oldValue
+		 */
+		_applyPollFrequency: function(value, oldValue) {
+			this._killPollTimer();
+			this._startPollTimer();
+		},
+
+		/**
+		 * Kills the timer that polls the server 
+		 */
+		_killPollTimer: function() {
+			if (this.__pollTimerId) {
+				clearTimeout(this.__pollTimerId);
+				this.__pollTimerId = null;
+			}
+		},
+		
+		/**
+		 * Starts the timer that will poll the server; has no effect if pollServer property is false
+		 */
+		_startPollTimer: function() {
+			if (this.__pollTimerId) {
+				this.debug("ProxyManager poll timer already exists");
+				this._killPollTimer();
+			}
+			if (this.getPollServer())
+				this.__pollTimerId = setTimeout(this.__onPollTimeoutBinding, this.getPollFrequency());
+		},
+		
+		/**
+		 * Callback for polling the server
+		 */
+		__onPollTimeout: function() {
+			this.__pollTimerId = null;
+			this.flushQueue(true, function(evt, result) {
+				var statusCode = evt.getStatusCode();
+				if (statusCode >= 400 && statusCode < 500) {
+					this.error("Disabling server polling because of error: " + statusCode);
+				} else {
+					this._startPollTimer();
+				}
+			}, this, true);
+		},
 		
 		/**
 		 * Returns the number of calls to the server
@@ -1049,7 +1157,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 		 * @param methodName {String} the name of the method
 		 */
 		_getMethodDef: function(serverObject, methodName) {
-			for (var def = serverObject.$$proxyDef; def != null; def = def.extend) {
+			for (var def = serverObject.$$proxyDef; def; def = def.extend) {
 				if (def.methods) {
 					var methodDef = def.methods[methodName];
 					if (methodDef)
@@ -1122,6 +1230,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 	statics: {
 		__initialised: false,
 		__instance: null,
+		
+		__NON_NULLABLE_DEFAULTS: {
+			"Boolean": false,
+			"Number": 0,
+			"Integer": 0,
+			"String": "",
+			"Date": function() { return new Date(); }
+		},
 		
 		/**
 		 * Called to set the singleton global instance that will be used to send data

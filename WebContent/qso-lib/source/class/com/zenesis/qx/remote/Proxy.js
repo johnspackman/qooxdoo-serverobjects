@@ -33,7 +33,7 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 		qx.core.Assert.assertTrue(!serverId || serverId > 0, "Invalid use of Proxy - invalid serverId " + (serverId||"null") + " specified");
 		var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
 		this.__serverClass = PM.getClassInfo(this.classname);
-		if (serverId == undefined || serverId == null) {
+		if (serverId === undefined || serverId === null) {
 			this.__isPending = true;
 			this.__serverId = PM.registerClientObject(this);
 		} else {
@@ -115,7 +115,7 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 				else
 					propDef.changeListenerId = null;
 			}
-			
+
 			// We mustn't tell the server anything if it does not yet know about this object
 			if (this.__isPending)
 				return;
@@ -132,7 +132,7 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 			// Check the cache
 			if (this.$$proxyUser) {
 				var value = this.$$proxyUser[propName];
-				if (value != undefined)
+				if (value !== undefined)
 					return value;
 			} else
 				this.$$proxyUser = {};
@@ -223,7 +223,7 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 				return new qx.data.Array();
 			if (qx.Class.isSubClassOf(value.constructor, qx.data.Array))
 				return value;
-			return new qx.data.Array(value);
+			return new qx.data.Array([value]);
 		},
 		
 		/*
