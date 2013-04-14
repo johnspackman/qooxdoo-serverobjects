@@ -186,6 +186,9 @@ public class RequestHandler {
 			if (tracker.hasDataToFlush())	
 				objectMapper.writeValue(response, tracker.getQueue());
 			
+		} catch(ProxyTypeSerialisationException e) {
+			log.fatal("Unable to serialise type information to client: " + e.getMessage(), e);
+			
 		} catch(ProxyException e) {
 			tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
 			objectMapper.writeValue(response, tracker.getQueue());

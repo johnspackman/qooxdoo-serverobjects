@@ -15,5 +15,19 @@ public class TestMap implements Proxied {
 		stringMap.put("bravo", "two");
 		stringMap.put("charlie", "three");
 	}
+
+	/**
+	 * @return the stringMap
+	 */
+	public HashMap<String, String> getStringMap() {
+		return stringMap;
+	}
+
+	/**
+	 * @param stringMap the stringMap to set
+	 */
+	public void setStringMap(HashMap<String, String> stringMap) {
+		this.stringMap = stringMap;
+	}
 	
 }

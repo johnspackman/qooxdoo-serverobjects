@@ -231,6 +231,10 @@ qx.Class.define("demoapp.Application", {
 			tmp.sort();
 			qx.core.Assert.assertTrue(testArr.testObjectArrayList(tmp.toArray()), "testObjectArrayList failed - the array has not been updated properly");
 			
+			tmp = boot.getTestMap();
+			var map = tmp.getStringMap();
+			qx.core.Assert.assertEquals("one", map.alpha);
+			
 			if (qx.core.Environment.get("com.zenesis.gc.GC.enableAutoCollect")) {
 				var GC = com.zenesis.gc.GC.getInstance();
 				var pippo = boot.getPippo();

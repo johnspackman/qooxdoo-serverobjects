@@ -357,6 +357,15 @@ public class ProxyTypeImpl extends AbstractProxyType {
 	protected Boolean canProxy(Class clazz, Method method) {
 		if (method.isAnnotationPresent(AlwaysProxy.class) || method.isAnnotationPresent(com.zenesis.qx.remote.annotations.Method.class))
 			return true;
+		for (Class tmp : clazz.getInterfaces())
+			if (Proxied.class.isAssignableFrom(tmp)) {
+				Boolean test = canProxy(tmp, method);
+				if (test != null)
+					return test;
+			}
+		Class superClazz = clazz.getSuperclass();
+		if (superClazz!= null && Proxied.class.isAssignableFrom(superClazz))
+			return canProxy(superClazz, method);
 		return null;
 	}
 	
