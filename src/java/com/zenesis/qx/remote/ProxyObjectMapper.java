@@ -188,6 +188,8 @@ public class ProxyObjectMapper extends ObjectMapper {
 			else {
 				jgen.writeStartObject();
 				for (Object key : map.keySet()) {
+					if (key == null)
+						continue;
 					if (key instanceof Enum)
 						jgen.writeFieldName(enumToCamelCase((Enum)key));
 					else
