@@ -66,6 +66,8 @@ qx.Class.define("demoapp.Application", {
 			 * -------------------------------------------------------------------------
 			 */
 			
+			new demoapp.test.DemoTest().testMap();
+			
 			var manager = new com.zenesis.qx.remote.ProxyManager("/sampleServlet/ajax", true);
 			
 			var boot = manager.getBootstrapObject();
@@ -232,8 +234,26 @@ qx.Class.define("demoapp.Application", {
 			qx.core.Assert.assertTrue(testArr.testObjectArrayList(tmp.toArray()), "testObjectArrayList failed - the array has not been updated properly");
 			
 			tmp = boot.getTestMap();
-			var map = tmp.getStringMap();
+			
+			var map = tmp.getWrappedStringMap();
+			qx.core.Assert.assertEquals("one", map.get("alpha"));
+			map.remove("bravo");
+			map.put("charlie", "three-changed");
+			map.put("delta", "four");
+			tmp.checkMapUpdated();
+			
+			map = tmp.getUnwrappedStringMap();
 			qx.core.Assert.assertEquals("one", map.alpha);
+			
+			map = tmp.getWrappedStringMapMethod();
+			qx.core.Assert.assertEquals("one", map.get("alpha"));
+			
+			map = tmp.getObjectMap();
+			qx.core.Assert.assertTrue(!!map.get("aardvark"));
+			qx.core.Assert.assertEquals("com.zenesis.qx.remote.test.simple.TestMap", map.get("aardvark").classname);
+			map.put("beetle", map.get("aardvark"));
+			map.remove("aardvark");
+			tmp.checkObjectMap();
 			
 			if (qx.core.Environment.get("com.zenesis.gc.GC.enableAutoCollect")) {
 				var GC = com.zenesis.gc.GC.getInstance();

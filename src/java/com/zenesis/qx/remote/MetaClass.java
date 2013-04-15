@@ -1,6 +1,9 @@
 package com.zenesis.qx.remote;
 
 import java.util.Collection;
+import java.util.Map;
+
+import com.zenesis.qx.remote.annotations.Property;
 
 /**
  * Because we support proxy-ing of actual, compiled Java classes as well as virtual classes
@@ -14,31 +17,33 @@ public class MetaClass {
 
 	private Class clazz;
 	private Class collectionClass;
+	private Class keyClass;
+	private boolean isMap;
 	private ProxyType proxyType;
 	private boolean isArray;
 	private boolean wrapArray;
 	
-	public MetaClass(Class clazz) {
-		this(clazz, null);
-	}
-	
-	public MetaClass(Class clazz, ProxyType proxyType) {
-		super();
-		
+	public MetaClass(Class clazz, Property anno) {
 		if (clazz.isArray()) {
 			this.clazz = clazz.getComponentType();
 			isArray = true;
 			
 		} else if (Collection.class.isAssignableFrom(clazz)) {
-			this.clazz = Object.class;
+			this.clazz = anno.arrayType();
 			collectionClass = clazz;
+			wrapArray = true;
+			
+		} else if (Map.class.isAssignableFrom(clazz)) {
+			this.clazz = anno.arrayType();
+			if (anno.keyType() != Object.class)
+				this.keyClass = anno.keyType();
+			collectionClass = clazz;
+			isMap = true;
 			wrapArray = true;
 			
 		} else {
 			this.clazz = clazz;
 		}
-		
-		this.proxyType = proxyType;
 	}
 
 	public boolean isArray() {
@@ -61,7 +66,11 @@ public class MetaClass {
 	}
 
 	public boolean isCollection() {
-		return collectionClass != null;
+		return !isMap && collectionClass != null;
+	}
+	
+	public boolean isMap() {
+		return isMap && collectionClass != null;
 	}
 
 	public Class<? extends Collection> getCollectionClass() {
@@ -73,6 +82,13 @@ public class MetaClass {
 	 */
 	public void setCollectionClass(Class collectionClass) {
 		this.collectionClass = collectionClass;
+	}
+
+	/**
+	 * @return the keyClass
+	 */
+	public Class getKeyClass() {
+		return keyClass;
 	}
 
 	public boolean isSubclassOf(Class clazz) {

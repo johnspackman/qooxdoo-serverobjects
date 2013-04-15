@@ -67,6 +67,13 @@ public @interface Property {
 	public Class arrayType() default Object.class;
 	
 	/**
+	 * If a property array is Map and the key type can be specified; this is only
+	 * really useful where the key is an enum 
+	 * @return
+	 */
+	public Class keyType() default Object.class;
+	
+	/**
 	 * Synchronisation policy for the property value
 	 */
 	public Remote.Sync sync() default Remote.Sync.QUEUE;

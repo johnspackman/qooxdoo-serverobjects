@@ -108,11 +108,11 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 			if (propDef.array == "wrap" && !propDef.noArrayEdits) {
 				if (oldValue)
 					oldValue.removeListenerById(propDef.changeListenerId);
-				if (value)
+				if (value) {
 					propDef.changeListenerId = value.addListener("change", function(evt) { 
 						PM.onWrappedArrayChange(evt, this, propDef); 
 					}, this);
-				else
+				} else
 					propDef.changeListenerId = null;
 			}
 
@@ -169,7 +169,11 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 			}
 			if (value !== undefined) {
 				if (value && propDef.array == "wrap") {
-					if (!qx.Class.isSubClassOf(value.constructor, qx.data.Array))
+					if (!!propDef.map) {
+						if (!(value instanceof com.zenesis.qx.remote.Map))
+							value = com.zenesis.qx.remote.Map(value);
+						
+					} else if (!(value instanceof qx.data.Array))
 						value = new qx.data.Array(value);
 					propDef.changeListenerId = value.addListener("change", function(evt) {
 						var PM = com.zenesis.qx.remote.ProxyManager.getInstance();

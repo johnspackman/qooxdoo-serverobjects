@@ -71,11 +71,16 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 			nullable = this.nullable;
 		gen.writeBooleanField("nullable", nullable);
 			
-		if (propertyClass.isArray() || propertyClass.isCollection()) {
+		if (propertyClass.isMap()) {
+			gen.writeBooleanField("map", true);
+		}
+		
+		if (propertyClass.isArray() || propertyClass.isCollection() || propertyClass.isMap()) {
 			if (!propertyClass.isWrapArray())
 				gen.writeStringField("array", "native");
 			else
 				gen.writeStringField("array", "wrap");
+			
 		} else { 
 			if (clazz == boolean.class || clazz == Boolean.class)
 				gen.writeStringField("check", "Boolean");

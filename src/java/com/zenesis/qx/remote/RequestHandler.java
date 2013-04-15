@@ -40,10 +40,14 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
+
 import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zenesis.qx.event.EventManager;
@@ -194,6 +198,7 @@ public class RequestHandler {
 			objectMapper.writeValue(response, tracker.getQueue());
 			
 		} catch(Exception e) {
+			log.error("Exception during callback: " + e.getMessage(), e);
 			tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
 			objectMapper.writeValue(response, tracker.getQueue());
 			
@@ -409,9 +414,14 @@ public class RequestHandler {
 		skipFieldName(jp, "value");
 		MetaClass propClass = prop.getPropertyClass();
 		if (propClass.isSubclassOf(Proxied.class)) {
-			if (propClass.isArray() || propClass.isCollection())
+			
+			if (propClass.isArray() || propClass.isCollection()) {
 				value = readArray(jp, propClass.getJavaType());
-			else {
+				
+			} else if (propClass.isMap()) {
+				value = readMap(jp, propClass.getKeyClass(), propClass.getJavaType());
+				
+			} else {
 				Integer id = jp.readValueAs(Integer.class);
 				if (id != null)
 					value = getProxied(id);
@@ -463,11 +473,6 @@ public class RequestHandler {
 		Integer start = null;
 		Integer end = null;
 		
-		// NOTE: items is an Array!!  But because it may be an array of primitive types, we have
-		//	to use java.lang.reflect.Array to access members because we cannot cast arrays of
-		//	primitives to Object[]
-		Object items = null;
-		
 		if (!action.equals("replaceAll")) {
 			start = getFieldValue(jp, "start", Integer.class);
 			end = getFieldValue(jp, "end", Integer.class);
@@ -478,51 +483,79 @@ public class RequestHandler {
 		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverObject.getClass());
 		ProxyProperty prop = getProperty(type, propertyName);
 		
-		// Get the optional array of items
-		if (jp.nextToken() == JsonToken.FIELD_NAME &&
-				jp.getCurrentName().equals("items") &&
-				jp.nextToken() == JsonToken.START_ARRAY) {
+		if (prop.getPropertyClass().isMap()) {
+			Map items = null;
 			
-			items = readArray(jp, prop.getPropertyClass().getJavaType());
-		}
-		int itemsLength = Array.getLength(items);
-		
-		// Quick logging
-		if (log.isInfoEnabled()) {
-			String str = "";
-			if (items != null)
-				for (int i = 0; i < itemsLength; i++)
-					str += ", " + Array.get(items, i);
-			log.info("edit-array: property=" + prop + ", type=" + action + ", start=" + start + ", end=" + end + str);
-		}
-		
-		if (action.equals("replaceAll")) {
-			if (prop.getPropertyClass().isCollection()) {
-				Collection list = (Collection)prop.getValue(serverObject);
-				list.clear();
-				for (int i = 0; i < itemsLength; i++)
-					list.add(Array.get(items, i));
-			} else {
-				prop.setValue(serverObject, items);
+			// Get the optional array of items
+			if (jp.nextToken() == JsonToken.FIELD_NAME &&
+					jp.getCurrentName().equals("items") &&
+					jp.nextToken() == JsonToken.START_OBJECT) {
+				
+				items = readMap(jp, prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
 			}
+			
+			// Quick logging
+			if (log.isInfoEnabled()) {
+				String str = "";
+				if (items != null)
+					for (Object key : items.keySet()) {
+						if (str.length() > 0)
+							str += ", ";
+						str += String.valueOf(key) + "=" + String.valueOf(items.get(key));
+					}
+				log.info("edit-array: property=" + prop + ", type=" + action + ", start=" + start + ", end=" + end + str);
+			}
+			
+			if (action.equals("replaceAll")) {
+				Map map = (Map)prop.getValue(serverObject);
+				map.clear();
+				map.putAll(items);
+			} else
+				throw new IllegalArgumentException("Unsupported action in cmdEditArray: " + action);
+			
+			jp.nextToken();
+		} else {
+			// NOTE: items is an Array!!  But because it may be an array of primitive types, we have
+			//	to use java.lang.reflect.Array to access members because we cannot cast arrays of
+			//	primitives to Object[]
+			Object items = null;
+			
+			// Get the optional array of items
+			if (jp.nextToken() == JsonToken.FIELD_NAME &&
+					jp.getCurrentName().equals("items") &&
+					jp.nextToken() == JsonToken.START_ARRAY) {
+				
+				items = readArray(jp, prop.getPropertyClass().getJavaType());
+			}
+			int itemsLength = Array.getLength(items);
+			
+			// Quick logging
+			if (log.isInfoEnabled()) {
+				String str = "";
+				if (items != null)
+					for (int i = 0; i < itemsLength; i++) {
+						if (str.length() != 0)
+							str += ", ";
+						str += Array.get(items, i);
+					}
+				log.info("edit-array: property=" + prop + ", type=" + action + ", start=" + start + ", end=" + end + str);
+			}
+			
+			if (action.equals("replaceAll")) {
+				if (prop.getPropertyClass().isCollection()) {
+					Collection list = (Collection)prop.getValue(serverObject);
+					list.clear();
+					if (items != null)
+						for (int i = 0; i < itemsLength; i++)
+							list.add(Array.get(items, i));
+				} else {
+					prop.setValue(serverObject, items);
+				}
+			} else
+				throw new IllegalArgumentException("Unsupported action in cmdEditArray: " + action);
+			
+			jp.nextToken();
 		}
-		
-		/*
-		// Convert the current value into an ArrayList
-		Object obj = prop.getValue(serverObject);
-		ArrayList list;
-		if (obj == null)
-			list = new ArrayList();
-		else if (prop.getPropertyClass().isArray()) {
-			list = new ArrayList();
-			Object[] arr = (Object[])obj;
-			for (int i = 0; i < arr.length; i++)
-				list.add(arr[i]);
-		} else
-			list = (ArrayList)obj;
-		*/
-		
-		jp.nextToken();
 	}
 	
 	/**
@@ -580,9 +613,14 @@ public class RequestHandler {
 				MetaClass propClass = prop.getPropertyClass();
 				Object value = null;
 				if (propClass.isSubclassOf(Proxied.class)) {
-					if (propClass.isArray() || propClass.isCollection())
+					
+					if (propClass.isArray() || propClass.isCollection()) {
 						value = readArray(jp, propClass.getJavaType());
-					else {
+						
+					} else if (propClass.isMap()) {
+						value = readMap(jp, propClass.getKeyClass(), propClass.getJavaType());
+						
+					} else {
 						Integer id = jp.readValueAs(Integer.class);
 						if (id != null)
 							value = getProxied(id);
@@ -820,15 +858,7 @@ public class RequestHandler {
 				} else
 					result.add(null);
 			} else {
-				Object obj;
-				if (Enum.class.isAssignableFrom(clazz)) {
-					obj = jp.readValueAs(Object.class);
-					if (obj != null) {
-						String str = camelCaseToEnum(obj.toString());
-						obj = Enum.valueOf(clazz, str);
-					}
-				} else
-					obj = jp.readValueAs(clazz);
+				Object obj = readSimpleValue(jp, clazz);
 				result.add(obj);
 			}
 		}
@@ -838,6 +868,70 @@ public class RequestHandler {
 			Array.set(arr, i, result.get(i));
 		return arr;
 		//return result.toArray(Array.newInstance(clazz, result.size()));
+	}
+	
+	/**
+	 * Reads an array from JSON, where each value is of the class clazz.  Note that while the result
+	 * is an array, you cannot assume that it is an array of Object, or use generics because generics
+	 * are always Objects - this is because arrays of primitive types are not arrays of Objects
+	 * @param jp
+	 * @param clazz
+	 * @return
+	 * @throws IOException
+	 */
+	private Map readMap(JsonParser jp, Class keyClazz, Class clazz) throws IOException {
+		boolean isProxyClass = Proxied.class.isAssignableFrom(clazz);
+		if (keyClazz == null)
+			keyClazz = String.class;
+		HashMap result = new HashMap();
+		for (; jp.nextToken() != JsonToken.END_OBJECT;) {
+			Object key = readSimpleValue(jp, keyClazz);
+			
+			jp.nextToken();
+			
+			if (isProxyClass) {
+				Integer id = jp.readValueAs(Integer.class);
+				if (id != null) {
+					Proxied obj = getProxied(id);
+					if (!clazz.isInstance(obj))
+						throw new ClassCastException("Cannot cast " + obj + " class " + obj.getClass() + " to " + clazz);
+					result.put(key, obj);
+				} else
+					result.put(key, null);
+			} else {
+				Object obj = readSimpleValue(jp, clazz);
+				result.put(key, obj);
+			}
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * Reads the current token value, with special consideration for enums
+	 * @param jp
+	 * @param clazz
+	 * @return
+	 * @throws IOException
+	 */
+	private Object readSimpleValue(JsonParser jp, Class clazz) throws IOException {
+		Object obj = null;
+		if (Enum.class.isAssignableFrom(clazz)) {
+			if (jp.getCurrentToken() == JsonToken.FIELD_NAME)
+				obj = jp.getCurrentName();
+			else
+				obj = jp.readValueAs(Object.class);
+			if (obj != null) {
+				String str = camelCaseToEnum(obj.toString());
+				obj = Enum.valueOf(clazz, str);
+			}
+		} else {
+			if (jp.getCurrentToken() == JsonToken.FIELD_NAME)
+				obj = jp.getCurrentName();
+			else
+				obj = jp.readValueAs(clazz);
+		}
+		return obj;
 	}
 	
 	/**

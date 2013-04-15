@@ -554,17 +554,22 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 						if (fromDef.event)
 							toDef.event = fromDef.event;
 						
+						if (!!fromDef.map) {
+							if (fromDef.array && fromDef.array == "wrap")
+								toDef.check = "com.zenesis.qx.remote.Map";
+						
+						// Checks
+						} else if (fromDef.check) {
+							toDef.check = fromDef.check||fromDef.clazz;
+							
 						// Handle arrays
-						if (fromDef.array) {
+						} else if (fromDef.array) {
 							if (fromDef.array == "wrap") {
 								toDef.transform = "_transformToDataArray";
 								toDef.check = "qx.data.Array";
 							} else
 								toDef.check = "Array";
-							
-						// Other checks
-						} else if (fromDef.check)
-							toDef.check = fromDef.check||fromDef.clazz;
+						}
 						
 						// Create an apply method
 						var applyName = "_apply" + qx.lang.String.firstUp(propName);
@@ -649,7 +654,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 			if (!value)
 				return value;
 			
-			if (qx.Class.isSubClassOf(value.constructor, qx.data.Array))
+			if (value instanceof com.zenesis.qx.remote.Map) {
+				var result = {};
+				for (var keys = value.getKeys(), i = 0; i < keys.getLength(); i++) {
+					var key = keys.getItem(i);
+					result[key] = this.serializeValue(value.get(key));
+				}
+				return result;
+			}
+			
+			if (value instanceof qx.data.Array)
 				value = value.toArray();
 				
 			if (qx.lang.Type.isArray(value)) {
@@ -670,10 +684,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 			if (!value.classname)
 				return value;
 			
-			if (qx.Class.isSubClassOf(value.constructor, com.zenesis.qx.remote.Proxy))
+			if (value instanceof com.zenesis.qx.remote.Proxy)
 				return value.getServerId();
 				
-			if (qx.Class.isSubClassOf(value.constructor, qx.core.Object)) {
+			if (value instanceof qx.core.Object) {
 				this.debug("Cannot serialize a Qooxdoo object to the server unless it implements com.zenesis.qx.remote.Proxied");
 				return null;
 			}
@@ -714,9 +728,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 			this._sendCommandToServer(data, function(evt) {
 				result = this._processResponse(evt);
 				if (!this.getException()) {
-					var array = methodDef && methodDef.returnArray;  // On-Demand property accessors don't have a method definition 
-					if (array == "wrap")
-						result = new qx.data.Array(result||[]);
+					if (methodDef) {// On-Demand property accessors don't have a method definition
+						if (methodDef.returnArray == "wrap")  {
+							if (!!methodDef.map)
+								result = new com.zenesis.qx.remote.Map(result);
+							else
+								result = new qx.data.Array(result||[]);
+						}
+					}
 				}
 				for (var i = 0; i < notify.length; i++)
 					notify[i].call(serverObject, result);
@@ -768,7 +787,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 						serverId: arrData.serverObject.getServerId(),
 						propertyName: arrData.propertyName,
 						type: "replaceAll",
-						items: this.serializeValue(arrData.array.toArray())
+						items: this.serializeValue(arrData.array)
 					};
 				this._queueCommandToServer(data);
 			}
@@ -871,21 +890,32 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 				var def = serverObject.getPropertyDef(propertyName);
 				var upname = qx.lang.String.firstUp(propertyName);
 				if (def) {
-					if (def.check && def.check == "Date")
+					if (def.check && def.check == "Date") {
 						value = value !== null ? new Date(value) : null;
-					else if (def.array && def.array == "wrap") {
+						
+					} else if (def.array && def.array == "wrap") {
 						var current = serverObject["get" + upname]();
 						if (value == null) {
 							serverObject["set" + upname](null);
 						} else {
-							value = qx.lang.Array.cast(value, Array);
-							if (current === null) {
-								var arr = new qx.data.Array();
-								arr.append(value);
-								serverObject["set" + upname](arr);
+							if (!!def.map) {
+								if (current === null) {
+									value = new com.zenesis.qx.remote.Map(value);
+									serverObject["set" + upname](value);
+								} else {
+									current.replaceAll(value);
+								}
+								
 							} else {
-								value.unshift(0, current.getLength());
-								current.splice.apply(current, value);
+								value = qx.lang.Array.cast(value, Array);
+								if (current === null) {
+									var arr = new qx.data.Array();
+									arr.append(value);
+									serverObject["set" + upname](arr);
+								} else {
+									value.unshift(0, current.getLength());
+									current.splice.apply(current, value);
+								}
 							}
 						}
 						return;

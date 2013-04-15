@@ -106,10 +106,10 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		if (getMethod == null)
 			try {
 				field = clazz.getField(name);
-				field.setAccessible(true); // Disable access tests, MAJOR performance improvement
+				field.setAccessible(true); // Disable access tests, reputed performance improvement
 				if (sendExceptions == null)
 					sendExceptions = false;
-				propertyClass = new MetaClass(field.getType());
+				propertyClass = new MetaClass(field.getType(), anno);
 			}catch(NoSuchFieldException e) {
 				field = null;
 			}
@@ -121,7 +121,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		if (getMethod == null && field == null) {
 			try {
 				getMethod = clazz.getMethod("get" + upname, NO_CLASSES);
-				getMethod.setAccessible(true); // Disable access tests, MAJOR performance improvement
+				getMethod.setAccessible(true); // Disable access tests, reputed performance improvement
 			} catch(NoSuchMethodException e) {
 			}
 			
@@ -132,7 +132,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 						getMethod = clazz.getMethod(name, NO_CLASSES);
 					else
 						getMethod = clazz.getMethod("is" + upname, NO_CLASSES);
-					getMethod.setAccessible(true); // Disable access tests, MAJOR performance improvement
+					getMethod.setAccessible(true); // Disable access tests, reputed performance improvement
 				} catch(NoSuchMethodException e) {
 					throw new IllegalArgumentException("Cannot find any accessor for property " + name + " in class " + clazz);
 				}
@@ -140,9 +140,9 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 				throw new IllegalArgumentException("Cannot find any accessor for property " + name + " in class " + clazz);
 		}
 		if (field != null)
-			propertyClass = new MetaClass(field.getType());
+			propertyClass = new MetaClass(field.getType(), anno);
 		else
-			propertyClass = new MetaClass(getMethod.getReturnType());
+			propertyClass = new MetaClass(getMethod.getReturnType(), anno);
 			
 		// Check exception handling
 		if (sendExceptions == null && getMethod.getExceptionTypes().length > 0)
@@ -156,7 +156,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			try {
 				Class actualJavaType = propertyClass.isArray() ? Array.newInstance(propertyClass.getJavaType(), 0).getClass() : propertyClass.getJavaType();
 				setMethod = clazz.getMethod("set" + upname, new Class[] { actualJavaType });
-				setMethod.setAccessible(true); // Disable access tests, MAJOR performance improvement
+				setMethod.setAccessible(true); // Disable access tests, reputed performance improvement
 				if (sendExceptions == null && setMethod.getExceptionTypes().length > 0)
 					sendExceptions = true;
 			} catch(NoSuchMethodException e) {
@@ -167,7 +167,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		
 		// If there is a custom serialiser, then use it's return type as the definitive Java class 
 		if (serializeMethod != null && serializeMethod.getReturnType() != Object.class)
-			propertyClass = new MetaClass(serializeMethod.getReturnType());
+			propertyClass = new MetaClass(serializeMethod.getReturnType(), anno);
 		
 		// ArrayList
 		if (propertyClass.isCollection()) {
@@ -187,6 +187,16 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 				propertyClass.setJavaType(anno.arrayType());
 			}
 			propertyClass.setWrapArray(anno.array() == Remote.Array.WRAP);
+
+		// Maps
+		} else if (propertyClass.isMap()) {
+			if (anno.arrayType() != Object.class)
+				propertyClass.setJavaType(anno.arrayType());
+			else if (!readOnly)
+				throw new IllegalArgumentException("Missing @Property.arrayType for property " + this);
+			else
+				log.warn("Missing @Property.arrayType for property " + this);
+			propertyClass.setWrapArray(anno.array() != Remote.Array.NATIVE);
 		}
 		
 		// Finish up

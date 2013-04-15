@@ -31,6 +31,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -61,6 +62,8 @@ public class ProxyMethod implements JsonSerializable {
 
 	private final Method method;
 	private final Remote.Array array;
+	private final boolean isMap;
+	private final Class keyType;
 	private final Class arrayType;
 	private final boolean prefetchResult;
 	private final boolean cacheResult;
@@ -75,11 +78,13 @@ public class ProxyMethod implements JsonSerializable {
 		this.method = method;
 		
 		Class returnType = method.getReturnType();
+		Class keyType = String.class;
 		boolean prefetchResult = false;
 		boolean cacheResult = false;
+		isMap = Map.class.isAssignableFrom(returnType);
 		com.zenesis.qx.remote.annotations.Method anno = method.getAnnotation(com.zenesis.qx.remote.annotations.Method.class);
 		
-		if (returnType.isArray() || Iterable.class.isAssignableFrom(returnType)) {
+		if (returnType.isArray() || Iterable.class.isAssignableFrom(returnType) || isMap) {
 			// How to present on the client - only ArrayList by default is wrapped on the client
 			Remote.Array array;
 			if (returnType.isArray()) {
@@ -96,6 +101,8 @@ public class ProxyMethod implements JsonSerializable {
 					array = anno.array();
 				if (anno.arrayType() != Object.class)
 					returnType = anno.arrayType();
+				if (anno.keyType() != Object.class)
+					keyType = anno.keyType();
 			}
 			this.array = array;
 			this.arrayType = returnType;
@@ -111,6 +118,7 @@ public class ProxyMethod implements JsonSerializable {
 			}
 		}
 		
+		this.keyType = keyType;
 		this.prefetchResult = prefetchResult;
 		this.cacheResult = cacheResult;
 	}
@@ -127,6 +135,8 @@ public class ProxyMethod implements JsonSerializable {
 		if (Proxied.class.isAssignableFrom(clazz)) {
 			ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(clazz);
 			jgen.writeObjectField("returnType", type);
+		} else if (isMap) {
+			jgen.writeBooleanField("map", true);
 		}
 		if (cacheResult)
 			jgen.writeBooleanField("cacheResult", cacheResult);

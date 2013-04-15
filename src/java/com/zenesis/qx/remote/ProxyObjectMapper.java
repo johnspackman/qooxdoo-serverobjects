@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -156,26 +157,8 @@ public class ProxyObjectMapper extends ObjectMapper {
 				jgen.writeString(enumToCamelCase(value));
 		}
 
-		private static String enumToCamelCase(Enum e) {
-			if (e == null)
-				return null;
-			StringBuilder sb = new StringBuilder(e.toString());
-			char lastC = 0;
-			for (int i = 0; i < sb.length(); i++) {
-				char c = sb.charAt(i);
-				if (c == '_') {
-					sb.deleteCharAt(i);
-					i--;
-				} else if (Character.isUpperCase(c) && lastC != '_')
-					sb.setCharAt(i, Character.toLowerCase(c));
-				else if (Character.isLowerCase(c) && lastC == '_')
-					sb.setCharAt(i, Character.toUpperCase(c));
-				lastC = c;
-			}
-			return sb.toString();
-		}
 	};
-
+	
 /*	
 	private static final class EnumDeserializer extends JsonDeserializer<Enum> {
 
@@ -187,39 +170,39 @@ public class ProxyObjectMapper extends ObjectMapper {
 			return null;
 		}
 		
-		private static <T extends Enum> T camelCaseToEnum(String str, Class<T> clz) {
-			str = camelCaseToEnumStr(str);
-			if (str == null)
-				return null;
-			try {
-				T value = (T)T.valueOf(clz, str);
-				return value;
-			}catch(IllegalArgumentException e) {
-				return null;
-			}
-		}
-		
-		private static String camelCaseToEnumStr(String str) {
-			if (str == null)
-				return null;
-			StringBuilder sb = new StringBuilder(str);
-			char lastC = 0;
-			for (int i = 0; i < sb.length(); i++) {
-				char c = sb.charAt(i);
-				if (Character.isUpperCase(c)) {
-					if (lastC != 0 && Character.isLowerCase(lastC)) {
-						sb.insert(i, '_');
-						i++;
-					}
-				} else if (Character.isLowerCase(c))
-					sb.setCharAt(i, Character.toUpperCase(c));
-				lastC = c;
-			}
-			return sb.toString();
-		}
-		
 	}
 */
+	
+	/*
+	 * Serialises Maps
+	 */
+	private static final class MapSerializer extends JsonSerializer<Map> {
+		
+		/* (non-Javadoc)
+		 * @see org.codehaus.jackson.map.JsonSerializer#serialize(java.lang.Object, org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
+		 */
+		@Override
+		public void serialize(Map map, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+			if (map == null)
+				jgen.writeNull();
+			else {
+				jgen.writeStartObject();
+				for (Object key : map.keySet()) {
+					if (key instanceof Enum)
+						jgen.writeFieldName(enumToCamelCase((Enum)key));
+					else
+						jgen.writeFieldName(key.toString());
+					Object value = map.get(key);
+					if (value == null)
+						jgen.writeNull();
+					else
+						jgen.writeObject(value);
+				}
+				jgen.writeEndObject();
+			}
+		}
+
+	};
 	
 	/*
 	 * Serialises a file, but only showing the part of the path relative to the "root" dir of
@@ -324,6 +307,7 @@ public class ProxyObjectMapper extends ObjectMapper {
 		module.addSerializer(Enum.class, new EnumSerializer());
 		module.addSerializer(File.class, new FileSerializer(rootDir));
 		module.addDeserializer(File.class, new FileDeserializer(rootDir));
+		module.addSerializer(Map.class, new MapSerializer());
 		registerModule(module);
 	}
 
@@ -352,4 +336,56 @@ public class ProxyObjectMapper extends ObjectMapper {
 	public boolean isQuoteFieldNames() {
 		return getJsonFactory().isEnabled(JsonGenerator.Feature.QUOTE_FIELD_NAMES);
 	}
+
+	private static String enumToCamelCase(Enum e) {
+		if (e == null)
+			return null;
+		StringBuilder sb = new StringBuilder(e.toString());
+		char lastC = 0;
+		for (int i = 0; i < sb.length(); i++) {
+			char c = sb.charAt(i);
+			if (c == '_') {
+				sb.deleteCharAt(i);
+				i--;
+			} else if (Character.isUpperCase(c) && lastC != '_')
+				sb.setCharAt(i, Character.toLowerCase(c));
+			else if (Character.isLowerCase(c) && lastC == '_')
+				sb.setCharAt(i, Character.toUpperCase(c));
+			lastC = c;
+		}
+		return sb.toString();
+	}
+	
+	/*
+	private static <T extends Enum> T camelCaseToEnum(String str, Class<T> clz) {
+		str = camelCaseToEnumStr(str);
+		if (str == null)
+			return null;
+		try {
+			T value = (T)T.valueOf(clz, str);
+			return value;
+		}catch(IllegalArgumentException e) {
+			return null;
+		}
+	}
+	
+	private static String camelCaseToEnumStr(String str) {
+		if (str == null)
+			return null;
+		StringBuilder sb = new StringBuilder(str);
+		char lastC = 0;
+		for (int i = 0; i < sb.length(); i++) {
+			char c = sb.charAt(i);
+			if (Character.isUpperCase(c)) {
+				if (lastC != 0 && Character.isLowerCase(lastC)) {
+					sb.insert(i, '_');
+					i++;
+				}
+			} else if (Character.isLowerCase(c))
+				sb.setCharAt(i, Character.toUpperCase(c));
+			lastC = c;
+		}
+		return sb.toString();
+	}
+*/	
 }

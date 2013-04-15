@@ -57,6 +57,14 @@ public @interface Method {
 	public Class arrayType() default Object.class;
 	
 	/**
+	 * If a function returns a Map this specifies the class of the key; in practice
+	 * this is only useful for enum keys because keys must be translated into
+	 * strings on the client 
+	 * @return
+	 */
+	public Class keyType() default Object.class;
+	
+	/**
 	 * Whether the method's return value should be sent with the object property
 	 * values
 	 * @return
