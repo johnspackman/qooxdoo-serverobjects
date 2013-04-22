@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 import com.zenesis.qx.remote.annotations.ExplicitProxyOnly;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
+import com.zenesis.qx.remote.annotations.Remote.Array;
 
 /**
  * Provides a filing system API within a fixed root; unlike the AppFile implementation, any collection
@@ -492,7 +493,7 @@ public class FileApi implements Proxied {
 	 * Returns the mapping between mime type and file extensions 
 	 * @return
 	 */
-	@Method(cacheResult=true)
+	@Method(cacheResult=true, array=Array.NATIVE)
 	public Map<String, String[]> getMimeTypes() {
 		if (s_mimeTypes == null)
 			return Collections.EMPTY_MAP;
