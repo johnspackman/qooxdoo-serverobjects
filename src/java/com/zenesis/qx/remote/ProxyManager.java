@@ -135,7 +135,7 @@ public class ProxyManager implements EventListener {
 	 * @throws IOException
 	 */
 	public static void handleRequest(HttpServletRequest request, HttpServletResponse response, 
-			Class<? extends Proxied> bootstrapClass, String appName) 
+			Class<? extends Proxied> bootstrapClass, String appName, boolean syncTrackers) 
 			throws ServletException, IOException {
 		
 		HttpSession session = request.getSession();
@@ -144,6 +144,8 @@ public class ProxyManager implements EventListener {
 		if (tracker == null) {
 			tracker = new ProxySessionTracker(bootstrapClass);
 			session.setAttribute(appName, tracker);
+			if (syncTrackers)
+				addSyncTracker(tracker);
 		}
 		
 		// Select the tracker

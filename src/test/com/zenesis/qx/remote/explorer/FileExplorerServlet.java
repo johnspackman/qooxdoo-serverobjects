@@ -71,7 +71,7 @@ public class FileExplorerServlet extends HttpServlet {
 		String uri = request.getPathInfo();
 		
 		if ("/ajax".equals(uri)) {
-			ProxyManager.handleRequest(request, response, FileExplorer.class, "fileExplorer");
+			ProxyManager.handleRequest(request, response, FileExplorer.class, "fileExplorer", false);
 		} else
 			throw new ServletException("Unrecognised URL " + uri);
 	}
