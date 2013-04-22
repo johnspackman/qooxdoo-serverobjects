@@ -242,10 +242,23 @@ public class ProxyTypeImpl extends AbstractProxyType {
 			}
 		}
 		
+		boolean defaultProxy = false;
+		if (clazz.isInterface())
+			defaultProxy = true;
+		else {
+			for (Class tmp = clazz; tmp != null; tmp = tmp.getSuperclass()) {
+				if (tmp.isAnnotationPresent(AlwaysProxy.class)) {
+					defaultProxy = true;
+					break;
+				} else if (tmp.isAnnotationPresent(ExplicitProxyOnly.class)) {
+					break;
+				}
+			}
+		}
+		
 		// If the class does not have any proxied interfaces or the class is marked with
 		//	the AlwaysProxy annotation, then we take methods from the class definition
-		methodsCompiler.addMethods(clazz, !clazz.isAnnotationPresent(ExplicitProxyOnly.class) &&
-				(clazz.isInterface() || interfaces.isEmpty() || clazz.isAnnotationPresent(AlwaysProxy.class)));
+		methodsCompiler.addMethods(clazz, defaultProxy);
 			
 		methodsCompiler.checkValid();
 		methodsCompiler.removeSuperTypeMethods();
