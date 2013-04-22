@@ -230,8 +230,10 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			result = serialize(proxied, result);
 		} catch(InvocationTargetException e) {
 			Throwable t = e.getTargetException();
+			log.error("Exception while getting value for " + this + " on " + proxied + ": " + t.getMessage(), t);
 			throw new ProxyException(proxied, "Cannot read property " + name + " in class " + clazz + " in object " + proxied + ": " + t.getMessage(), t);
 		} catch(IllegalAccessException e) {
+			log.error("Exception while getting value for " + this + " on " + proxied + ": " + e.getMessage(), e);
 			throw new ProxyException(proxied, "Cannot read property " + name + " in class " + clazz + " in object " + proxied + ": " + e.getMessage(), e);
 		}
 		return result;
@@ -254,10 +256,13 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 				setMethod.invoke(proxied, value);
 		} catch(InvocationTargetException e) {
 			Throwable t = e.getTargetException();
+			log.error("Exception while getting value for " + this + " on " + proxied + ": " + t.getMessage(), t);
 			throw new ProxyException(proxied, "Cannot write property " + name + " in class " + clazz + " in object " + proxied + ": " + t.getMessage(), t);
 		} catch(IllegalAccessException e) {
+			log.error("Exception while getting value for " + this + " on " + proxied + ": " + e.getMessage(), e);
 			throw new ProxyException(proxied, "Cannot write property " + name + " in class " + clazz + " in object " + proxied + ": " + e.getMessage(), e);
 		} catch(IllegalArgumentException e) {
+			log.error("Exception while getting value for " + this + " on " + proxied + ": " + e.getMessage(), e);
 			throw new ProxyException(proxied, "Failed to set value for property " + name + " in class " + clazz + " to value " + value + ", method=" + setMethod + ", field=" + field, e);
 		}
 	}
