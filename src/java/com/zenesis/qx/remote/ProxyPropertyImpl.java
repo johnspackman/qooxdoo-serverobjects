@@ -151,6 +151,8 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		if (anno.set().length() > 0)
 			setMethod = findMethod(anno.set(), new Class[] { clazz });
 		
+		if (name.equals("wrappedStringMap"))
+			readOnly = readOnly;
 		// Try for a setXxxx() method
 		if (setMethod == null && (readOnly == null || !readOnly))
 			try {
@@ -162,8 +164,6 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			} catch(NoSuchMethodException e) {
 				setMethod = null;
 			}
-		if (setMethod == null && field == null)
-			readOnly = true;
 		
 		// If there is a custom serialiser, then use it's return type as the definitive Java class 
 		if (serializeMethod != null && serializeMethod.getReturnType() != Object.class)
@@ -173,10 +173,12 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		if (propertyClass.isCollection()) {
 			if (anno.arrayType() != Object.class)
 				propertyClass.setJavaType(anno.arrayType());
-			else if (!readOnly)
+			else if (readOnly != null && !readOnly)
 				throw new IllegalArgumentException("Missing @Property.arrayType for property " + this);
-			else
+			else {
 				log.warn("Missing @Property.arrayType for property " + this);
+				readOnly = true;
+			}
 			propertyClass.setWrapArray(anno.array() != Remote.Array.NATIVE);
 			
 		// Array
@@ -205,7 +207,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		if (readOnly == null) {
 			if (field != null || setMethod != null)
 				readOnly = false;
-			else if (setMethod == null && propertyClass.isCollection())
+			else if (setMethod == null && (propertyClass.isCollection() || propertyClass.isMap()))
 				readOnly = false;
 			else
 				readOnly = true;

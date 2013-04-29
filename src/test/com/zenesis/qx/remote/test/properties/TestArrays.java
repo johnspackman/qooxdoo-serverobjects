@@ -29,12 +29,19 @@ package com.zenesis.qx.remote.test.properties;
 
 import java.util.ArrayList;
 
+import com.zenesis.qx.remote.annotations.Method;
+import com.zenesis.qx.remote.annotations.Property;
+import com.zenesis.qx.remote.annotations.Remote.Toggle;
+
 public class TestArrays implements ITestArrays {
 	
 	private String[] scalarArray = { "One", "Two", "Three", "Four", "Five" };
 	private final ArrayList<String> scalarArrayList = new ArrayList<String>();
 	private ITestValue[] objectArray = new ITestValue[scalarArray.length];
 	private final ArrayList<ITestValue> objectArrayList = new ArrayList<ITestValue>();
+
+	@Property(readOnly=Toggle.TRUE, arrayType=String.class)
+	private ArrayList<String> readOnlyArray;
 
 	public TestArrays() {
 		super();
@@ -44,6 +51,10 @@ public class TestArrays implements ITestArrays {
 			objectArray[i] = new TestValue(i + 1);
 			objectArrayList.add(new TestValue(i + 1));
 		}
+		readOnlyArray = new ArrayList<String>();
+		readOnlyArray.add("peter");
+		readOnlyArray.add("piper");
+		readOnlyArray.add("picked");
 	}
 
 	/* (non-Javadoc)
@@ -145,5 +156,20 @@ public class TestArrays implements ITestArrays {
 				return false;
 		return true;
 	}
+
+	/**
+	 * @return the readOnlyArray
+	 */
+	public ArrayList<String> getReadOnlyArray() {
+		return readOnlyArray;
+	}
 	
+	@Method
+	public boolean checkReadOnlyArray() {
+		if (readOnlyArray.size() != 3)
+			return false;
+		return readOnlyArray.get(0).equals("peter") &&
+				readOnlyArray.get(1).equals("piper") &&
+				readOnlyArray.get(2).equals("picked");
+	}
 }

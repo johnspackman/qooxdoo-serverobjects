@@ -233,6 +233,10 @@ qx.Class.define("demoapp.Application", {
 			tmp.sort();
 			qx.core.Assert.assertTrue(testArr.testObjectArrayList(tmp.toArray()), "testObjectArrayList failed - the array has not been updated properly");
 			
+			tmp = testArr.getReadOnlyArray();
+			tmp.splice(1, 1, "stuff");
+			qx.core.Assert.assertTrue(testArr.checkReadOnlyArray(), "read only array is not read only");
+			
 			tmp = boot.getTestMap();
 			
 			var map = tmp.getWrappedStringMap();
