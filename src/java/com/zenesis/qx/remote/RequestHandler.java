@@ -627,6 +627,10 @@ public class RequestHandler {
 					}
 				} else {
 					value = jp.readValueAs(Object.class);
+					if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
+						String str = camelCaseToEnum(value.toString());
+						value = Enum.valueOf(propClass.getJavaType(), str);
+					}
 				}
 				setPropertyValue(type, proxied, propertyName, value);
 			}
