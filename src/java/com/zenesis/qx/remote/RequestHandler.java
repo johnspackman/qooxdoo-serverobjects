@@ -544,6 +544,14 @@ public class RequestHandler {
 			if (action.equals("replaceAll")) {
 				if (prop.getPropertyClass().isCollection()) {
 					Collection list = (Collection)prop.getValue(serverObject);
+					if (list == null) {
+						try {
+							list = (Collection)prop.getPropertyClass().getCollectionClass().newInstance();
+						}catch(Exception e) {
+							throw new IllegalArgumentException(e.getMessage(), e);
+						}
+						prop.setValue(serverObject, list);
+					}
 					list.clear();
 					if (items != null)
 						for (int i = 0; i < itemsLength; i++)
@@ -801,6 +809,9 @@ public class RequestHandler {
 	 * @throws IOException
 	 */
 	private Object[] readArray(JsonParser jp, Class[] types) throws IOException {
+		if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
+			return null;
+		
 		ArrayList result = new ArrayList();
 		for (int paramIndex = 0; jp.nextToken() != JsonToken.END_ARRAY; paramIndex++) {
 			Class type = null;
@@ -849,6 +860,9 @@ public class RequestHandler {
 	 * @throws IOException
 	 */
 	private Object readArray(JsonParser jp, Class clazz) throws IOException {
+		if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
+			return null;
+		
 		boolean isProxyClass = Proxied.class.isAssignableFrom(clazz);
 		ArrayList result = new ArrayList();
 		for (; jp.nextToken() != JsonToken.END_ARRAY;) {
@@ -884,6 +898,9 @@ public class RequestHandler {
 	 * @throws IOException
 	 */
 	private Map readMap(JsonParser jp, Class keyClazz, Class clazz) throws IOException {
+		if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
+			return null;
+		
 		boolean isProxyClass = Proxied.class.isAssignableFrom(clazz);
 		if (keyClazz == null)
 			keyClazz = String.class;
@@ -919,6 +936,9 @@ public class RequestHandler {
 	 * @throws IOException
 	 */
 	private Object readSimpleValue(JsonParser jp, Class clazz) throws IOException {
+		if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
+			return null;
+		
 		Object obj = null;
 		if (Enum.class.isAssignableFrom(clazz)) {
 			if (jp.getCurrentToken() == JsonToken.FIELD_NAME)

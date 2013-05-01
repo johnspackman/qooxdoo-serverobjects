@@ -4,8 +4,10 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -151,12 +153,18 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		if (anno.set().length() > 0)
 			setMethod = findMethod(anno.set(), new Class[] { clazz });
 		
-		if (name.equals("wrappedStringMap"))
+		if (name.equals("requiredRoles"))
 			readOnly = readOnly;
 		// Try for a setXxxx() method
 		if (setMethod == null && (readOnly == null || !readOnly))
 			try {
-				Class actualJavaType = propertyClass.isArray() ? Array.newInstance(propertyClass.getJavaType(), 0).getClass() : propertyClass.getJavaType();
+				Class actualJavaType;
+				if (propertyClass.isArray())
+					actualJavaType = Array.newInstance(propertyClass.getJavaType(), 0).getClass();
+				else if (propertyClass.isCollection() || propertyClass.isMap())
+					actualJavaType = propertyClass.getCollectionClass();
+				else
+					actualJavaType = propertyClass.getJavaType();
 				setMethod = clazz.getMethod("set" + upname, new Class[] { actualJavaType });
 				setMethod.setAccessible(true); // Disable access tests, reputed performance improvement
 				if (sendExceptions == null && setMethod.getExceptionTypes().length > 0)
@@ -254,8 +262,19 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			if (field != null) {
 				if (!readOnly)
 					field.set(proxied, value);
-			} else if (setMethod != null)
+				
+			} else if (setMethod != null) {
 				setMethod.invoke(proxied, value);
+				
+			} else {
+				// If a field is a collection then there doesn't have to be a setXxx method - but if the
+				//	current value is null (eg client constructed object) setValue() will be called.  For
+				//	client constructed objects, the best action is usually to update the property to the
+				//	actual value
+				log.warn("Cannot set property " + this + " because there is no set method and field is not accessible");
+				Object current = getValue(proxied);
+				ProxyManager.propertyChanged(proxied, getName(), current, null);
+			}
 		} catch(InvocationTargetException e) {
 			Throwable t = e.getTargetException();
 			log.error("Exception while getting value for " + this + " on " + proxied + ": " + t.getMessage(), t);
