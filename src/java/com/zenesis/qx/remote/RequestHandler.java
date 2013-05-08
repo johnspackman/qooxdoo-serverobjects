@@ -45,9 +45,7 @@ import java.util.Map;
 import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zenesis.qx.event.EventManager;
@@ -187,15 +185,36 @@ public class RequestHandler {
 			} else if (jp.getCurrentToken() == JsonToken.START_OBJECT)
 				processCommand(jp);
 	
-			if (tracker.hasDataToFlush())	
-				objectMapper.writeValue(response, tracker.getQueue());
+			if (tracker.hasDataToFlush()) {
+				Writer actualResponse = response;
+				if (log.isDebugEnabled()) {
+					final Writer tmp = response;
+					actualResponse = new Writer() {
+						@Override
+						public void close() throws IOException {
+							tmp.close();
+						}
+	
+						@Override
+						public void flush() throws IOException {
+							tmp.flush();
+						}
+	
+						@Override
+						public void write(char[] arg0, int arg1, int arg2) throws IOException {
+							System.out.print(new String(arg0, arg1, arg2));
+							tmp.write(arg0, arg1, arg2);
+						}
+					};
+				}
+				objectMapper.writeValue(actualResponse, tracker.getQueue());
+			}
 			
 		} catch(ProxyTypeSerialisationException e) {
 			log.fatal("Unable to serialise type information to client: " + e.getMessage(), e);
 			
 		} catch(ProxyException e) {
-			tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
-			objectMapper.writeValue(response, tracker.getQueue());
+			handleException(response, objectMapper, e);
 			
 		} catch(Exception e) {
 			log.error("Exception during callback: " + e.getMessage(), e);
@@ -205,6 +224,18 @@ public class RequestHandler {
 		} finally {
 			s_currentHandler.set(null);
 		}
+	}
+	
+	/**
+	 * Called to handle exceptions during processRequest
+	 * @param response
+	 * @param objectMapper
+	 * @param e
+	 * @throws IOException
+	 */
+	protected void handleException(Writer response, ObjectMapper objectMapper, ProxyException e) throws IOException {
+		tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
+		objectMapper.writeValue(response, tracker.getQueue());
 	}
 	
 	/**

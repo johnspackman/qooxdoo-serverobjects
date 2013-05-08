@@ -48,15 +48,12 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 
 	private boolean needsFlush;
 	private LinkedHashMap<CommandId, Object> values = new LinkedHashMap<CommandId, Object>();
-	private boolean closed;
 
 	/* (non-Javadoc)
 	 * @see com.zenesis.qx.remote.CommandQueue#queueCommand(com.zenesis.qx.remote.CommandId, java.lang.Object)
 	 */
 	@Override
 	public void queueCommand(CommandType type, Object object, String propertyName, Object data) {
-		if (closed)
-			throw new IllegalArgumentException("Outbound queue is closed, an exception has been thrown");
 		if (type == CommandType.BOOTSTRAP && !values.isEmpty()) {
 			LinkedHashMap<CommandId, Object> tmp = new LinkedHashMap<CommandId, Object>();
 			tmp.put(new CommandId(type, object, propertyName), data);
@@ -64,8 +61,6 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 			values = tmp;
 		} else
 			values.put(new CommandId(type, object, propertyName), data);
-		if (type == CommandType.EXCEPTION)
-			closed = true;
 	}
 
 	/* (non-Javadoc)
@@ -114,7 +109,6 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 		gen.writeEndArray();
 		values.clear();
 		needsFlush = false;
-		closed = false;
 	}
 
 	/* (non-Javadoc)
