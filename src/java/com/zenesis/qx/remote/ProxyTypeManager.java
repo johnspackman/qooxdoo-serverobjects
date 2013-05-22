@@ -27,6 +27,7 @@
  */
 package com.zenesis.qx.remote;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -94,18 +95,17 @@ public class ProxyTypeManager {
 		if (type != null)
 			return type;
 		
-		if (clazz == Proxied.class)
-			throw new IllegalArgumentException("Cannot create ProxyType for Proxied interface");
-		
-		// Get a list of ProxyTypes for interfaces that this class/interface implement directly;
-		//	this will recursively discover other interfaces
 		HashSet<ProxyType> interfaces = new HashSet<ProxyType>();
-		for (Class ifc : clazz.getInterfaces())
-			if (ifc != Proxied.class && ifc != DynamicTypeProvider.class && Proxied.class.isAssignableFrom(ifc)) {
-				ProxyType newType = getProxyType(ifc, factory);
-				if (newType != null)
-					interfaces.add(newType);
-			}
+		if (clazz != Proxied.class) {
+			// Get a list of ProxyTypes for interfaces that this class/interface implement directly;
+			//	this will recursively discover other interfaces
+			for (Class ifc : clazz.getInterfaces())
+				if (ifc != Proxied.class && ifc != DynamicTypeProvider.class && Proxied.class.isAssignableFrom(ifc)) {
+					ProxyType newType = getProxyType(ifc, factory);
+					if (newType != null)
+						interfaces.add(newType);
+				}
+		}
 		
 		// If it's an interface then there is nothing more to do except create and store the ProxyType
 		if (clazz.isInterface()) {
