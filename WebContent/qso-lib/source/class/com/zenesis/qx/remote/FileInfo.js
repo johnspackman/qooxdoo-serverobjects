@@ -44,7 +44,8 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
 			nullable: false,
 			check: "String",
 			event: "changeAbsolutePath",
-			apply: "_apply"
+			apply: "_apply",
+			transform: "_transformAbsolutePath"
 		},
 		
 		/**
@@ -124,6 +125,17 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
 		_apply: function(value, oldValue) {
 			if (oldValue)
 				throw new Error("Do not change the properties of grasshopper.app.FileInfo (get a new instance from the server)");
+		},
+		
+		/**
+		 * Transforms the path
+		 * @param value
+		 * @returns
+		 */
+		_transformAbsolutePath: function(value) {
+			if (value)
+				value = value.replace('\\', '/');
+			return value;
 		}
 	}
 });
