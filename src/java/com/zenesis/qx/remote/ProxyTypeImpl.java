@@ -50,7 +50,6 @@ import com.zenesis.qx.remote.annotations.Events;
 import com.zenesis.qx.remote.annotations.ExplicitProxyOnly;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
-import com.zenesis.qx.remote.annotations.Remote;
 
 public class ProxyTypeImpl extends AbstractProxyType {
 	

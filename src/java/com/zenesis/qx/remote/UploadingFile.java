@@ -6,7 +6,6 @@ import java.util.Map;
 import com.zenesis.qx.remote.annotations.ExplicitProxyOnly;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
-import com.zenesis.qx.remote.annotations.Remote;
 
 /**
  * Represents a file that is in the process of being uploaded to the server via UploadHandler; the 

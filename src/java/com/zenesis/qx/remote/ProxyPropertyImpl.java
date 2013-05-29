@@ -4,11 +4,8 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 
 import com.zenesis.qx.remote.annotations.Properties;
@@ -153,8 +150,6 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		if (anno.set().length() > 0)
 			setMethod = findMethod(anno.set(), new Class[] { clazz });
 		
-		if (name.equals("requiredRoles"))
-			readOnly = readOnly;
 		// Try for a setXxxx() method
 		if (setMethod == null && (readOnly == null || !readOnly))
 			try {

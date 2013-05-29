@@ -55,6 +55,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
  * 
  * @author <a href="mailto:john.spackman@zenesis.com">John Spackman</a>
  */
+@SuppressWarnings("serial")
 public class ProxyObjectMapper extends ObjectMapper {
 	
 	@SuppressWarnings("unused")

@@ -1,10 +1,5 @@
 package com.zenesis.qx.remote;
 
-import java.io.File;
-import java.io.IOException;
-
-import com.zenesis.qx.remote.annotations.DoNotProxy;
-
 /**
  * This interface must be implemented by Bootstrap objects which can be uploaded to
  * by the UploadHandler

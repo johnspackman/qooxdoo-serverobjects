@@ -50,7 +50,7 @@ qx.Class.define("explorer.Application", {
 			this.base(arguments);
 			
 			// Enable logging in debug variant
-			if (qx.core.Variant.isSet("qx.debug", "on")) {
+			if (qx.core.Environment.get("qx.debug") == "on") {
 				// support native logging capabilities, e.g. Firebug for Firefox
 				qx.log.appender.Native;
 				// support additional cross-browser console. Press F7 to toggle
@@ -69,6 +69,7 @@ qx.Class.define("explorer.Application", {
 			// manager is our conduit to the server
 			var manager = new com.zenesis.qx.remote.ProxyManager("/explorerServlet/ajax");
 			var boot = manager.getBootstrapObject();
+			var fileApi = boot.getFileApi();
 		
 			// create the tree
 			var tree = new qx.ui.treevirtual.TreeVirtual("Tree");
@@ -81,41 +82,51 @@ qx.Class.define("explorer.Application", {
 			// Add a listener to get nodes on demand
 			tree.addListener("treeOpenWhileEmpty", function(evt) {
 					var node = evt.getData();
-					var children = node.serverFile.getChildren();
-					for (var i = 0; i < children.getLength(); i++) {
-						var file = children.getItem(i);
+					var children = fileApi.listFileInfos(node.serverPath);
+					for (var i = 0; i < children.length; i++) {
+						var fileInfo = children[i];
 						var nodeId;
-						if (file.getFolder())
-							nodeId = dataModel.addBranch(node.nodeId, file.getName(), null);
+						if (fileInfo.type == "folder")
+							nodeId = dataModel.addBranch(node.nodeId, fileInfo.name, null);
 						else
-							nodeId = dataModel.addLeaf(node.nodeId, file.getName(), null);
-						tree.nodeGet(nodeId).serverFile = file;
+							nodeId = dataModel.addLeaf(node.nodeId, fileInfo.name, null);
+						tree.nodeGet(nodeId).serverPath = fileInfo.absolutePath;
 					};
 				}, this);
 			
 			// Create the root node
 			var rootNode = tree.nodeGet(dataModel.addBranch(null, "Desktop", false));
-			rootNode.serverFile = boot.getAppFilesRoot();
+			rootNode.serverPath = "/";
 			tree.nodeSetOpened(rootNode, true);
 			
-    		var uploadForm = new uploadwidget.UploadForm("uploadForm", manager.getProxyUrl());
-    		uploadForm.setLayout(new qx.ui.layout.Basic());
-			uploadForm.addListener("completed", function(evt) {
-	            var strResponse = uploadForm.getIframeHtmlContent();
-	            var appFiles = manager.uploadResponse(strResponse);
-	            this.debug("Response after uploading to server: " + strResponse);
-			}, this);
-    		
-            var uploadButton = new uploadwidget.UploadButton('uploadfile', 'Upload a File');
-            uploadButton.addListener("changeFieldValue", function(evt) {
-                if (evt.getData() == "")
-                	return;
-                
-                uploadForm.setParameter("myParam", "testParam");
-               	uploadForm.send();
-            }, this);
-            uploadForm.add(uploadButton);
-            this.getRoot().add(uploadForm, { left: 10, top: 50 });
+      		var btn = new com.zenesis.qx.upload.UploadButton("Upload File(s)");
+      		var uploader = new com.zenesis.qx.upload.UploadMgr(btn, manager.getProxyUrl());
+      		uploader.addListener("addFile", function(evt) {
+      			var file = evt.getData();
+
+      			// On modern browsers (ie not IE) we will get progress updates
+      			var progressListenerId = file.addListener("changeProgress", function(evt) {
+      				this.debug("Upload " + file.getFilename() + ": " + evt.getData() + " / " + file.getSize() + " - " +
+      						Math.round(evt.getData() / file.getSize() * 100) + "%");
+      			}, this);
+      			
+      			// All browsers can at least get changes in state (ie "uploading", "cancelled", and "uploaded")
+      			var stateListenerId = file.addListener("changeState", function(evt) {
+      				var state = evt.getData();
+      				
+      				this.debug(file.getFilename() + ": state=" + state + ", file size=" + file.getSize() + ", progress=" + file.getProgress());
+      				
+      				if (state == "uploaded" || state == "cancelled") {
+          				file.removeListenerById(stateListenerId);
+          				file.removeListenerById(progressListenerId);
+      				}
+      				
+      			}, this);
+      			
+      			this.debug("Uploaded file " + file.getFilename());
+      		}, this);
+      		
+      		doc.add(btn, { left: 50, top: 50 });
 		}
 	}
 });

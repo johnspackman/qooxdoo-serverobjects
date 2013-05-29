@@ -49,7 +49,6 @@ import org.apache.log4j.Logger;
 
 import com.zenesis.qx.event.Event;
 import com.zenesis.qx.event.EventListener;
-import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.CommandId.CommandType;
 
 /**

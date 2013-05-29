@@ -31,11 +31,11 @@
   "let" :
   {
     "APPLICATION"  : "explorer",
-    "QOOXDOO_PATH" : "../../qooxdoo",
+    "QOOXDOO_PATH" : "/Users/john/os/qooxdoo",
     "QXTHEME"      : "explorer.theme.Theme",
     "API_EXCLUDE"  : ["qx.test.*", "${APPLICATION}.theme.*", "${APPLICATION}.test.*"],
     "LOCALES"      : [ "en" ],
-    "CACHE"        : "../../qooxdoo/cache",
+    "CACHE"        : "/Users/john/os/qooxdoo/cache",
     "ROOT"         : "."
   },
   
@@ -58,8 +58,8 @@
           "uri" : "/qx-gc"
         },
         {
-        	"manifest" : "contrib://UploadWidget/trunk/Manifest.json",
-        	"uri" : "../cache-downloads/UploadWidget/trunk"
+        	"manifest" : "contrib://UploadMgr/trunk/Manifest.json",
+        	"uri" : "../cache-downloads/UploadMgr/trunk"
         }
       ]
     },
@@ -67,7 +67,7 @@
     "source-script": {
 	    "compile-options" : {
 		  "uris" : {
-		    "add-nocache-param":	false
+		    "add-nocache-param":	true
 		  }
 		}
 	}

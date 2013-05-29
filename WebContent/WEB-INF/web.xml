@@ -52,7 +52,7 @@
 		</init-param>
 		<init-param>
 			<param-name>rewrite-2</param-name>
-			<param-value>/explorer/cache-downloads=/Users/john/os/qooxdoo-1.4.1-sdk/cache/downloads</param-value>
+			<param-value>/explorer/cache-downloads=/Users/john/os/qooxdoo/cache/downloads</param-value>
 		</init-param>
 	</filter>
 	
