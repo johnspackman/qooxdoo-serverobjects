@@ -155,7 +155,7 @@ public class ProxyObjectMapper extends ObjectMapper {
 			if (value == null)
 				jgen.writeNull();
 			else
-				jgen.writeString(enumToCamelCase(value));
+				jgen.writeString(Helpers.enumToCamelCase(value));
 		}
 
 	};
@@ -192,7 +192,7 @@ public class ProxyObjectMapper extends ObjectMapper {
 					if (key == null)
 						continue;
 					if (key instanceof Enum)
-						jgen.writeFieldName(enumToCamelCase((Enum)key));
+						jgen.writeFieldName(Helpers.enumToCamelCase((Enum)key));
 					else
 						jgen.writeFieldName(key.toString());
 					Object value = map.get(key);
@@ -340,55 +340,4 @@ public class ProxyObjectMapper extends ObjectMapper {
 		return getJsonFactory().isEnabled(JsonGenerator.Feature.QUOTE_FIELD_NAMES);
 	}
 
-	private static String enumToCamelCase(Enum e) {
-		if (e == null)
-			return null;
-		StringBuilder sb = new StringBuilder(e.toString());
-		char lastC = 0;
-		for (int i = 0; i < sb.length(); i++) {
-			char c = sb.charAt(i);
-			if (c == '_') {
-				sb.deleteCharAt(i);
-				i--;
-			} else if (Character.isUpperCase(c) && lastC != '_')
-				sb.setCharAt(i, Character.toLowerCase(c));
-			else if (Character.isLowerCase(c) && lastC == '_')
-				sb.setCharAt(i, Character.toUpperCase(c));
-			lastC = c;
-		}
-		return sb.toString();
-	}
-	
-	/*
-	private static <T extends Enum> T camelCaseToEnum(String str, Class<T> clz) {
-		str = camelCaseToEnumStr(str);
-		if (str == null)
-			return null;
-		try {
-			T value = (T)T.valueOf(clz, str);
-			return value;
-		}catch(IllegalArgumentException e) {
-			return null;
-		}
-	}
-	
-	private static String camelCaseToEnumStr(String str) {
-		if (str == null)
-			return null;
-		StringBuilder sb = new StringBuilder(str);
-		char lastC = 0;
-		for (int i = 0; i < sb.length(); i++) {
-			char c = sb.charAt(i);
-			if (Character.isUpperCase(c)) {
-				if (lastC != 0 && Character.isLowerCase(lastC)) {
-					sb.insert(i, '_');
-					i++;
-				}
-			} else if (Character.isLowerCase(c))
-				sb.setCharAt(i, Character.toUpperCase(c));
-			lastC = c;
-		}
-		return sb.toString();
-	}
-*/	
 }

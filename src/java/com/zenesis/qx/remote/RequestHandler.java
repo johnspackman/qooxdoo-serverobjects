@@ -44,6 +44,7 @@ import java.util.Map;
 
 import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
+import org.dom4j.Node;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -360,13 +361,13 @@ public class RequestHandler {
 							tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, serverObject, null, result);
 						}catch(InvocationTargetException e) {
 							Throwable t = e.getCause();
-							log.error("Exception while invoking " + method + "(" + values + ") on " + serverObject + ": " + t.getMessage(), t);
+							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + t.getMessage(), t);
 							throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + ": " + t.getMessage(), t);
 						}catch(RuntimeException e) {
-							log.error("Exception while invoking " + method + "(" + values + ") on " + serverObject + ": " + e.getMessage(), e);
+							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + e.getMessage(), e);
 							throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + ": " + e.getMessage(), e);
 						}catch(IllegalAccessException e) {
-							throw new ServletException("Exception while running " + method + ": " + e.getMessage(), e);
+							throw new ServletException("Exception while running " + method + "(" + Helpers.toString(values) + "): " + e.getMessage(), e);
 						}
 						found = true;
 						break;
@@ -460,7 +461,7 @@ public class RequestHandler {
 		} else {
 			value = jp.readValueAs(Object.class);
 			if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
-				String str = camelCaseToEnum(value.toString());
+				String str = Helpers.camelCaseToEnum(value.toString());
 				value = Enum.valueOf(propClass.getJavaType(), str);
 			}
 		}
@@ -667,7 +668,7 @@ public class RequestHandler {
 				} else {
 					value = jp.readValueAs(Object.class);
 					if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
-						String str = camelCaseToEnum(value.toString());
+						String str = Helpers.camelCaseToEnum(value.toString());
 						value = Enum.valueOf(propClass.getJavaType(), str);
 					}
 				}
@@ -869,7 +870,7 @@ public class RequestHandler {
 			} else if (type != null && Enum.class.isAssignableFrom(type)) {
 				Object obj = jp.readValueAs(Object.class);
 				if (obj != null) {
-					String str = camelCaseToEnum(obj.toString());
+					String str = Helpers.camelCaseToEnum(obj.toString());
 					obj = Enum.valueOf(type, str);
 					result.add(obj);
 				}
@@ -977,7 +978,7 @@ public class RequestHandler {
 			else
 				obj = jp.readValueAs(Object.class);
 			if (obj != null) {
-				String str = camelCaseToEnum(obj.toString());
+				String str = Helpers.camelCaseToEnum(obj.toString());
 				obj = Enum.valueOf(clazz, str);
 			}
 		} else {
@@ -1023,23 +1024,4 @@ public class RequestHandler {
 		jp.nextToken();
 	}
 	
-	public static String camelCaseToEnum(String str) {
-		if (str == null)
-			return null;
-		StringBuilder sb = new StringBuilder(str);
-		char lastC = 0;
-		for (int i = 0; i < sb.length(); i++) {
-			char c = sb.charAt(i);
-			if (Character.isUpperCase(c)) {
-				if (lastC != 0 && Character.isLowerCase(lastC)) {
-					sb.insert(i, '_');
-					i++; 
-				}
-			} else if (Character.isLowerCase(c))
-				sb.setCharAt(i, Character.toUpperCase(c));
-			lastC = c;
-		}
-		return sb.toString();
-	}
-
 }
