@@ -134,7 +134,7 @@ public class FileApi implements Proxied {
 	public boolean isValidFile(File file) {
 		String absPath = file.getAbsolutePath();
 		if (file.isDirectory())
-			absPath += '/';
+			absPath += File.separatorChar;
 		if (!absPath.startsWith(rootAbsPath))
 			return false;
 		return true;
