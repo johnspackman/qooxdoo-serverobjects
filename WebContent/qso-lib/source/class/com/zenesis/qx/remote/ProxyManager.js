@@ -396,6 +396,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 							this.setPropertyValueFromServer(result, propName, propValue);
 						}
 					}
+					
 					/* Cannot cycle through the names in "values" because the order is not guaranteed, 
 					 * and ordering is important if we're going to be able to recreate the objects because 
 					 * only the first reference contains the class and object definition - thereafter, 
