@@ -458,10 +458,18 @@ public class RequestHandler {
 					value = getProxied(id);
 			}
 		} else {
-			value = jp.readValueAs(Object.class);
-			if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
-				String str = Helpers.camelCaseToEnum(value.toString());
-				value = Enum.valueOf(propClass.getJavaType(), str);
+			if (propClass.isArray() || propClass.isCollection()) {
+				value = readArray(jp, propClass.getJavaType());
+				
+			} else if (propClass.isMap()) {
+				value = readMap(jp, propClass.getKeyClass(), propClass.getJavaType());
+				
+			} else {
+				value = jp.readValueAs(Object.class);
+				if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
+					String str = Helpers.camelCaseToEnum(value.toString());
+					value = Enum.valueOf(propClass.getJavaType(), str);
+				}
 			}
 		}
 		
