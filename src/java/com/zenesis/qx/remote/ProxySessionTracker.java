@@ -296,7 +296,7 @@ public class ProxySessionTracker {
 		super();
 		this.bootstrapClass = bootstrapClass;
 		objectMapper = new ProxyObjectMapper(this);
-		queues = new ThreadLocal<>();
+		queues = new ThreadLocal();
 	}
 	
 	/**
@@ -308,7 +308,7 @@ public class ProxySessionTracker {
 		super();
 		this.bootstrapClass = bootstrapClass;
 		objectMapper = new ProxyObjectMapper(this, false, rootDir);
-		queues = new ThreadLocal<>();
+		queues = new ThreadLocal();
 	}
 	
 	/**
