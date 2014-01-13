@@ -31,7 +31,7 @@ public class Helpers {
 			if (c == '_') {
 				sb.deleteCharAt(i);
 				i--;
-			} else if (Character.isUpperCase(c) && lastC != '_')
+			} else if ((Character.isDigit(c) || Character.isUpperCase(c)) && lastC != '_')
 				sb.setCharAt(i, Character.toLowerCase(c));
 			else if (Character.isLowerCase(c) && lastC == '_')
 				sb.setCharAt(i, Character.toUpperCase(c));
@@ -39,38 +39,6 @@ public class Helpers {
 		}
 		return sb.toString();
 	}
-	/*
-	private static <T extends Enum> T camelCaseToEnum(String str, Class<T> clz) {
-		str = camelCaseToEnumStr(str);
-		if (str == null)
-			return null;
-		try {
-			T value = (T)T.valueOf(clz, str);
-			return value;
-		}catch(IllegalArgumentException e) {
-			return null;
-		}
-	}
-	
-	private static String camelCaseToEnumStr(String str) {
-		if (str == null)
-			return null;
-		StringBuilder sb = new StringBuilder(str);
-		char lastC = 0;
-		for (int i = 0; i < sb.length(); i++) {
-			char c = sb.charAt(i);
-			if (Character.isUpperCase(c)) {
-				if (lastC != 0 && Character.isLowerCase(lastC)) {
-					sb.insert(i, '_');
-					i++;
-				}
-			} else if (Character.isLowerCase(c))
-				sb.setCharAt(i, Character.toUpperCase(c));
-			lastC = c;
-		}
-		return sb.toString();
-	}
-*/	
 	
 	/**
 	 * Converts a camel case string into an enum-style string, ie myEnumValue -> MY_ENUM_VALUE.
@@ -85,12 +53,20 @@ public class Helpers {
 		char lastC = 0;
 		for (int i = 0; i < sb.length(); i++) {
 			char c = sb.charAt(i);
-			if (Character.isUpperCase(c)) {
-				if (lastC != 0 && Character.isLowerCase(lastC)) {
-					sb.insert(i, '_');
-					i++; 
+			boolean wordBreak = false;
+			if (Character.isLetter(c)) {
+				if (Character.isUpperCase(c)) {
+					wordBreak = true;
 				}
-			} else if (Character.isLowerCase(c))
+			} else if (Character.isDigit(c)) {
+				if (Character.isLetter(lastC))
+					wordBreak = true;
+			}
+			if (wordBreak) {
+				sb.insert(i, '_');
+				i++; 
+			}
+			if (Character.isLowerCase(c))
 				sb.setCharAt(i, Character.toUpperCase(c));
 			lastC = c;
 		}
