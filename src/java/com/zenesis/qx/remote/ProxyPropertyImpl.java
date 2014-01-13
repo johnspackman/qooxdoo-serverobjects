@@ -4,7 +4,6 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import org.apache.log4j.Logger;
@@ -263,24 +262,6 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 				setMethod.invoke(proxied, value);
 				
 			} else {
-				// If we're setting a collection or array, then we can choose to replace the contents
-				//	 of the current property value if we don't have a setXxx method 
-				if (value != null && propertyClass.isCollection()) {
-					Collection coll = (Collection)getValue(proxied);
-					if (value.getClass().isArray()) {
-						coll.clear();
-						Object[] src = (Object[]) value;
-						for (Object obj : src)
-							coll.add(obj);
-						return;
-					} else if (value instanceof Collection) {
-						Collection src = (Collection) value;
-						for (Object obj : src)
-							coll.add(obj);
-						return;
-					}
-				}
-				
 				// If a field is a collection then there doesn't have to be a setXxx method - but if the
 				//	current value is null (eg client constructed object) setValue() will be called.  For
 				//	client constructed objects, the best action is usually to update the property to the
