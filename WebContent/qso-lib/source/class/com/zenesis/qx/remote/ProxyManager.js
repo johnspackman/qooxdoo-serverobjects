@@ -1123,6 +1123,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var req = new qx.io.remote.Request(this.getProxyUrl(), "POST", "text/plain");
       req.setAsynchronous(!!async);
       req.setData(text);
+      
+      // You must set the character encoding explicitly; even if the page is served as UTF8 and everything else is
+      //  UTF8, not specifying will lead to the server screwing up decoding (presumably the default charset for the 
+      //  JVM).  Here, it's hardcoded as UTF8 but a better solution would be to detect the charset specified by
+      //  the server when the page was loaded, and even better would be to set it in qx.io.Remote
+      req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
 
       // Send it
       this.debug("Sending to server: " + text);
