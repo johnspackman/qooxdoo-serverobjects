@@ -281,7 +281,7 @@ public class ProxySessionTracker {
 	private int nextServerId;
 	
 	// Queue for properties and events
-	private ThreadLocal<CommandQueue> queues;
+	private CommandQueue queue;
 	
 	// Bootstrap object
 	private final Class<? extends Proxied> bootstrapClass;
@@ -296,7 +296,6 @@ public class ProxySessionTracker {
 		super();
 		this.bootstrapClass = bootstrapClass;
 		objectMapper = new ProxyObjectMapper(this);
-		queues = new ThreadLocal();
 	}
 	
 	/**
@@ -308,7 +307,6 @@ public class ProxySessionTracker {
 		super();
 		this.bootstrapClass = bootstrapClass;
 		objectMapper = new ProxyObjectMapper(this, false, rootDir);
-		queues = new ThreadLocal();
 	}
 	
 	/**
@@ -316,7 +314,7 @@ public class ProxySessionTracker {
 	 */
 	/*package*/ void resetSession() {
 		resetBootstrap();
-		queues.remove();
+		queue = null;
 		deliveredTypes.clear();
 		objectsById.clear();
 		objectIds.clear();
@@ -659,11 +657,8 @@ public class ProxySessionTracker {
 	 * @return
 	 */
 	public CommandQueue getQueue() {
-		CommandQueue queue = queues.get();
-		if (queue == null) {
+		if (queue == null)
 			queue = createQueue();
-			queues.set(queue);
-		}
 		return queue;
 	}
 	
@@ -672,7 +667,6 @@ public class ProxySessionTracker {
 	 * @return
 	 */
 	public boolean hasDataToFlush() {
-		CommandQueue queue = queues.get();
 		return queue != null && queue.hasDataToFlush();
 	}
 	
@@ -681,7 +675,6 @@ public class ProxySessionTracker {
 	 * @return
 	 */
 	public boolean needsFlush() {
-		CommandQueue queue = queues.get();
 		return queue != null && queue.needsFlush();
 	}
 	
