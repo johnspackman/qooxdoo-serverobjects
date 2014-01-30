@@ -171,7 +171,7 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 				if (value && propDef.array == "wrap") {
 					if (!!propDef.map) {
 						if (!(value instanceof com.zenesis.qx.remote.Map))
-							value = com.zenesis.qx.remote.Map(value);
+							value = new com.zenesis.qx.remote.Map(value);
 						
 					} else if (!(value instanceof qx.data.Array))
 						value = new qx.data.Array(value);
