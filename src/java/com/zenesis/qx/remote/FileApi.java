@@ -210,7 +210,11 @@ public class FileApi implements Proxied {
 		if (src == null || dest == null)
 			return false;
 		dest.getParentFile().mkdirs();
-		return src.renameTo(dest);
+		if (src.renameTo(dest)) {
+			onChange(ChangeType.MOVE, strDest, strSrc);
+			return true;
+		}
+		return false;
 	}
 	
 	/**
@@ -259,7 +263,10 @@ public class FileApi implements Proxied {
 		File file = getFile(path);
 		if (file == null)
 			return false;
-		return file.delete();
+		if (!file.delete())
+			return false;
+		onChange(ChangeType.DELETE, path, null);
+		return true;
 	}
 	
 	/**
@@ -272,8 +279,13 @@ public class FileApi implements Proxied {
 		File file = getFile(path);
 		if (file == null)
 			return false;
-		if (file.isFile())
-			return file.delete();
+		if (file.isFile()) {
+			if (file.delete()) {
+				onChange(ChangeType.DELETE, path, null);
+				return true;
+			}
+			return false;
+		}
 		deleteRecursiveInternal(file);
 		return !file.exists();
 	}
@@ -289,8 +301,10 @@ public class FileApi implements Proxied {
 		File file = getFile(path);
 		if (file != null) {
 			file.mkdirs();
-			if (file.exists() && file.isDirectory())
+			if (file.exists() && file.isDirectory()) {
+				onChange(ChangeType.CREATE_FOLDER, path, null);
 				return getFileInfo(file);
+			}
 		}
 		return null;
 	}
@@ -351,6 +365,7 @@ public class FileApi implements Proxied {
 		
 		File dest = getFile(uploadFolder + "/" + upfile.getOriginalName());
 		moveTo(upfile.getFile(), dest);
+		onChange(ChangeType.UPLOAD, uploadFolder + "/" + upfile.getOriginalName(), null);		
 		return dest;
 	}
 
@@ -383,9 +398,13 @@ public class FileApi implements Proxied {
 		if (src.isDirectory()) {
 			if (dest.isFile())
 				throw new IOException("Cannot move " + src.getAbsolutePath() + " to " + dest.getAbsolutePath() + " because dest is a file");
+			boolean existed = dest.exists();
 			dest.mkdirs();
 			if (!dest.exists())
 				throw new IOException("Cannot create folder " + dest.getAbsolutePath());
+			if (!existed)
+				onChange(ChangeType.CREATE_FOLDER, dest, null);
+
 			File[] files = src.listFiles();
 			boolean ok = true;
 			for (File file : files) {
@@ -408,11 +427,14 @@ public class FileApi implements Proxied {
 				dest.delete();
 		}
 		
-		if (dest.renameTo(dest))
+		if (dest.renameTo(dest)) {
+			onChange(ChangeType.MOVE, dest, src);
 			return;
+		}
 		
 		copyTo(src, dest);
 		src.delete();
+		onChange(ChangeType.DELETE, src, null);
 	}
 	
 	/**
@@ -426,9 +448,12 @@ public class FileApi implements Proxied {
 		if (src.isFile()) {
 			if (dest.isDirectory())
 				throw new IOException("Cannot copy " + src.getAbsolutePath() + " to " + dest.getAbsolutePath() + " because dest is a directory");
+			if (!dest.getParentFile().exists()) {
+				dest.getParentFile().mkdirs();
+				onChange(ChangeType.CREATE_FOLDER, dest.getParentFile(), null);
+			}
 			FileOutputStream os = null;
 			FileInputStream is = null;
-			dest.getParentFile().mkdirs();
 			try {
 				os = new FileOutputStream(dest);
 				is = new FileInputStream(src);
@@ -440,6 +465,7 @@ public class FileApi implements Proxied {
 				is = null;
 				os.close();
 				os = null;
+				onChange(ChangeType.COPY, dest, src);
 			}catch(IOException e) {
 				if (is != null)
 					try { is.close(); } catch(IOException e2) {}
@@ -450,7 +476,10 @@ public class FileApi implements Proxied {
 		} else {
 			if (dest.isFile())
 				throw new IOException("Cannot copy " + src.getAbsolutePath() + " to " + dest.getAbsolutePath() + " because dest is a file");
-			dest.mkdirs();
+			if (!dest.exists()) {
+				dest.mkdirs();
+				onChange(ChangeType.CREATE_FOLDER, dest, null);
+			}
 			File[] files = src.listFiles();
 			if (files != null)
 				for (int i = 0; i < files.length; i++) {
@@ -470,11 +499,69 @@ public class FileApi implements Proxied {
 			for (File file : files)
 				if (file.isDirectory())
 					deleteRecursiveInternal(file);
-				else
-					file.delete();
-		dir.delete();
+				else {
+					if (file.delete()) {
+						onChange(ChangeType.DELETE, file, null);
+					}
+				}
+		if (dir.delete())
+			onChange(ChangeType.DELETE_FOLDER, dir, null);
 	}
 	
+	/**
+	 * Returns the relative path of the file, if it is within the rootDir
+	 * @param file
+	 * @return null if it is not within rootDir 
+	 */
+	protected String getRelativePath(File file) {
+		if (file == null)
+			return null;
+		
+		String strFile = file.getAbsolutePath();
+		if (strFile.startsWith(rootAbsPath)) {
+			int len = rootAbsPath.length();
+			if (strFile.length() == len)
+				return "";
+			if (strFile.charAt(len) == File.separatorChar)
+				return strFile.substring(len + 1);
+			return strFile.substring(len);
+		}
+		return null;
+	}
+	
+	/*
+	 * Types of change that are reported to onChange(ChangeType,String,String)
+	 */
+	protected enum ChangeType {
+		COPY, MOVE, DELETE, UPLOAD, CREATE_FOLDER, DELETE_FOLDER
+	}
+	
+	/**
+	 * Called when a change happens within rootDir; default implementation is to
+	 * map to a relative path.  NOTE: If you want to override this, override the
+	 * onChange(ChangeType,String,String) version.
+	 * 
+	 * @param type
+	 * @param path is the final pathname, eg if a MOVE or COPY path is the destination
+	 * @param otherPath depends on the type, eg for a MOVE or COPY it is the source path
+	 * 		and is not provided for other types.
+	 */
+	private void onChange(ChangeType type, File path, File otherPath) {
+		String strPath = getRelativePath(path);
+		String strOtherPath = otherPath == null ? null : getRelativePath(otherPath);
+		onChange(type, strPath, strOtherPath);
+	}
+	
+	/**
+	 * Called when a change happens within rootDir; this is intended to be overridden
+	 * @param type
+	 * @param path
+	 * @param otherPath
+	 */
+	protected void onChange(ChangeType type, String path, String otherPath) {
+		// Nothing
+	}
+
 	/**
 	 * @return the rootDir
 	 */
@@ -488,7 +575,7 @@ public class FileApi implements Proxied {
 	public String getRootUrl() {
 		return rootUrl;
 	}
-
+	
 	/**
 	 * Returns the mapping between mime type and file extensions 
 	 * @return
