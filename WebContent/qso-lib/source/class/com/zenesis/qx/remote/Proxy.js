@@ -143,8 +143,9 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 			var propDef = this.getPropertyDef(propName);
 			var value = PM.callServerMethod(this, "get" + upname, []);
 			var ex = PM.clearException();
-			if (ex)
+			if (ex) {
 				throw ex;
+			}
 			
 			// Update the cache and done
 			return this.__storePropertyOnDemand(propDef, value);
@@ -152,20 +153,17 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 		
 		/**
 		 * Stores a value for an on-demand property, adding and removing listeners as required
-		 * @param propDef
-		 * @param value
+		 * @param propDef {Map}
+		 * @param value {Object}
 		 * @returns
 		 */
 		__storePropertyOnDemand: function(propDef, value) {
-			var GC = qx.Class.getByName("com.zenesis.gc.GC");
 			var oldValue;
 			if (this.$$proxyUser && (oldValue = this.$$proxyUser[propDef.name])) {
 				if (propDef.array = "wrap" && propDef.changeListenerId) {
 					oldValue.removeListenerById(propDef.changeListenerId);
 					propDef.changeListenerId = null;
 				}
-				if (GC)
-				  GC.removeReference(this, oldValue);
 				delete this.$$proxyUser[propDef.name];
 			}
 			if (value !== undefined) {
@@ -182,8 +180,6 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 					}, this);
 				}
 				this.$$proxyUser[propDef.name] = value;
-				if (GC)
-          GC.addReference(this, value);
 			}
 			return value;
 		},

@@ -41,16 +41,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
    * 
    * @param proxyUrl
    *          {String} the URL for communicating with the server
-   * @lint ignoreUndefined(qx.util.Json)
+   * @ignore(qx.util.Json)
    */
   construct : function(proxyUrl) {
     if (!com.zenesis.qx.remote.ProxyManager.__initialised) {
       com.zenesis.qx.remote.ProxyManager.__initialised = true;
-      var GC = qx.Class.getByName("com.zenesis.gc.GC");
-      if (GC) {
-        GC.registerCollectable(com.zenesis.qx.remote.Proxy);
-        GC.registerInspector(com.zenesis.qx.remote.Proxy, new com.zenesis.qx.remote.ProxyInspector());
-      }
     }
     if (this.constructor.__instance)
       this.warn("Not setting ProxyManager instance because one is already defined");
@@ -181,11 +176,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       this._sendCommandToServer(msg, function(evt) {
         if (evt.getType() == "completed") {
           result = this._processResponse(evt, true);
-          if (result) {
-            var GC = qx.Class.getByName("com.zenesis.gc.GC");
-            if (GC)
-              GC.getInstance().addRoot(result);
-          }
         }
       }, this);
       var ex = this.clearException();
@@ -198,7 +188,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Detects whether the connection has ever been made, i.e. whether
      * getBootstrapObject() has already been called.
      * 
-     * @return true if connected
+     * @return {Boolean} true if connected
      */
     hasConnected : function() {
       return this.__serverObjects.length > 0;
@@ -207,7 +197,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Registers a client object
      * 
-     * @return the new ID for this object
+     * @return {Integer} the new ID for this object
      */
     registerClientObject : function(obj) {
       if (!this.__clientObjects)
@@ -848,7 +838,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Mark an object as disposed on the client and needing to have the
      * corresponding server object remove from the session tracker
      * 
-     * @param obj
+     * @param obj {Object}
      */
     disposeServerObject : function(obj) {
       if (!this.__disposedServerObjects)
@@ -901,9 +891,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         value : this.serializeValue(value)
       };
       var def = this.__classInfo[serverObject.classname];
-      
-      if (serverObject.$$gc_inspector)
-        serverObject.$$gc_inspector.change(this, value, oldValue);
       
       var pd = serverObject.getPropertyDef(propertyName);
       if (pd.sync == "queue") {
@@ -983,8 +970,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }
         
         serverObject["set" + upname](value);
-        if (serverObject.$$gc_inspector)
-          serverObject.$$gc_inspector.change(this, value, current);
         
       } catch (e) {
         this.debug(e);
@@ -1207,8 +1192,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Apply callback for pollServer property
      * 
-     * @param value
-     * @param oldValue
+     * @param value {Boolean}
+     * @param oldValue {Boolean}
      */
     _applyPollServer : function(value, oldValue) {
       this._killPollTimer();
@@ -1219,8 +1204,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Apply callback for pollFrqeuency property
      * 
-     * @param value
-     * @param oldValue
+     * @param value {Integer}
+     * @param oldValue {Integer}
      */
     _applyPollFrequency : function(value, oldValue) {
       this._killPollTimer();
@@ -1285,7 +1270,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Returns the proxy definition for a named method
      * 
-     * @param serverObject
+     * @param serverObject {Object}
      *          the object to get the method from
      * @param methodName
      *          {String} the name of the method
