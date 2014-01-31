@@ -46,9 +46,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   construct : function(proxyUrl) {
     if (!com.zenesis.qx.remote.ProxyManager.__initialised) {
       com.zenesis.qx.remote.ProxyManager.__initialised = true;
-      var GC = com.zenesis.gc.GC.getInstance();
-      GC.registerCollectable(com.zenesis.qx.remote.Proxy);
-      GC.registerInspector(com.zenesis.qx.remote.Proxy, new com.zenesis.qx.remote.ProxyInspector());
+      var GC = qx.Class.getByName("com.zenesis.gc.GC");
+      if (GC) {
+        GC.registerCollectable(com.zenesis.qx.remote.Proxy);
+        GC.registerInspector(com.zenesis.qx.remote.Proxy, new com.zenesis.qx.remote.ProxyInspector());
+      }
     }
     if (this.constructor.__instance)
       this.warn("Not setting ProxyManager instance because one is already defined");
@@ -180,8 +182,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (evt.getType() == "completed") {
           result = this._processResponse(evt, true);
           if (result) {
-            var GC = com.zenesis.gc.GC.getInstance();
-            GC.addRoot(result);
+            var GC = qx.Class.getByName("com.zenesis.gc.GC");
+            if (GC)
+              GC.getInstance().addRoot(result);
           }
         }
       }, this);
@@ -898,6 +901,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         value : this.serializeValue(value)
       };
       var def = this.__classInfo[serverObject.classname];
+      
+      if (serverObject.$$gc_inspector)
+        serverObject.$$gc_inspector.change(this, value, oldValue);
+      
       var pd = serverObject.getPropertyDef(propertyName);
       if (pd.sync == "queue") {
         var queue = this.__queue;
@@ -941,12 +948,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       try {
         var def = serverObject.getPropertyDef(propertyName);
         var upname = qx.lang.String.firstUp(propertyName);
+        var current = serverObject["get" + upname]();
+        
         if (def) {
           if (def.check && def.check == "Date") {
             value = value !== null ? new Date(value) : null;
 
           } else if (def.array && def.array == "wrap") {
-            var current = serverObject["get" + upname]();
             if (value == null) {
               serverObject["set" + upname](null);
             } else {
@@ -973,7 +981,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             return;
           }
         }
+        
         serverObject["set" + upname](value);
+        if (serverObject.$$gc_inspector)
+          serverObject.$$gc_inspector.change(this, value, current);
+        
       } catch (e) {
         this.debug(e);
         throw e;

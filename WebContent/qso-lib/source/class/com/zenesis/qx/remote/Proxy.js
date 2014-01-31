@@ -157,14 +157,15 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 		 * @returns
 		 */
 		__storePropertyOnDemand: function(propDef, value) {
-			var GC = com.zenesis.gc.GC;
+			var GC = qx.Class.getByName("com.zenesis.gc.GC");
 			var oldValue;
 			if (this.$$proxyUser && (oldValue = this.$$proxyUser[propDef.name])) {
 				if (propDef.array = "wrap" && propDef.changeListenerId) {
 					oldValue.removeListenerById(propDef.changeListenerId);
 					propDef.changeListenerId = null;
 				}
-				GC.removeReference(this, oldValue);
+				if (GC)
+				  GC.removeReference(this, oldValue);
 				delete this.$$proxyUser[propDef.name];
 			}
 			if (value !== undefined) {
@@ -181,7 +182,8 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 					}, this);
 				}
 				this.$$proxyUser[propDef.name] = value;
-				GC.addReference(this, value);
+				if (GC)
+          GC.addReference(this, value);
 			}
 			return value;
 		},

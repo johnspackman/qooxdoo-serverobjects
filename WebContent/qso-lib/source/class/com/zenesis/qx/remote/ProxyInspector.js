@@ -29,6 +29,30 @@ qx.Class.define("com.zenesis.qx.remote.ProxyInspector", {
 	
 	members: {
 		
+    /**
+     * Quick method for recording a new reference to an object
+     */
+    add: function(parent, child) {
+      com.zenesis.gc.GC.addReference(parent, child);
+    },
+    
+    /**
+     * Quick method for recording a removed reference to an object
+     */
+    remove: function(parent, child) {
+      com.zenesis.gc.GC.removeReference(parent, child);
+    },
+    
+    /**
+     * Quick method for recording a change in value
+     */
+    change: function(parent, newValue, oldValue) {
+      if (newValue !== oldValue) {
+        com.zenesis.gc.GC.removeReference(parent, oldValue);
+        com.zenesis.gc.GC.addReference(parent, newValue);
+      }
+    },
+    
 		/*
 		 * @Override com.zenesis.gc.Inspector.gcIterate
 		 */

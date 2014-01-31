@@ -22,7 +22,7 @@
 
 /* ************************************************************************
 
-#asset(demoapp/*)
+@asset(demoapp/*)
 
  ************************************************************************ */
 
@@ -43,9 +43,9 @@ qx.Class.define("demoapp.Application", {
 		 * This method contains the initial application code and gets called
 		 * during startup of the application
 		 * 
-		 * @lint ignoreDeprecated(alert)
-		 * @lint ignoreUndefined(com.zenesis.qx.remote.test.simple.Pippo)
-		 * @lint ignoreUndefined(com.zenesis.qx.remote.test.properties.TestProperties)
+		 * @ignore(alert)
+		 * @ignore(com.zenesis.qx.remote.test.simple.Pippo)
+		 * @ignore(com.zenesis.qx.remote.test.properties.TestProperties)
 		 */
 		main : function() {
 			// Call super class
