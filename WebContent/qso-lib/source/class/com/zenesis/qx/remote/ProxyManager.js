@@ -123,7 +123,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /** Fired when there is an I/O error communicating to the server; if this event is not preventDefault()'d, an
      * exception is thrown.  Data is the event that was returned by qx.io.Request
      */
-    "ioError": "qx.event.type.Data"
+    "ioError": "qx.event.type.Data",
+    
+    /** Fired when a file upload is completed, data is the FileInfo form the server */
+    "uploadComplete": "qx.event.type.Data"
   },
 
   members : {
@@ -276,7 +279,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         throw e;
       }
     },
-
+    
     /**
      * Called to interpret the text returned by the server and perform any
      * commands
@@ -290,10 +293,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var elem = data[i];
         var type = elem.type;
 
-        // Init or Function return
+        // Init 
         if (type == "bootstrap") {
           result = this.readProxyObject(elem.data);
           
+        // Function return
         } else if (type == "return") {
           var asyncId = elem.data.asyncId;
           result = this.readProxyObject(elem.data.result);
@@ -303,12 +307,22 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             cb(result);
           }
 
-          // An exception was thrown
+        // Upload
+        } else if (type == "upload") {
+          var fileInfos = this.readProxyObject(elem.data);
+          if (!result)
+            result = [];
+          for (var i = 0; i < fileInfos.length; i++) {
+            result.push(fileInfos[i]);
+            this.fireDataEvent("uploadComplete", fileInfos[i]);
+          }
+
+        // An exception was thrown
         } else if (type == "exception") {
           this._handleServerException(elem.data, "function");
 
-          // A client-created object has been registered on the server, update
-          // the IDs to server IDs
+        // A client-created object has been registered on the server, update
+        // the IDs to server IDs
         } else if (type == "mapClientId") {
           var index = 0 - elem.data.clientId;
           var clientObject = this.__clientObjects[index];
@@ -319,8 +333,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           qx.core.Assert.assertEquals(elem.data.serverId, this.__serverObjects.length);
           this.__serverObjects[elem.data.serverId] = clientObject;
 
-          // Setting a property failed with an exception - change the value back
-          // and handle the exception
+        // Setting a property failed with an exception - change the value back
+        // and handle the exception
         } else if (type == "restore") {
           var obj = this.readProxyObject(elem.object);
           try {

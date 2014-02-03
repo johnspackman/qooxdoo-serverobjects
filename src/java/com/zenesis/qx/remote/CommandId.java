@@ -40,7 +40,8 @@ public class CommandId {
 		EXPIRE("expire"),
 		DEFINE("define"),
 		EDIT_ARRAY("edit-array", true),
-		LOAD_TYPE("load-type");
+		LOAD_TYPE("load-type"),
+		UPLOAD("upload");
 		
 		public final String remoteId;
 		public final boolean cumulative;

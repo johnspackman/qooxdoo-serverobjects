@@ -159,7 +159,7 @@ public class UploadHandler {
         FileApi.FileInfo info = api.getFileInfo(file);
         if (info != null)
         	files.add(info);
-		tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, null, null, new FunctionReturn(asyncId, files));
+		tracker.getQueue().queueCommand(CommandId.CommandType.UPLOAD, null, null, files);
     }
     
     /**
@@ -218,11 +218,13 @@ public class UploadHandler {
 				
 				File receivedFile = receiveFile(api, filePart.getInputStream(), uploading);
 				FileInfo info = api.getFileInfo(receivedFile);
-				if (info != null)
+				if (info != null) {
 					files.add(info);
+					info.uploadId = uploadId;
+				}
 			}
 		}
-		tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, null, null, new FunctionReturn(asyncId, files));
+		tracker.getQueue().queueCommand(CommandId.CommandType.UPLOAD, null, null, files);
 	}
     
     /**

@@ -53,7 +53,7 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 	 * @see com.zenesis.qx.remote.CommandQueue#queueCommand(com.zenesis.qx.remote.CommandId, java.lang.Object)
 	 */
 	@Override
-	public void queueCommand(CommandType type, Object object, String propertyName, Object data) {
+	public synchronized void queueCommand(CommandType type, Object object, String propertyName, Object data) {
 		if (type == CommandType.BOOTSTRAP && !values.isEmpty()) {
 			LinkedHashMap<CommandId, Object> tmp = new LinkedHashMap<CommandId, Object>();
 			tmp.put(new CommandId(type, object, propertyName), data);
@@ -67,7 +67,7 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 	 * @see com.zenesis.qx.remote.Queue#hasDataToFlush()
 	 */
 	@Override
-	public boolean hasDataToFlush() {
+	public synchronized boolean hasDataToFlush() {
 		return !values.isEmpty();
 	}
 
@@ -75,7 +75,7 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 	 * @see com.zenesis.qx.remote.Queue#needsFlush()
 	 */
 	@Override
-	public boolean needsFlush() {
+	public synchronized boolean needsFlush() {
 		return needsFlush;
 	}
 
@@ -83,7 +83,7 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 	 * @see org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
 	 */
 	@Override
-	public void serialize(JsonGenerator gen, SerializerProvider sp) throws IOException, JsonProcessingException {
+	public synchronized void serialize(JsonGenerator gen, SerializerProvider sp) throws IOException, JsonProcessingException {
 		gen.writeStartArray();
 		while (!values.isEmpty()) {
 			CommandId id = values.keySet().iterator().next();
@@ -115,7 +115,7 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 	 * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.fasterxml.jackson.core.JsonGenerator, com.fasterxml.jackson.databind.SerializerProvider, com.fasterxml.jackson.databind.jsontype.TypeSerializer)
 	 */
 	@Override
-	public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts) throws IOException, JsonProcessingException {
+	public synchronized void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts) throws IOException, JsonProcessingException {
 		serialize(gen, sp);
 	}
 

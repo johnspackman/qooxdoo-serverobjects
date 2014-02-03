@@ -49,6 +49,7 @@ public class FileApi implements Proxied {
 		public final long size;
 		public final long lastModified;
 		public final boolean exists;
+		public String uploadId;
 		
 		protected FileInfo(File file, String rootAbsPath) {
 			this.name = file.getName();
