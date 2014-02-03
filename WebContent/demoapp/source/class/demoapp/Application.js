@@ -93,11 +93,24 @@ qx.Class.define("demoapp.Application", {
 			qx.core.Assert.assertEquals("Pippo #0: name=helloPippo #1: name=world", result);
 			var testScalars = boot.getTestScalars();
 			
-			boot.waitForMillis(1000, function(result) {
-				this.debug("waitForMillis completed, result=" + result);
-				qx.core.Assert.assertTrue(this == boot);
-			});
-			
+      boot.waitForMillis(1000, function(result) {
+        this.debug("waitForMillis completed, result=" + result);
+        qx.core.Assert.assertTrue(this == boot);
+        qx.core.Assert.assertTrue(result == 1000);
+      });
+      
+      boot.waitForMillis(250, function(result) {
+        this.debug("waitForMillis completed, result=" + result);
+        qx.core.Assert.assertTrue(this == boot);
+        qx.core.Assert.assertTrue(result == 250);
+      });
+      
+      boot.waitForMillis(2000, function(result) {
+        this.debug("waitForMillis completed, result=" + result);
+        qx.core.Assert.assertTrue(this == boot);
+        qx.core.Assert.assertTrue(result == 2000);
+      });
+      
 			qx.core.Assert.assertTrue(testScalars.getZero() === 0);
 			qx.core.Assert.assertTrue(testScalars.getTrue() === true);
 			qx.core.Assert.assertTrue(testScalars.getFalse() === false);

@@ -51,6 +51,7 @@ import com.oreilly.servlet.multipart.Part;
 import com.zenesis.qx.remote.CommandId.CommandType;
 import com.zenesis.qx.remote.FileApi.FileInfo;
 import com.zenesis.qx.remote.RequestHandler.ExceptionDetails;
+import com.zenesis.qx.remote.RequestHandler.FunctionReturn;
 
 /**
  * Handles file uploads and attaches them to a ProxySessionTracker.  NOTE:: The ProxySessionTracker.getBootstrapObject()
@@ -158,7 +159,7 @@ public class UploadHandler {
         FileApi.FileInfo info = api.getFileInfo(file);
         if (info != null)
         	files.add(info);
-		tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, null, null, files);
+		tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, null, null, new FunctionReturn(asyncId, files));
     }
     
     /**
@@ -221,7 +222,7 @@ public class UploadHandler {
 					files.add(info);
 			}
 		}
-		tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, null, null, files);
+		tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, null, null, new FunctionReturn(asyncId, files));
 	}
     
     /**

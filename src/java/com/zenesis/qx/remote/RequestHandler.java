@@ -109,6 +109,18 @@ public class RequestHandler {
 		}
 		
 	}
+	
+	// Sent when a function returns
+	public static final class FunctionReturn {
+		public final int asyncId;
+		public final Object result;
+		public FunctionReturn(int asyncId, Object result) {
+			super();
+			this.asyncId = asyncId;
+			this.result = result;
+		}
+		
+	}
 
 	// This class is sent as data when an exception is thrown while setting a property value
 	public static final class PropertyReset extends ExceptionDetails {
@@ -311,6 +323,7 @@ public class RequestHandler {
 		// Get the basics
 		int serverId = getFieldValue(jp, "serverId", Integer.class);
 		String methodName = getFieldValue(jp, "methodName", String.class);
+		int asyncId = getFieldValue(jp, "asyncId", Integer.class);
 		Proxied serverObject = getProxied(serverId);
 		
 		
@@ -338,7 +351,7 @@ public class RequestHandler {
 					}
 					if (property.isOnDemand())
 						tracker.setClientHasValue(serverObject, property);
-					tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, serverObject, null, result);
+					tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, serverObject, null, new FunctionReturn(asyncId, result));
 					found = true;
 					break;
 				}
@@ -357,7 +370,7 @@ public class RequestHandler {
 						try {
 							values = readParameters(jp, method.getParameterTypes());
 							Object result = method.invoke(serverObject, values);
-							tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, serverObject, null, result);
+							tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, serverObject, null, new FunctionReturn(asyncId, result));
 						}catch(InvocationTargetException e) {
 							Throwable t = e.getCause();
 							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + t.getMessage(), t);

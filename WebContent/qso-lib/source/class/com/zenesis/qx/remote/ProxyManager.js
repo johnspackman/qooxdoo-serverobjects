@@ -149,6 +149,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     // Queue of commands to send to the server at the next flush
     __queue : null,
 
+    // Callbacks for asynchronous methods 
+    __asyncId: 0,
+    __asyncCallback: {},
+
     // Polling timer
     __onPollTimeoutBinding : null,
     __pollTimerId : null,
@@ -179,15 +183,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var msg = {
         cmd : "bootstrap"
       };
-      this._sendCommandToServer(msg, function(evt) {
-        var tmp = this._processResponse(evt, true);
-        if (evt.getType() == "completed")
-          result = tmp;
-      }, this);
+      this._sendCommandToServer(msg);
       var ex = this.clearException();
       if (ex)
         throw ex;
-      return result;
+      return this.__serverObjects[0];
     },
 
     /**
@@ -231,7 +231,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           if (!txt.length)
             return null;
           var data = eval("(" + txt + ")");
-          return this._processData(data);
+          var result = this._processData(data);
+          if (this.getPollServer()) {
+            this._killPollTimer();
+            this._startPollTimer();
+          }
+          return result;
         } catch (e) {
           this.debug("Exception during receive: " + this.__describeException(e));
           this._setException(e);
@@ -286,9 +291,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var type = elem.type;
 
         // Init or Function return
-        if (type == "bootstrap" || type == "return") {
-          qx.core.Assert.assertNull(result, "Multiple function returns in data from server");
+        if (type == "bootstrap") {
           result = this.readProxyObject(elem.data);
+          
+        } else if (type == "return") {
+          var asyncId = elem.data.asyncId;
+          result = this.readProxyObject(elem.data.result);
+          var cb = this.__asyncCallback[asyncId];
+          if (cb) {
+            delete this.__asyncCallback[asyncId];
+            cb(result);
+          }
 
           // An exception was thrown
         } else if (type == "exception") {
@@ -760,13 +773,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         cmd : "call",
         serverId : serverObject.getServerId(),
         methodName : methodName,
+        asyncId: ++this.__asyncId,
         parameters : parameters
       };
 
-      // Call the server
-      var result = undefined;
-      this._sendCommandToServer(data, function(evt) {
-        result = this._processResponse(evt);
+      var methodResult = undefined;
+      
+      // Add index for tracking multiple, asynchronous callbacks
+      this.__asyncCallback[data.asyncId] = function(result) {
         if (!this.getException()) {
           if (methodDef) {// On-Demand property accessors don't have a method
                           // definition
@@ -780,22 +794,24 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }
         
         for ( var i = 0; i < notify.length; i++)
-          notify[i].call(serverObject, result, evt);
+          notify[i].call(serverObject, result);
 
-        if (evt.getType() == "completed") {
-          // Store in the cache and return
-          if (methodDef && methodDef.cacheResult) {
-            if (!serverObject.$$proxy.cachedResults)
-              serverObject.$$proxy.cachedResults = {};
-            serverObject.$$proxy.cachedResults[methodName] = result;
-          }
+        // Store in the cache and return
+        if (methodDef && methodDef.cacheResult) {
+          if (!serverObject.$$proxy.cachedResults)
+            serverObject.$$proxy.cachedResults = {};
+          serverObject.$$proxy.cachedResults[methodName] = result;
         }
 
-        return result;
-      }, this, notify.length != 0);
+        methodResult = result;
+      }.bind(this);
+      
+      // Call the server
+      this._sendCommandToServer(data, notify.length != 0);
 
-      return result;
+      return methodResult;
     },
+    
 
     /**
      * Handler for "change" event on properties with arrays wrapped by
@@ -1074,20 +1090,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Boolean?} if true, the server will be connected to regardless
      *          of whether there is anything to send, default is to only poll if
      *          there is something to send
-     * @param callback
-     *          {function} callback
-     * @param context
-     *          {Object?} context for the callback
      * @param async
      *          {Boolean?} if true, connection is async, default is false
      * @returns
      */
-    flushQueue : function(force, callback, context, async) {
-      this._sendCommandToServer(!!force ? { cmd : "poll" } : null, function(evt) {
-        var result = this._processResponse(evt);
-        if (callback)
-          callback.call(context || this, evt, result);
-      }, this, async);
+    flushQueue : function(force, async) {
+      this._sendCommandToServer(!!force ? { cmd : "poll" } : null, async);
     },
 
     /**
@@ -1097,16 +1105,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param obj
      *          {Object} object to be turned into a JSON string and sent to the
      *          server
-     * @param callback
-     *          {function} callback
-     * @param context
-     *          {Object?} context for the callback
      * @param aync
      *          {Boolean?} whether to make it an asynch call (default is
      *          synchronous)
      * @return {String} the server response
      */
-    _sendCommandToServer : function(obj, callback, context, async) {
+    _sendCommandToServer : function(obj, async) {
       // Queue any client-created object which need to be sent to the server
       this._queueClientObjects();
 
@@ -1141,13 +1145,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       // Send it
       this.debug("Sending to server: " + text);
-      req.addListener("completed", callback || this._processResponse, context || this);
-      req.addListener("failed", callback || this._processResponse, context || this);
-      req.addListener("timeout", callback || this._processResponse, context || this);
+      req.addListener("completed", this._processResponse, this);
+      req.addListener("failed", this._processResponse, this);
+      req.addListener("timeout", this._processResponse, this);
       req.send();
       this.__numberOfCalls++;
     },
-
+    
     /**
      * Queues a command to the server
      */
@@ -1252,14 +1256,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     __onPollTimeout : function() {
       this.__pollTimerId = null;
-      this.flushQueue(true, function(evt, result) {
-        var statusCode = evt.getStatusCode();
-        if (statusCode >= 400 && statusCode < 500) {
-          this.error("Disabling server polling because of error: " + statusCode);
-        } else {
-          this._startPollTimer();
-        }
-      }, this, true);
+      this.flushQueue(true);
     },
 
     /**
