@@ -117,7 +117,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   },
 
   events : {
-    "exception" : "qx.event.type.Data"
+    /** Fired when an exception is raised on the server; data is the exception */
+    "exception" : "qx.event.type.Data",
+    
+    /** Fired when there is an I/O error communicating to the server; if this event is not preventDefault()'d, an
+     * exception is thrown.  Data is the event that was returned by qx.io.Request
+     */
+    "ioError": "qx.event.type.Data"
   },
 
   members : {
@@ -174,9 +180,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         cmd : "bootstrap"
       };
       this._sendCommandToServer(msg, function(evt) {
-        if (evt.getType() == "completed") {
-          result = this._processResponse(evt, true);
-        }
+        var tmp = this._processResponse(evt, true);
+        if (evt.getType() == "completed")
+          result = tmp;
       }, this);
       var ex = this.clearException();
       if (ex)
@@ -232,7 +238,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }
 
       } else {
-        this.debug("Error returned by server, code=" + statusCode);
+        this._handleIoError(evt);
+      }
+    },
+    
+    /**
+     * Called when there is an error in the IO to the server
+     */
+    _handleIoError: function(evt) {
+      var statusCode = evt.getStatusCode();
+      this.debug("Error returned by server, code=" + statusCode);
+      if (this.fireDataEvent("ioError", evt)) {
         this._setException(new Error("statusCode=" + statusCode));
       }
     },
@@ -750,17 +766,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // Call the server
       var result = undefined;
       this._sendCommandToServer(data, function(evt) {
-        if (evt.getType() == "completed") {
-          result = this._processResponse(evt);
-          if (!this.getException()) {
-            if (methodDef) {// On-Demand property accessors don't have a method
-                            // definition
-              if (methodDef.returnArray == "wrap") {
-                if (!!methodDef.map)
-                  result = new com.zenesis.qx.remote.Map(result);
-                else
-                  result = new qx.data.Array(result || []);
-              }
+        result = this._processResponse(evt);
+        if (!this.getException()) {
+          if (methodDef) {// On-Demand property accessors don't have a method
+                          // definition
+            if (methodDef.returnArray == "wrap") {
+              if (!!methodDef.map)
+                result = new com.zenesis.qx.remote.Map(result);
+              else
+                result = new qx.data.Array(result || []);
             }
           }
         }
@@ -1070,11 +1084,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     flushQueue : function(force, callback, context, async) {
       this._sendCommandToServer(!!force ? { cmd : "poll" } : null, function(evt) {
-        if (evt.getType() == "completed") {
-          var result = this._processResponse(evt);
-          if (callback)
-            callback.call(context || this, evt, result);
-        }
+        var result = this._processResponse(evt);
+        if (callback)
+          callback.call(context || this, evt, result);
       }, this, async);
     },
 
