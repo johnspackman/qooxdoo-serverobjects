@@ -608,6 +608,10 @@ public class RequestHandler {
 					if (items != null)
 						for (int i = 0; i < itemsLength; i++)
 							list.add(Array.get(items, i));
+					
+					// Because collection properties are objects and we change them without the serverObject's
+					//	knowledge, we have to make sure we notify other trackers ourselves
+					ProxyManager.propertyChanged(serverObject, propertyName, list, null);
 				} else {
 					prop.setValue(serverObject, items);
 				}

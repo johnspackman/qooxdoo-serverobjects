@@ -231,18 +231,22 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         txt = txt.trim();
         try {
           // this.debug("received: txt=" + txt);
-          if (!txt.length)
-            return null;
-          var data = eval("(" + txt + ")");
-          var result = this._processData(data);
+          var result = null;
+          if (txt.length) {
+            var data = eval("(" + txt + ")");
+            result = this._processData(data);
+          }
+          return result;
+          
+        } catch (e) {
+          this.debug("Exception during receive: " + this.__describeException(e));
+          this._setException(e);
+          
+        } finally {
           if (this.getPollServer()) {
             this._killPollTimer();
             this._startPollTimer();
           }
-          return result;
-        } catch (e) {
-          this.debug("Exception during receive: " + this.__describeException(e));
-          this._setException(e);
         }
 
       } else {
