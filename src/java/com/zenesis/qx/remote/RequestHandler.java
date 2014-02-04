@@ -567,7 +567,7 @@ public class RequestHandler {
 			
 			// Because collection properties are objects and we change them without the serverObject's
 			//	knowledge, we have to make sure we notify other trackers ourselves
-			ProxyManager.propertyChanged(serverObject, propertyName, map, null);
+			ProxyManager.propertyChanged(serverObject, propertyName, items, null);
 			
 			jp.nextToken();
 		} else {
