@@ -565,6 +565,10 @@ public class RequestHandler {
 			} else
 				throw new IllegalArgumentException("Unsupported action in cmdEditArray: " + action);
 			
+			// Because collection properties are objects and we change them without the serverObject's
+			//	knowledge, we have to make sure we notify other trackers ourselves
+			ProxyManager.propertyChanged(serverObject, propertyName, map, null);
+			
 			jp.nextToken();
 		} else {
 			// NOTE: items is an Array!!  But because it may be an array of primitive types, we have
