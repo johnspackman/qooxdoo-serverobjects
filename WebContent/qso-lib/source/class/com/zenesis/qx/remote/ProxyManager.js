@@ -978,12 +978,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * server; this must suppress property-set events being triggered
      */
     setPropertyValueFromServer : function(serverObject, propertyName, value) {
+      var savePropertyObject = this.__setPropertyObject;
+      var savePropertyName = this.__setPropertyName;
       this.__setPropertyObject = serverObject;
       this.__setPropertyName = propertyName;
       try {
         var def = serverObject.getPropertyDef(propertyName);
         var upname = qx.lang.String.firstUp(propertyName);
-        var current = serverObject["get" + upname]();
+        var current = undefined;
+        if (def.onDemand === true) {
+          if (serverObject.$$proxyUser)
+            current = serverObject.$$proxyUser[propertyName];
+        } else
+          current = serverObject["get" + upname]();
         
         if (def) {
           if (def.check && def.check == "Date") {
@@ -1023,8 +1030,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         this.debug(e);
         throw e;
       } finally {
-        this.__setPropertyObject = null;
-        this.__setPropertyName = null;
+        this.__setPropertyObject = savePropertyObject;
+        this.__setPropertyName = savePropertyName;
       }
     },
 
