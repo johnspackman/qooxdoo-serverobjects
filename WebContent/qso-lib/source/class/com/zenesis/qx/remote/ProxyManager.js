@@ -845,6 +845,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     onWrappedArrayChange : function(evt, serverObject, propDef) {
       if (propDef.readOnly)
         return;
+      if (serverObject === this.__setPropertyObject && propDef.name == this.__setPropertyName)
+        return;
       var data = evt.getData();
 
       // The change event for qx.data.Array doesn't give enough information to
