@@ -749,8 +749,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (!value.classname)
         return value;
 
-      if (value instanceof com.zenesis.qx.remote.Proxy)
+      if (value instanceof com.zenesis.qx.remote.Proxy) {
+        var id = value.getServerId();
+        if (id < 0)
+          this._queueClientObject(id);
         return value.getServerId();
+      }
 
       if (value instanceof qx.core.Object) {
         this.debug("Cannot serialize a Qooxdoo object to the server unless it implements com.zenesis.qx.remote.Proxied");
@@ -1208,28 +1212,50 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         // Array index is set to null when received back from the server
         if (!clientObject || clientObject.getSentToServer())
           continue;
-
-        // Send it
-        var className = clientObject.classname;
-        var def = this.__classInfo[className];
-        var data = {
-          cmd : "new",
-          className : className,
-          clientId : clientObject.getServerId(),
-          properties : {}
-        };
-        if (def.properties)
-          for ( var propName in def.properties) {
-            var pd = def.properties[propName];
-            if (!pd.readOnly && !pd.onDemand) {
-              var value = clientObject.get(propName);
-              if (value !== undefined)
-                data.properties[propName] = this.serializeValue(value);
-            }
-          }
-        queue[queue.length] = data;
-        clientObject.setSentToServer();
+        
+        this._queueClientObject(0 - i);
       }
+    },
+    
+    /**
+     * Queues an individual client object
+     * @param clientId
+     */
+    _queueClientObject: function(clientId) {
+      var pco = this.__clientObjects;
+      if (!pco || pco.length < 2)
+        return;
+      var index = 0 - clientId;
+      if (index < 1 || index >= pco.length)
+        throw new Error("Invalid client ID " + clientId);
+      var clientObject = pco[index];
+      if (clientObject.getSentToServer())
+        return;
+      
+      var queue = this.__queue;
+      if (!queue)
+        this.__queue = queue = [];
+      
+      // Send it
+      clientObject.setSentToServer();
+      var className = clientObject.classname;
+      var def = this.__classInfo[className];
+      var data = {
+        cmd : "new",
+        className : className,
+        clientId : clientObject.getServerId(),
+        properties : {}
+      };
+      if (def.properties)
+        for ( var propName in def.properties) {
+          var pd = def.properties[propName];
+          if (!pd.readOnly && !pd.onDemand) {
+            var value = clientObject.get(propName);
+            if (value !== undefined)
+              data.properties[propName] = this.serializeValue(value);
+          }
+        }
+      queue[queue.length] = data;
     },
 
     /**
@@ -1298,7 +1324,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     getServerObject : function(serverId) {
       if (serverId < 0)
-        return this.__clientObjects(0 - serverId);
+        return this.__clientObjects[0 - serverId];
 
       return this.__serverObjects[serverId];
     },

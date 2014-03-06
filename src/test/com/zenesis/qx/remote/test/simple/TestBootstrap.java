@@ -49,6 +49,11 @@ public class TestBootstrap implements ITestBootstrap {
 	private TestProperties clientTestProperties;
 	private Pippo lastPippo;
 
+	public TestBootstrap() {
+		super();
+		ProxyManager.loadProxyType(ArrayContainer.class);
+	}
+
 	@Override
 	public ITestScalars getTestScalars() {
 		return testScalars;

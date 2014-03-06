@@ -76,6 +76,13 @@ qx.Class.define("demoapp.Application", {
 			dt.setDate(dt.getDate() - 1);
 			qx.core.Assert.assertTrue(boot.isYesterday(dt), "Dates are not passed correctly");
 			
+			var cont = new com.zenesis.qx.remote.test.simple.ArrayContainer();
+			cont.set({ list: new qx.data.Array() });
+      cont.getList().push(new com.zenesis.qx.remote.test.simple.ArrayContainer$Child().set({ name: "alpha" }));
+      cont.getList().push(new com.zenesis.qx.remote.test.simple.ArrayContainer$Child().set({ name: "bravo" }));
+      cont.getList().push(new com.zenesis.qx.remote.test.simple.ArrayContainer$Child().set({ name: "charlie" }));
+      cont.test();
+			
 			var pippo1 = new com.zenesis.qx.remote.test.simple.Pippo();
 			var result = pippo1.getExampleCode();
 			for (var i = 0; i < result.getLength(); i++) {

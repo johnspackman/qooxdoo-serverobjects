@@ -258,39 +258,63 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		value = deserialize(proxied, value);
 		try {
 			if (field != null) {
-				if (!readOnly)
+				if (!readOnly) {
 					field.set(proxied, value);
-				
-			} else if (setMethod != null) {
-				setMethod.invoke(proxied, value);
-				
-			} else {
-				// If we're setting a collection or array, then we can choose to replace the contents
-				//	 of the current property value if we don't have a setXxx method 
-				if (value != null && propertyClass.isCollection()) {
-					Collection coll = (Collection)getValue(proxied);
-					if (value.getClass().isArray()) {
-						coll.clear();
-						Object[] src = (Object[]) value;
-						for (Object obj : src)
-							coll.add(obj);
-						return;
-					} else if (value instanceof Collection) {
-						Collection src = (Collection) value;
-						for (Object obj : src)
-							coll.add(obj);
-						return;
-					}
+					return;
 				}
-				
-				// If a field is a collection then there doesn't have to be a setXxx method - but if the
-				//	current value is null (eg client constructed object) setValue() will be called.  For
-				//	client constructed objects, the best action is usually to update the property to the
-				//	actual value
-				log.warn("Cannot set property " + this + " because there is no set method and field is not accessible");
-				Object current = getValue(proxied);
-				ProxyManager.propertyChanged(proxied, getName(), current, null);
 			}
+			
+			if (setMethod != null) {
+				if (value == null) {
+					setMethod.invoke(proxied, value);
+					return;
+				}
+				Class type = setMethod.getParameterTypes()[0];
+				if (type.isAssignableFrom(value.getClass())) {
+					setMethod.invoke(proxied, value);
+					return;
+				}
+			}
+			
+			// If we're setting a collection or array, then we can choose to replace the contents
+			//	 of the current property value if we don't have a setXxx method 
+			if (value != null && propertyClass.isCollection()) {
+				Collection coll = (Collection)getValue(proxied);
+				boolean setValue = false;
+				
+				// If the setMethod takes a Collection then we can create one
+				if (coll == null && setMethod != null && Collection.class.isAssignableFrom(setMethod.getParameterTypes()[0])) {
+					try {
+						coll = (Collection)getPropertyClass().getCollectionClass().newInstance();
+					}catch(Exception e) {
+						throw new IllegalArgumentException(e.getMessage(), e);
+					}
+					setValue = true;
+				}
+
+				if (value.getClass().isArray()) {
+					coll.clear();
+					Object[] src = (Object[]) value;
+					for (Object obj : src)
+						coll.add(obj);
+				} else if (value instanceof Collection) {
+					Collection src = (Collection) value;
+					for (Object obj : src)
+						coll.add(obj);
+				}
+				if (setValue)
+					setMethod.invoke(proxied, coll);
+				return;
+			}
+			
+			// If a field is a collection then there doesn't have to be a setXxx method - but if the
+			//	current value is null (eg client constructed object) setValue() will be called.  For
+			//	client constructed objects, the best action is usually to reset the client's property 
+			//	value to match the server
+			log.warn("Cannot set property " + this + " because there is no set method and field is not accessible");
+			Object current = getValue(proxied);
+			ProxyManager.propertyChanged(proxied, getName(), current, null);
+			
 		} catch(InvocationTargetException e) {
 			Throwable t = e.getTargetException();
 			log.error("Exception while getting value for " + this + " on " + proxied + ": " + t.getMessage(), t);
