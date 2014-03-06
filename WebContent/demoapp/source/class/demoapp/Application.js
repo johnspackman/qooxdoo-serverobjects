@@ -266,11 +266,16 @@ qx.Class.define("demoapp.Application", {
 			qx.core.Assert.assertEquals("one", map.get("alpha"));
 			
 			map = tmp.getObjectMap();
-			qx.core.Assert.assertTrue(!!map.get("aardvark"));
-			qx.core.Assert.assertEquals("com.zenesis.qx.remote.test.simple.TestMap", map.get("aardvark").classname);
-			map.put("beetle", map.get("aardvark"));
-			map.remove("aardvark");
+			qx.core.Assert.assertTrue(!!map.get("alpha"));
+			qx.core.Assert.assertEquals("com.zenesis.qx.remote.test.simple.TestMap", map.get("alpha").classname);
+			map.put("bravo", map.get("alpha"));
+			map.remove("alpha");
 			tmp.checkObjectMap();
+			
+			map = tmp.getEnumMap();
+			map.remove("alpha");
+			map.put("charlie", "three");
+			tmp.checkEnumMap();
 			
 			alert("All tests passed!");
 		

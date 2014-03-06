@@ -9,34 +9,61 @@ import com.zenesis.qx.remote.annotations.Remote.Array;
 
 public class TestMap implements Proxied {
 	
-	public enum MyEnum {
-		AARDVARK, BEETLE
+	public enum Names {
+		ALPHA, BRAVO, CHARLIE
+	}
+	public enum Numbers {
+		ONE, TWO, THREE
 	}
 
 	private HashMap<String, String> stringMap = new HashMap<String, String>();
-	private HashMap<MyEnum, TestMap> objectMap = new HashMap<TestMap.MyEnum, TestMap>();
+	
+	@Property(arrayType=TestMap.class, keyType=Names.class)
+	private HashMap<Names, TestMap> objectMap = new HashMap<TestMap.Names, TestMap>();
+	
+	@Property(arrayType=Numbers.class, keyType=Names.class)
+	private HashMap<Names, Numbers> enumMap = new HashMap();
 	
 	public TestMap() {
 		stringMap.put("alpha", "one");
 		stringMap.put("bravo", "two");
 		stringMap.put("charlie", "three");
-		objectMap.put(MyEnum.AARDVARK, this);
+		objectMap.put(Names.ALPHA, this);
+		enumMap.put(Names.ALPHA, Numbers.ONE);
+		enumMap.put(Names.BRAVO, Numbers.TWO);
+	}
+
+	public HashMap<Names, Numbers> getEnumMap() {
+		return enumMap;
+	}
+	
+	@Method
+	public void checkEnumMap() {
+		if (enumMap.containsKey(Names.ALPHA))
+			throw new IllegalStateException("enumMap not updated");
+		if (enumMap.get(Names.BRAVO) != Numbers.TWO)
+			throw new IllegalStateException("enumMap not updated");
+		if (enumMap.get(Names.CHARLIE) != Numbers.THREE)
+			throw new IllegalStateException("enumMap not updated");
 	}
 
 	/**
 	 * @return the objectMap
 	 */
-	@Property(arrayType=TestMap.class, keyType=MyEnum.class)
-	public HashMap<MyEnum, TestMap> getObjectMap() {
+	public HashMap<Names, TestMap> getObjectMap() {
 		return objectMap;
 	}
 	
 	@Method
 	public void checkObjectMap() {
-		if (objectMap.get(MyEnum.AARDVARK) != null)
+		if (objectMap.get(Names.ALPHA) != null)
 			throw new IllegalStateException("ObjectMap not updated");
-		if (objectMap.get(MyEnum.BEETLE) != this)
+		if (objectMap.get(Names.BRAVO) != this)
 			throw new IllegalStateException("ObjectMap not updated");
+	}
+
+	public HashMap<String, String> getStringMap() {
+		return stringMap;
 	}
 
 	/**
