@@ -88,7 +88,8 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			method.setAccessible(true);
 			return method;
 		}catch(NoSuchMethodException e) {
-			throw new IllegalArgumentException("Cannot find a method called " + name + ": " + e.getMessage());
+			log.fatal("Cannot find a method called " + name + ": " + e.getMessage());
+			return null;
 		}
 	}
 	
@@ -134,10 +135,11 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 						getMethod = clazz.getMethod("is" + upname, NO_CLASSES);
 					getMethod.setAccessible(true); // Disable access tests, reputed performance improvement
 				} catch(NoSuchMethodException e) {
-					throw new IllegalArgumentException("Cannot find any accessor for property " + name + " in class " + clazz);
 				}
-			if (getMethod == null && field == null)
-				throw new IllegalArgumentException("Cannot find any accessor for property " + name + " in class " + clazz);
+		}
+		if (getMethod == null && field == null) {
+			log.fatal("Cannot find any accessor for property " + name + " in class " + clazz);
+			return;
 		}
 		if (field != null)
 			propertyClass = new MetaClass(field.getType(), anno);
@@ -178,7 +180,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			if (anno.arrayType() != Object.class)
 				propertyClass.setJavaType(anno.arrayType());
 			else if (readOnly != null && !readOnly)
-				throw new IllegalArgumentException("Missing @Property.arrayType for property " + this);
+				log.fatal("Missing @Property.arrayType for property " + this);
 			else {
 				log.warn("Missing @Property.arrayType for property " + this);
 				readOnly = true;
@@ -199,7 +201,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			if (anno.arrayType() != Object.class)
 				propertyClass.setJavaType(anno.arrayType());
 			else if (!readOnly)
-				throw new IllegalArgumentException("Missing @Property.arrayType for property " + this);
+				log.fatal("Missing @Property.arrayType for property " + this);
 			else
 				log.warn("Missing @Property.arrayType for property " + this);
 			propertyClass.setWrapArray(anno.array() != Remote.Array.NATIVE);

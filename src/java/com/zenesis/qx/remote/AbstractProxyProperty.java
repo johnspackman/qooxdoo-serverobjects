@@ -53,51 +53,55 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		if (isReadOnly())
 			gen.writeBooleanField("readOnly", true);
 		
-		Class clazz = propertyClass.getJavaType();
-		boolean nullable;
-		if (this.nullable == null) {
-			if (clazz == Boolean.TYPE || 
-				clazz == Character.TYPE || 
-				clazz == Byte.TYPE || 
-				clazz == Short.TYPE || 
-				clazz == Integer.TYPE || 
-				clazz == Long.TYPE || 
-				clazz == Float.TYPE || 
-				clazz == Double.TYPE)
-				nullable = false;
-			else
-				nullable = true;
-		} else
-			nullable = this.nullable;
-		gen.writeBooleanField("nullable", nullable);
+		if (propertyClass != null) {
+			Class clazz = propertyClass.getJavaType();
+			boolean nullable;
+			if (this.nullable == null) {
+				if (clazz == Boolean.TYPE || 
+					clazz == Character.TYPE || 
+					clazz == Byte.TYPE || 
+					clazz == Short.TYPE || 
+					clazz == Integer.TYPE || 
+					clazz == Long.TYPE || 
+					clazz == Float.TYPE || 
+					clazz == Double.TYPE)
+					nullable = false;
+				else
+					nullable = true;
+			} else
+				nullable = this.nullable;
+			gen.writeBooleanField("nullable", nullable);
+				
+			if (propertyClass.isMap()) {
+				gen.writeBooleanField("map", true);
+			}
 			
-		if (propertyClass.isMap()) {
-			gen.writeBooleanField("map", true);
-		}
-		
-		if (propertyClass.isArray() || propertyClass.isCollection() || propertyClass.isMap()) {
-			if (!propertyClass.isWrapArray())
-				gen.writeStringField("array", "native");
-			else
-				gen.writeStringField("array", "wrap");
-			
-		} else { 
-			if (clazz == boolean.class || clazz == Boolean.class)
-				gen.writeStringField("check", "Boolean");
-			else if (clazz == int.class || clazz == Integer.class)
-				gen.writeStringField("check", "Integer");
-			else if (clazz == double.class || clazz == Double.class)
-				gen.writeStringField("check", "Number");
-			else if (clazz == float.class || clazz == Float.class)
-				gen.writeStringField("check", "Number");
-			else if (clazz == char.class || clazz == String.class)
-				gen.writeStringField("check", "String");
-			else if (Date.class.isAssignableFrom(clazz))
-				gen.writeStringField("check", "Date");
-		}
-		if (Proxied.class.isAssignableFrom(clazz)) {
-			ProxyType type = propertyClass.getProxyType();
-			gen.writeObjectField("clazz", type);
+			if (propertyClass.isArray() || propertyClass.isCollection() || propertyClass.isMap()) {
+				if (!propertyClass.isWrapArray())
+					gen.writeStringField("array", "native");
+				else
+					gen.writeStringField("array", "wrap");
+				
+			} else { 
+				if (clazz == boolean.class || clazz == Boolean.class)
+					gen.writeStringField("check", "Boolean");
+				else if (clazz == int.class || clazz == Integer.class)
+					gen.writeStringField("check", "Integer");
+				else if (clazz == double.class || clazz == Double.class)
+					gen.writeStringField("check", "Number");
+				else if (clazz == float.class || clazz == Float.class)
+					gen.writeStringField("check", "Number");
+				else if (clazz == char.class || clazz == String.class)
+					gen.writeStringField("check", "String");
+				else if (Date.class.isAssignableFrom(clazz))
+					gen.writeStringField("check", "Date");
+			}
+			if (Proxied.class.isAssignableFrom(clazz)) {
+				ProxyType type = propertyClass.getProxyType();
+				gen.writeObjectField("clazz", type);
+			}
+		} else {
+			gen.writeBooleanField("nullable", true);
 		}
 		gen.writeEndObject();
 	}
