@@ -170,6 +170,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     // Exception returned from the server, to be thrown at end of current
     // function call
     __exception : null,
+    
+    __preRequestCallback: null,
 
     /**
      * The Servlet at the other end is configured to return an initial object
@@ -230,7 +232,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (statusCode == 200) {
         txt = txt.trim();
         try {
-          // this.debug("received: txt=" + txt);
+          if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
+            this.debug("received: txt=" + (txt.length > 200 ? txt.substring(0, 200) + "..." : txt));
           var result = null;
           if (txt.length) {
             var data = eval("(" + txt + ")");
@@ -239,7 +242,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           return result;
           
         } catch (e) {
-          this.debug("Exception during receive: " + this.__describeException(e));
+          this.error("Exception during receive: " + this.__describeException(e));
           this._setException(e);
           
         } finally {
@@ -259,7 +262,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     _handleIoError: function(evt) {
       var statusCode = evt.getStatusCode();
-      this.debug("Error returned by server, code=" + statusCode);
+      this.error("Error returned by server, code=" + statusCode);
       if (this.fireDataEvent("ioError", evt)) {
         this._setException(new Error("statusCode=" + statusCode));
       }
@@ -273,13 +276,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     uploadResponse : function(txt) {
       txt = txt.trim();
       try {
-        // this.debug("received: txt=" + txt);
+        if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
+          this.debug("received: txt=" + (txt.length > 200 ? txt.substring(0, 200) + "..." : txt));
         if (!txt.length)
           return null;
         var data = eval("(" + txt + ")");
         return this._processData(data);
       } catch (e) {
-        this.debug("Exception during uploadResponse: " + this.__describeException(e));
+        this.error("Exception during uploadResponse: " + this.__describeException(e));
         throw e;
       }
     },
@@ -757,7 +761,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       if (value instanceof qx.core.Object) {
-        this.debug("Cannot serialize a Qooxdoo object to the server unless it implements com.zenesis.qx.remote.Proxied");
+        this.error("Cannot serialize a Qooxdoo object to the server unless it implements com.zenesis.qx.remote.Proxied");
         return null;
       }
 
@@ -1033,7 +1037,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         serverObject["set" + upname](value);
         
       } catch (e) {
-        this.debug(e);
+        this.error(e);
         throw e;
       } finally {
         this.__setPropertyObject = savePropertyObject;
@@ -1175,10 +1179,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=" + charset);
 
       // Send it
-      this.debug("Sending to server: " + text);
+      if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
+        this.debug("Sending to server: " + (text.length > 200 ? text.substring(0, 200) + "..." : text));
+
       req.addListener("completed", this._processResponse, this);
       req.addListener("failed", this._processResponse, this);
       req.addListener("timeout", this._processResponse, this);
+      if (this.__preRequestCallback)
+        this.__preRequestCallback.call(this, req);
       req.send();
       this.__numberOfCalls++;
     },
@@ -1246,15 +1254,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         clientId : clientObject.getServerId(),
         properties : {}
       };
-      if (def.properties)
-        for ( var propName in def.properties) {
-          var pd = def.properties[propName];
-          if (!pd.readOnly && !pd.onDemand) {
-            var value = clientObject.get(propName);
-            if (value !== undefined)
-              data.properties[propName] = this.serializeValue(value);
+      for (; def; def = def.extend) {
+        if (def.properties)
+          for ( var propName in def.properties) {
+            var pd = def.properties[propName];
+            if (!pd.readOnly && !pd.onDemand) {
+              var value = clientObject.get(propName);
+              if (value !== undefined)
+                data.properties[propName] = this.serializeValue(value);
+            }
           }
-        }
+      }
       queue[queue.length] = data;
     },
 
@@ -1388,6 +1398,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     getException : function() {
       return this.__exception;
     },
+    
+    /**
+     * Sets a method to be called before the request is sent
+     */
+    setPreRequestCallback: function(callback) {
+      this.__preRequestCallback = callback;
+    },
+    
+    /**
+     * Returns the callback
+     */
+    getPreRequestCallback: function() {
+      return this.__preRequestCallback;
+    },
 
     /**
      * Utility method to describe an exception
@@ -1445,5 +1469,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     getInstance : function() {
       return this.__instance;
     }
+  },
+  
+  environment: {
+    "com.zenesis.qx.remote.trace": false
   }
 });

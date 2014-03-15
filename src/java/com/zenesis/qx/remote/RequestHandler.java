@@ -560,6 +560,14 @@ public class RequestHandler {
 			
 			if (action.equals("replaceAll")) {
 				Map map = (Map)prop.getValue(serverObject);
+				if (map == null) {
+					try {
+						map = (Map)prop.getPropertyClass().getCollectionClass().newInstance();
+					}catch(Exception e) {
+						throw new IllegalArgumentException(e.getMessage(), e);
+					}
+					prop.setValue(serverObject, map);
+				}
 				map.clear();
 				map.putAll(items);
 			} else

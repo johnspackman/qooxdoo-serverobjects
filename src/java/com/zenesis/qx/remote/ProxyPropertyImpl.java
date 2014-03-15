@@ -265,7 +265,9 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			}
 			
 			if (setMethod != null) {
-				if (value == null) {
+				// If it's not a collection then we don't try to handle it because we want Java
+				//	autoboxing to handle conversions between primitive types
+				if (value == null || !propertyClass.isCollection()) {
 					setMethod.invoke(proxied, value);
 					return;
 				}
@@ -292,19 +294,21 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 					setValue = true;
 				}
 
-				if (value.getClass().isArray()) {
-					coll.clear();
-					Object[] src = (Object[]) value;
-					for (Object obj : src)
-						coll.add(obj);
-				} else if (value instanceof Collection) {
-					Collection src = (Collection) value;
-					for (Object obj : src)
-						coll.add(obj);
+				if (coll != null) {
+					if (value.getClass().isArray()) {
+						coll.clear();
+						Object[] src = (Object[]) value;
+						for (Object obj : src)
+							coll.add(obj);
+					} else if (value instanceof Collection) {
+						Collection src = (Collection) value;
+						for (Object obj : src)
+							coll.add(obj);
+					}
+					if (setValue)
+						setMethod.invoke(proxied, coll);
+					return;
 				}
-				if (setValue)
-					setMethod.invoke(proxied, coll);
-				return;
 			}
 			
 			// If a field is a collection then there doesn't have to be a setXxx method - but if the
