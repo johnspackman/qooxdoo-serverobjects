@@ -338,7 +338,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           qx.core.Assert.assertEquals(elem.data.clientId, clientObject.getServerId());
 
           clientObject.setServerId(elem.data.serverId);
-          qx.core.Assert.assertEquals(elem.data.serverId, this.__serverObjects.length);
+          //qx.core.Assert.assertEquals(elem.data.serverId, this.__serverObjects.length);
           this.__serverObjects[elem.data.serverId] = clientObject;
 
         // Setting a property failed with an exception - change the value back
@@ -1020,7 +1020,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
               } else {
                 value = qx.lang.Array.cast(value, Array);
-                if (current === null) {
+                if (current === null || current === undefined) {
                   var arr = new qx.data.Array();
                   arr.append(value);
                   serverObject["set" + upname](arr);
