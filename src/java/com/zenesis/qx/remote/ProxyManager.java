@@ -286,6 +286,36 @@ public class ProxyManager implements EventListener {
 	}
 	
 	/**
+	 * Helper static method to register that a property has changed; this also fires a server event for
+	 * the property if an event is defined
+	 * @param proxied
+	 * @param propertyName
+	 * @param oldValue
+	 * @param newValue
+	 */
+	public static void allPropertiesChanged(Proxied keyObject) {
+		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(keyObject.getClass());
+		synchronized(s_syncedTrackers) {
+			while (type != null) {
+				for (ProxyProperty prop : type.getProperties().values()) {
+					ProxySessionTracker tracker = getTracker();
+					try {
+						Object value = prop.getValue(keyObject);
+						if (tracker != null)
+							tracker.propertyChanged(keyObject, prop, value, null);
+						for (ProxySessionTracker tmp : s_syncedTrackers)
+							if (tmp != tracker)
+								tmp.propertyChanged(keyObject, prop, value, null);
+					} catch(ProxyException e) {
+						log.error("Error while calling getValue on " + prop + " for " + keyObject + ": " + e.getMessage(), e);
+					}
+				}
+				type = type.getSuperType();
+			}
+		}
+	}
+	
+	/**
 	 * Forces the value of an on demand property to be sent to the client 
 	 * @param keyObject
 	 * @param propertyName
