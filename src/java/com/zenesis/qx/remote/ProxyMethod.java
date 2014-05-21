@@ -29,9 +29,12 @@ package com.zenesis.qx.remote;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Map;
+
+import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -49,6 +52,8 @@ import com.zenesis.qx.remote.annotations.Remote;
  */
 public class ProxyMethod implements JsonSerializable {
 	
+	private static final Logger log = Logger.getLogger(ProxyMethod.class); 
+	
 	public static final Comparator<ProxyMethod> ALPHA_COMPARATOR = new Comparator<ProxyMethod>() {
 
 		/* (non-Javadoc)
@@ -63,10 +68,12 @@ public class ProxyMethod implements JsonSerializable {
 	private final Method method;
 	private final Remote.Array array;
 	private final boolean isMap;
+	@SuppressWarnings("unused")
 	private final Class keyType;
 	private final Class arrayType;
 	private final boolean prefetchResult;
 	private final boolean cacheResult;
+	private final boolean staticMethod;
 	
 	/**
 	 * @param name
@@ -120,6 +127,11 @@ public class ProxyMethod implements JsonSerializable {
 		
 		this.keyType = keyType;
 		this.prefetchResult = prefetchResult;
+		this.staticMethod = (method.getModifiers() & Modifier.STATIC) != 0;
+		if (staticMethod && cacheResult) {
+			log.warn("Cannot cacheResult on static method " + method);
+			cacheResult = false;
+		}
 		this.cacheResult = cacheResult;
 	}
 
@@ -139,7 +151,9 @@ public class ProxyMethod implements JsonSerializable {
 			jgen.writeBooleanField("map", true);
 		}
 		if (cacheResult)
-			jgen.writeBooleanField("cacheResult", cacheResult);
+			jgen.writeBooleanField("cacheResult", true);
+		if (staticMethod)
+			jgen.writeBooleanField("staticMethod", true);
 		
 		// Whether to wrap the return
 		if (array != null)

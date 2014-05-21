@@ -321,10 +321,22 @@ public class RequestHandler {
 	 */
 	protected void cmdCallServerMethod(JsonParser jp) throws ServletException, IOException {
 		// Get the basics
-		int serverId = getFieldValue(jp, "serverId", Integer.class);
+		Object obj = getFieldValue(jp, "serverId", Object.class);
+		Class serverClass = null;
+		Proxied serverObject = null;
+		if (obj instanceof Integer) {
+			int serverId = (Integer)obj;
+			serverObject = getProxied(serverId);
+			serverClass = serverObject.getClass();
+		} else if (obj != null) {
+			try {
+				serverClass = Class.forName(obj.toString());
+			} catch(ClassNotFoundException e) {
+				log.error("Cannot find server class " + obj + ": " + e.getMessage());
+			}
+		}
 		String methodName = getFieldValue(jp, "methodName", String.class);
 		int asyncId = getFieldValue(jp, "asyncId", Integer.class);
-		Proxied serverObject = getProxied(serverId);
 		
 		
 		// Onto what should be parameters
@@ -334,11 +346,14 @@ public class RequestHandler {
 		//	method names (ie no overridden methods) but Java needs a list of parameter types
 		//	so we do it ourselves.
 		boolean found = false;
-		if (methodName.length() > 3 && (methodName.startsWith("get") || methodName.startsWith("set"))) {
+		
+		// Check for property accessors; if serverObject is null then it's static method call and
+		//	properties are not supported
+		if (serverObject != null && methodName.length() > 3 && (methodName.startsWith("get") || methodName.startsWith("set"))) {
 			String name = methodName.substring(3, 4).toLowerCase();
 			if (methodName.length() > 4)
 				name += methodName.substring(4);
-			for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverObject.getClass()); type != null; type = type.getSuperType()) {
+			for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null; type = type.getSuperType()) {
 				ProxyProperty property = type.getProperties().get(name);
 				if (property != null) {
 					Object result = null;
@@ -358,8 +373,8 @@ public class RequestHandler {
 			}
 		}
 
-		if (!found)
-			for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverObject.getClass()); type != null && !found; type = type.getSuperType()) {
+		if (!found) {
+			for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null && !found; type = type.getSuperType()) {
 				ProxyMethod[] methods = type.getMethods();
 				for (int i = 0; i < methods.length; i++)
 					if (methods[i].getName().equals(methodName)) {
@@ -385,9 +400,10 @@ public class RequestHandler {
 						break;
 					}
 			}
+		}
 
 		if (!found)
-			throw new ServletException("Cannot find method called " + methodName + " in " + serverObject);
+			throw new ServletException("Cannot find method called " + methodName + " in " + (serverObject != null ? serverObject : serverClass));
 		
 		jp.nextToken();
 	}
@@ -938,9 +954,12 @@ public class RequestHandler {
 				Integer id = jp.readValueAs(Integer.class);
 				if (id != null) {
 					Proxied obj = getProxied(id);
-					if (!clazz.isInstance(obj))
+					if (obj == null)
+						log.fatal("Cannot read object of class " + clazz + " from id=" + id);
+					else if (!clazz.isInstance(obj))
 						throw new ClassCastException("Cannot cast " + obj + " class " + obj.getClass() + " to " + clazz);
-					result.add(obj);
+					else
+						result.add(obj);
 				} else
 					result.add(null);
 			} else {

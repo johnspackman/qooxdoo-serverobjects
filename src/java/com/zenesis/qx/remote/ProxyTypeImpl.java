@@ -110,8 +110,6 @@ public class ProxyTypeImpl extends AbstractProxyType {
 				// Public and protected only
 				if (!Modifier.isPublic(mods) && !Modifier.isProtected(mods))
 					continue;
-				if (Modifier.isStatic(mods))
-					continue;
 				
 				method.setAccessible(true);// Short cut access controls validation
 				if (explicitOnly && !method.isAnnotationPresent(AlwaysProxy.class) && !method.isAnnotationPresent(com.zenesis.qx.remote.annotations.Method.class))
