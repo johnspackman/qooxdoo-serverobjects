@@ -210,7 +210,7 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 			
 			// Don't use __storePropertyOnDemand here - use _applyProperty instead
 			var propDef = this.getPropertyDef(propName);
-			if (propDef.array == "wrap")
+			if (propDef.array == "wrap" && !(value instanceof qx.data.Array))
 				value = new qx.data.Array(value);
 			
 			this.$$proxyUser[propName] = value;
@@ -281,6 +281,20 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 			}
 			return null;
 		}
+	},
+	
+	statics: {
+	  /**
+	   * Calls a static method on the server
+	   */
+    _callServer: function(clazz, name, args) {
+      var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
+      var result = PM.callServerMethod(clazz, name, args);
+      var ex = PM.clearException();
+      if (ex)
+        throw ex;
+      return result;
+    }
 	}
 	
 });
