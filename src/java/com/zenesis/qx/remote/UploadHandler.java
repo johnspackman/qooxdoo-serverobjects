@@ -51,7 +51,6 @@ import com.oreilly.servlet.multipart.Part;
 import com.zenesis.qx.remote.CommandId.CommandType;
 import com.zenesis.qx.remote.FileApi.FileInfo;
 import com.zenesis.qx.remote.RequestHandler.ExceptionDetails;
-import com.zenesis.qx.remote.RequestHandler.FunctionReturn;
 
 /**
  * Handles file uploads and attaches them to a ProxySessionTracker.  NOTE:: The ProxySessionTracker.getBootstrapObject()

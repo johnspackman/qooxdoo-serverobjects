@@ -35,8 +35,10 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import com.zenesis.qx.remote.ProxyManager;
 
+@SuppressWarnings("serial")
 public class FileExplorerServlet extends HttpServlet {
 	
 	// This is a singleton instance

@@ -117,7 +117,7 @@ public class TestProperties implements ITestProperties {
 
 	@Override
 	public void triggerSomeEvent() {
-		EventManager.getInstance().fireEvent(this, "someEvent");
+		EventManager.fireEvent(this, "someEvent");
 	}
 	
 }

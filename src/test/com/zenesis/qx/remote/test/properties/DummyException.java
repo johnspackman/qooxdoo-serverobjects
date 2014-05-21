@@ -32,6 +32,7 @@ package com.zenesis.qx.remote.test.properties;
  * 
  * @author "John Spackman <john.spackman@zenesis.com>"
  */
+@SuppressWarnings("serial")
 class DummyException extends Exception {
 
 	public DummyException(String message) {
