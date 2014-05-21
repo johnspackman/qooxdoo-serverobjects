@@ -28,6 +28,7 @@
 package com.zenesis.qx.remote.test.simple;
 
 import com.zenesis.qx.remote.annotations.Method;
+import com.zenesis.qx.remote.annotations.Property;
 
 public class TestScalars implements ITestScalars {
 
@@ -59,6 +60,16 @@ public class TestScalars implements ITestScalars {
 	@Method
 	public boolean getFalse() {
 		return false;
+	}
+
+	@Method
+	public Boolean getNullBoolean() {
+		return null;
+	}
+
+	@Property
+	public Boolean getNullBooleanProperty() {
+		return null;
 	}
 
 	@Override
