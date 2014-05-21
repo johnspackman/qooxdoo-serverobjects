@@ -76,6 +76,8 @@ qx.Class.define("demoapp.Application", {
 			dt.setDate(dt.getDate() - 1);
 			qx.core.Assert.assertTrue(boot.isYesterday(dt), "Dates are not passed correctly");
 			
+			qx.core.Assert.assertTrue(boot.constructor.myStaticMethod("hello") === "static+hello", "static methods not working");
+			
 			var cont = new com.zenesis.qx.remote.test.simple.ArrayContainer();
 			cont.set({ list: new qx.data.Array() });
       cont.getList().push(new com.zenesis.qx.remote.test.simple.ArrayContainer$Child().set({ name: "alpha" }));
@@ -120,7 +122,9 @@ qx.Class.define("demoapp.Application", {
       
 			qx.core.Assert.assertTrue(testScalars.getZero() === 0);
 			qx.core.Assert.assertTrue(testScalars.getTrue() === true);
-			qx.core.Assert.assertTrue(testScalars.getFalse() === false);
+      qx.core.Assert.assertTrue(testScalars.getFalse() === false);
+      qx.core.Assert.assertTrue(testScalars.getNullBoolean() === null);
+      qx.core.Assert.assertTrue(testScalars.getNullBooleanProperty() === null);
 			qx.core.Assert.assertEquals(43, testScalars.getFourtyThree());
 			qx.core.Assert.assertEquals(6.7, testScalars.getSixPointSeven());
 			qx.core.Assert.assertEquals("Hello World", testScalars.getHelloWorld());

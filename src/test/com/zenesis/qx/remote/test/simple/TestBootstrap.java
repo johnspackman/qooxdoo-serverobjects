@@ -169,4 +169,9 @@ public class TestBootstrap implements ITestBootstrap {
 				dt.getMonth() == cal.get(Calendar.MONTH) &&
 				dt.getDate() == cal.get(Calendar.DAY_OF_MONTH);
 	}
+	
+	@Method
+	public static String myStaticMethod(String value) {
+		return "static+" + value;
+	}
 }

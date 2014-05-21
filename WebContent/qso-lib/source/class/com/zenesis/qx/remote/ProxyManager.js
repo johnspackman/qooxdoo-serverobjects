@@ -547,12 +547,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var def;
         if (data.isInterface)
           def = {
-            members : {}
+            members : {},
+            statics: {}
           };
         else {
           def = {
             construct : new Function('serverId', 'this.base(arguments, serverId); this.$$proxy = {};'),
-            members : {}
+            members : {},
+            statics: {}
           };
           if (data.extend) {
             def.extend = this.getClassOrCreate(data.extend);
@@ -581,6 +583,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             method.name = methodName;
             if (data.isInterface)
               def.members[methodName] = new Function('');
+            else if (method.staticMethod)
+              def.statics[methodName] = new Function('return com.zenesis.qx.remote.Proxy._callServer(' + data.className + 
+                  ', "' + methodName + '", qx.lang.Array.fromArguments(arguments));');
             else
               def.members[methodName] = new Function('return this._callServer("' + methodName
                   + '", qx.lang.Array.fromArguments(arguments));');
@@ -780,11 +785,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Array} the arguments passed to the method
      */
     callServerMethod : function(serverObject, methodName, args) {
-      // Can we get it from the cache?
-      var methodDef = this._getMethodDef(serverObject, methodName);
-      if (methodDef && methodDef.cacheResult && serverObject.$$proxy.cachedResults
-          && serverObject.$$proxy.cachedResults[methodName])
-        return serverObject.$$proxy.cachedResults[methodName];
+      var isClass = serverObject && serverObject.$$type !== undefined && serverObject.$$type === "Class";
+      var methodDef;
+      if (isClass) {
+        var cinfo = this.getClassInfo(serverObject.classname);
+        methodDef = cinfo.methods[methodName];
+      } else {
+        methodDef = this._getMethodDef(serverObject, methodName);
+        // Can we get it from the cache?
+        if (methodDef && methodDef.cacheResult && serverObject.$$proxy.cachedResults
+            && serverObject.$$proxy.cachedResults[methodName])
+          return serverObject.$$proxy.cachedResults[methodName];
+      }
 
       // Serialise the request
       var parameters = [];
@@ -797,7 +809,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
       var data = {
         cmd : "call",
-        serverId : serverObject.getServerId(),
+        serverId : isClass ? serverObject.classname : serverObject.getServerId(), 
         methodName : methodName,
         asyncId: ++this.__asyncId,
         parameters : parameters
@@ -822,7 +834,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         for ( var i = 0; i < notify.length; i++)
           notify[i].call(serverObject, result);
 
-        // Store in the cache and return
+        // Store in the cache and return (not available for static methods)
         if (methodDef && methodDef.cacheResult) {
           if (!serverObject.$$proxy.cachedResults)
             serverObject.$$proxy.cachedResults = {};
@@ -995,12 +1007,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       try {
         var def = serverObject.getPropertyDef(propertyName);
         var upname = qx.lang.String.firstUp(propertyName);
-        var current = undefined;
-        if (def.onDemand === true) {
-          if (serverObject.$$proxyUser)
-            current = serverObject.$$proxyUser[propertyName];
-        } else
-          current = serverObject["get" + upname]();
         
         if (def) {
           if (def.check && def.check == "Date") {
@@ -1010,6 +1016,22 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (value == null) {
               serverObject["set" + upname](null);
             } else {
+              
+              // For arrays and maps we try to not replace the object, instead preferring to
+              //  edit the existing object if there is one.
+              var current = undefined;
+              if (def.onDemand === true) {
+                if (serverObject.$$proxyUser)
+                  current = serverObject.$$proxyUser[propertyName];
+              } else {
+                try {
+                  current = serverObject["get" + upname]();
+                }catch(ex) {
+                  // Nothing - property not be ready yet
+                }
+              }
+              
+              // Maps
               if (!!def.map) {
                 if (current === null) {
                   value = new com.zenesis.qx.remote.Map(value);
@@ -1018,6 +1040,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                   current.replaceAll(value);
                 }
 
+              // Arrays
               } else {
                 value = qx.lang.Array.cast(value, Array);
                 if (current === null || current === undefined) {
