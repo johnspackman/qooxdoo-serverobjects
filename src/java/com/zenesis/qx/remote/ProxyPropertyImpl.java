@@ -200,7 +200,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		} else if (propertyClass.isMap()) {
 			if (anno.arrayType() != Object.class)
 				propertyClass.setJavaType(anno.arrayType());
-			else if (!readOnly)
+			else if (readOnly == null || !readOnly)
 				log.fatal("Missing @Property.arrayType for property " + this);
 			else
 				log.warn("Missing @Property.arrayType for property " + this);
@@ -232,8 +232,10 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		try {
 			if (field != null)
 				result = field.get(proxied);
-			else
+			else if (getMethod != null)
 				result = getMethod.invoke(proxied);
+			else
+				log.error("Cannot get value for " + this + " because there is no accessor");
 			
 			result = serialize(proxied, result);
 		} catch(InvocationTargetException e) {
