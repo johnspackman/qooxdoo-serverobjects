@@ -340,6 +340,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           clientObject.setServerId(elem.data.serverId);
           //qx.core.Assert.assertEquals(elem.data.serverId, this.__serverObjects.length);
           this.__serverObjects[elem.data.serverId] = clientObject;
+          
+          // Now read in new/changed properties
+          this.readProxyObject(elem.object);
 
         // Setting a property failed with an exception - change the value back
         // and handle the exception

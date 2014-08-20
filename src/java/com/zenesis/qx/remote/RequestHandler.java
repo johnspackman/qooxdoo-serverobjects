@@ -692,6 +692,7 @@ public class RequestHandler {
 		clientObjects.put(clientId, proxied);
 		
 		// Tell the client about the new ID - do this before changing properties
+		tracker.invalidateCache(proxied);
 		tracker.getQueue().queueCommand(CommandId.CommandType.MAP_CLIENT_ID, proxied, null, new MapClientId(serverId, clientId));
 		
 		// Set property values
