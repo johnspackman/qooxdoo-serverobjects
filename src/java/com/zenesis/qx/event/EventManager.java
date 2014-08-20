@@ -28,6 +28,7 @@
 package com.zenesis.qx.event;
 
 import java.lang.ref.WeakReference;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -339,12 +340,13 @@ public class EventManager {
 		if (!supportsEvent(keyObject, eventName))
 			return false;
 		
-		Object current = listeners.get(keyObject);
+		Object identityObject = getIdentity(keyObject);
+		Object current = listeners.get(identityObject);
 		
 		// If the object is not yet known, then create a new NEL and return
 		if (current == null) {
 			NamedEventListener nel = new NamedEventListener(eventName, listener);
-			listeners.put(keyObject, nel);
+			listeners.put(identityObject, nel);
 			return true;
 		}
 		
@@ -359,7 +361,7 @@ public class EventManager {
 				NamedEventListener[] nels = new NamedEventListener[TINY_ARRAY_SIZE];
 				nels[0] = nel;
 				nels[1] = new NamedEventListener(eventName, listener);
-				listeners.put(keyObject, nels);
+				listeners.put(identityObject, nels);
 			}
 			return true;
 		}
@@ -400,7 +402,7 @@ public class EventManager {
 				map.put(eventName, new NamedEventListener(eventName, listener));
 				
 				// Replace the array with the map
-				listeners.put(keyObject, map);
+				listeners.put(identityObject, map);
 			}
 			
 			return true;
@@ -437,10 +439,11 @@ public class EventManager {
 	 * @return
 	 */
 	protected synchronized boolean _removeListener(Object keyObject, String eventName, EventListener listener) {
+		Object identityObject = getIdentity(keyObject);
 		if (eventName == null && listener == null)
-			return listeners.remove(keyObject) != null;
+			return listeners.remove(identityObject) != null;
 		
-		Object current = listeners.get(keyObject);
+		Object current = listeners.get(identityObject);
 		if (current == null)
 			return false;
 		
@@ -452,7 +455,7 @@ public class EventManager {
 			if (eventName != null && !nel.eventName.equals(eventName))
 				return false;
 			if (listener == null) {
-				listeners.remove(keyObject);
+				listeners.remove(identityObject);
 				return true;
 			}
 			return nel.removeListener(listener);
@@ -515,7 +518,7 @@ public class EventManager {
 	 * @return
 	 */
 	protected synchronized boolean _hasListener(Object keyObject, String eventName, EventListener listener) {
-		Object current = listeners.get(keyObject);
+		Object current = listeners.get(getIdentity(keyObject));
 		if (current == null)
 			return false;
 		
@@ -603,7 +606,7 @@ public class EventManager {
 	 * @param data
 	 */
 	public void fireDataEvent(Event event) {
-		Object current = listeners.get(event.getOriginalTarget());
+		Object current = listeners.get(getIdentity(event.getOriginalTarget()));
 		if (current == null)
 			return;
 		
@@ -701,5 +704,32 @@ public class EventManager {
 		if (s_instance == null)
 			new EventManager(true);
 		return s_instance;
+	}
+
+	private static final class IdentityObject {
+		private final Object obj;
+		
+		IdentityObject(Object obj) {
+			this.obj = obj;
+		}
+		
+		@Override
+		public int hashCode() {
+			return 1;
+		}
+
+		@Override
+		public boolean equals(Object that) {
+			return ((IdentityObject)that).obj == this.obj;
+		}
+		
+	}
+
+	public static Object getIdentity(Object obj) {
+		if (obj == null)
+			return null;
+		if (obj instanceof AbstractList)
+			return new IdentityObject(obj);
+		return obj;
 	}
 }
