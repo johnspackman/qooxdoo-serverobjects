@@ -1282,7 +1282,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           for ( var propName in def.properties) {
             var pd = def.properties[propName];
             if (!pd.readOnly && !pd.onDemand) {
-              var value = clientObject.get(propName);
+              var value = undefined;
+              
+              // If the get method is a standard Qooxdoo get method, then we access the property
+              //  value directly so that we can detect uninitialised property values; this allows
+              //  to not send property values to the server unless necessary, so that server 
+              //  defaults are not overridden
+              var value = clientObject["$$runtime_" + propName];
+              if (value === undefined)
+                value = clientObject["$$user_" + propName];
+              
               if (value !== undefined)
                 data.properties[propName] = this.serializeValue(value);
             }

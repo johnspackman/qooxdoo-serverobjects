@@ -29,10 +29,10 @@ package com.zenesis.qx.remote;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,6 +48,7 @@ import com.zenesis.qx.remote.annotations.DoNotProxy;
 import com.zenesis.qx.remote.annotations.Event;
 import com.zenesis.qx.remote.annotations.Events;
 import com.zenesis.qx.remote.annotations.ExplicitProxyOnly;
+import com.zenesis.qx.remote.annotations.FactoryMethod;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 
@@ -107,6 +108,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 			Method[] ifcMethods = fromClass.getDeclaredMethods();
 			for (Method method : ifcMethods) {
 				int mods = method.getModifiers();
+				
 				// Public and protected only
 				if (!Modifier.isPublic(mods) && !Modifier.isProtected(mods))
 					continue;
@@ -207,6 +209,9 @@ public class ProxyTypeImpl extends AbstractProxyType {
 	// Events
 	private final HashMap<String, ProxyEvent> events;
 	
+	// Factory method for newInstance()
+	private Method factoryMethod;
+	
 	/**
 	 * Constructor, used for defining interfaces which are to be proxied
 	 * @param className
@@ -244,6 +249,17 @@ public class ProxyTypeImpl extends AbstractProxyType {
 			defaultProxy = true;
 		else {
 			for (Class tmp = clazz; tmp != null; tmp = tmp.getSuperclass()) {
+				if (factoryMethod == null) {
+					for (Method method : tmp.getDeclaredMethods()) {
+						if (method.isAnnotationPresent(FactoryMethod.class)) {
+							if (!Modifier.isStatic(method.getModifiers()))
+								throw new IllegalStateException("Cannot use method " + method + " as FactoryMethod because it is not static");
+							factoryMethod = method;
+							method.setAccessible(true);
+							break;
+						}
+					}
+				}
 				if (tmp.isAnnotationPresent(AlwaysProxy.class)) {
 					defaultProxy = true;
 					break;
@@ -457,6 +473,16 @@ public class ProxyTypeImpl extends AbstractProxyType {
 	@Override
 	public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts) throws IOException, JsonProcessingException {
 		serialize(gen, sp);
+	}
+
+	@Override
+	public Proxied newInstance(Class<? extends Proxied> clazz) throws InstantiationException, IllegalAccessException, InvocationTargetException {
+		if (factoryMethod != null) {
+			if (factoryMethod.getParameterTypes().length == 0)
+				return (Proxied)factoryMethod.invoke(null);
+			return (Proxied)factoryMethod.invoke(null, clazz);
+		}
+		return clazz.newInstance();
 	}
 
 	/**

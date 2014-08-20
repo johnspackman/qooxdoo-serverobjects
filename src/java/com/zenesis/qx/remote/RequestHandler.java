@@ -669,12 +669,15 @@ public class RequestHandler {
 		} catch(ClassNotFoundException e) {
 			throw new ServletException("Unknown class " + className);
 		}
+		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(clazz);
 		
 		// Create the instance
 		Proxied proxied;
 		try {
-			proxied = clazz.newInstance();
+			proxied = type.newInstance(clazz);
 		} catch(InstantiationException e) {
+			throw new ServletException("Cannot create class " + className + ": " + e.getMessage(), e);
+		} catch(InvocationTargetException e) {
 			throw new ServletException("Cannot create class " + className + ": " + e.getMessage(), e);
 		} catch(IllegalAccessException e) {
 			throw new ServletException("Cannot create class " + className + ": " + e.getMessage(), e);
@@ -682,7 +685,6 @@ public class RequestHandler {
 		
 		// Get the server ID
 		int serverId = tracker.addClientObject(proxied);
-		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(clazz);
 		
 		// Remember the client ID, in case there are subsequent commands which refer to it
 		if (clientObjects == null)

@@ -33,7 +33,7 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
 	construct: function(info) {
 		this.base(arguments);
 		if (info)
-			this.set({ name: info.name, type: info.type, lastModified: info.lastModified, absolutePath: info.absolutePath });
+			this.set({ absolutePath: info.absolutePath, name: info.name, type: info.type, lastModified: info.lastModified, size: info.size });
 	},
 	
 	properties: {
@@ -44,7 +44,7 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
 			nullable: false,
 			check: "String",
 			event: "changeAbsolutePath",
-			apply: "_apply",
+			apply: "_applyAbsolutePath",
 			transform: "_transformAbsolutePath"
 		},
 		
@@ -55,7 +55,7 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
 			nullable: false,
 			check: "String",
 			event: "changeName",
-			apply: "_apply"
+			apply: "_applyName"
 		},
 		
 		/**
@@ -66,6 +66,13 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
 			check: [ "file", "folder" ],
 			event: "changeType",
 			apply: "_apply"
+		},
+		
+		size: {
+		  nullable: false,
+		  check: "Integer",
+		  event: "changeSize",
+		  apply: "_apply"
 		},
 		
 		/**
@@ -115,6 +122,44 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
 			// Get the folder
 			var folder = name.substring(0, pos);
 			return folder ? folder : "/";
+		},
+		
+		/**
+		 * Returns the extension, excluding the "."
+		 */
+		getExtension: function() {
+		  var m = this.getName().match(/\.([^.]+)$/);
+		  return m ? m[1] : "";
+		},
+		
+		/**
+		 * Apply for name
+		 */
+		_applyName: function(value, oldValue) {
+		  if (!value)
+		    this.setAbsolutePath("/");
+		  else {
+  		  var abs = this.getParentFolder();
+  		  if (!abs.match(/\/$/))
+  		    abs += "/";
+  		  this.setAbsolutePath(abs + value);
+		  }
+		},
+		
+		/**
+		 * Apply for absolutePath
+		 */
+		_applyAbsolutePath: function(value, oldValue) {
+		  var name;
+		  if (value == "/" || value == "")
+		    name = "";
+		  else {
+  		  var m = value.match(/([^/]+)$/);
+  		  if (!m || !m.length)
+  		    throw new Error("Cannot interpret absolutePath " + value);
+  		  name = m[0];
+		  }
+		  this.setName(name);
 		},
 		
 		/**

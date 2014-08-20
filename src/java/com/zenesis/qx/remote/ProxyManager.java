@@ -37,6 +37,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.zip.GZIPOutputStream;
 
 import javax.activation.MimetypesFileTypeMap;
@@ -67,7 +69,8 @@ public class ProxyManager implements EventListener {
 	private static final ThreadLocal<ProxySessionTracker> s_currentTracker = new ThreadLocal<ProxySessionTracker>();
 	
 	// Trackers whose objects are synchronised between each other
-	private static final ArrayList<ProxySessionTracker> s_syncedTrackers = new ArrayList<ProxySessionTracker>();
+	//private static final ArrayList<ProxySessionTracker> s_syncedTrackers = new ArrayList<ProxySessionTracker>();
+	private static AtomicReference<AtomicReferenceArray<ProxySessionTracker>> s_syncedTrackers;
 	
 	// MIME type mapper, null until first use
 	private static MimetypesFileTypeMap s_fileTypeMap;
@@ -217,11 +220,32 @@ public class ProxyManager implements EventListener {
 	 * Adds a synchronised Tracker
 	 * @param tracker
 	 */
+	private static final Boolean mutex = new Boolean(true);
 	public static void addSyncTracker(ProxySessionTracker tracker) {
-		synchronized(s_syncedTrackers) {
-			if (s_syncedTrackers.contains(tracker))
-				throw new IllegalArgumentException("Cannot add tracker more than once, tracker=" + tracker);
-			s_syncedTrackers.add(tracker);
+		synchronized(mutex) {
+			AtomicReferenceArray<ProxySessionTracker> current = null;
+			if (s_syncedTrackers != null)
+				current = s_syncedTrackers.get();
+			if (current != null) {
+				for (int i = 0; i < current.length(); i++) {
+					ProxySessionTracker tmp = current.get(i);
+					if (tmp == tracker)
+						throw new IllegalArgumentException("Cannot add tracker more than once, tracker=" + tracker);
+					if (tmp == null) {
+						current.set(i, tracker);
+						return;
+					}
+				}
+			}
+			int len = current != null ? current.length() : 0;
+			AtomicReferenceArray<ProxySessionTracker> arr = new AtomicReferenceArray<ProxySessionTracker>(len + 10);
+			if (current != null)
+				for (int i = 0; i < current.length(); i++)
+					arr.set(i, current.get(i));
+			arr.set(len, tracker);
+			if (s_syncedTrackers == null)
+				s_syncedTrackers = new AtomicReference<AtomicReferenceArray<ProxySessionTracker>>();
+			s_syncedTrackers.set(arr);
 		}
 	}
 	
@@ -230,10 +254,36 @@ public class ProxyManager implements EventListener {
 	 * @param tracker
 	 */
 	public static void removeSyncTracker(ProxySessionTracker tracker) {
-		synchronized(s_syncedTrackers) {
-			if (!s_syncedTrackers.remove(tracker))
+		synchronized(mutex) {
+			if (s_syncedTrackers == null)
 				throw new IllegalArgumentException("Cannot remove tracker because it does not exist, tracker=" + tracker);
+			AtomicReferenceArray<ProxySessionTracker> current = s_syncedTrackers.get();
+			if (current == null)
+				throw new IllegalArgumentException("Cannot remove tracker because it does not exist, tracker=" + tracker);
+			for (int i = 0; i < current.length(); i++) {
+				ProxySessionTracker tmp = current.get(i);
+				if (tmp == tracker) {
+					current.set(i, null);
+					return;
+				}
+			}
+			throw new IllegalArgumentException("Cannot remove tracker because it does not exist, tracker=" + tracker);
 		}
+	}
+	
+	/**
+	 * Used to attach or detach a property value to it's containing Proxied object
+	 * @param keyObject
+	 * @param property
+	 * @param newValue
+	 * @param oldValue
+	 */
+	private static void attach(Proxied keyObject, ProxyProperty property, Object newValue, Object oldValue) {
+		if (oldValue instanceof AutoAttach)
+			((AutoAttach)oldValue).setProxyProperty(null, null);
+		
+		if (newValue instanceof AutoAttach)
+			((AutoAttach)newValue).setProxyProperty(keyObject, property);
 	}
 	
 	/**
@@ -275,14 +325,30 @@ public class ProxyManager implements EventListener {
 			log.warn("Cannot find a property called " + propertyName + " in " + keyObject);
 			return;
 		}
+		attach(keyObject, property, newValue, oldValue);
+		propertyChanged(property, keyObject, newValue, oldValue);
+	}
+	
+	/**
+	 * Helper static method to register that a property has changed; this also fires a server event for
+	 * the property if an event is defined
+	 * @param proxied
+	 * @param propertyName
+	 * @param oldValue
+	 * @param newValue
+	 */
+	public static void propertyChanged(ProxyProperty property, Proxied keyObject, Object newValue, Object oldValue) {
 		ProxySessionTracker tracker = getTracker();
 		if (tracker != null)
 			tracker.propertyChanged(keyObject, property, newValue, oldValue);
-		synchronized(s_syncedTrackers) {
-			for (ProxySessionTracker tmp : s_syncedTrackers)
-				if (tmp != tracker)
+		AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
+		if (trackers != null)
+			for (int i = 0; i < trackers.length(); i++) {
+				ProxySessionTracker tmp = trackers.get(i);
+				if (tmp != null && tmp != tracker) {
 					tmp.propertyChanged(keyObject, property, newValue, oldValue);
-		}
+				}
+			}
 	}
 	
 	/**
@@ -294,8 +360,9 @@ public class ProxyManager implements EventListener {
 	 * @param newValue
 	 */
 	public static void allPropertiesChanged(Proxied keyObject) {
-		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(keyObject.getClass());
-		synchronized(s_syncedTrackers) {
+		AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
+		if (trackers != null) {
+			ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(keyObject.getClass());
 			while (type != null) {
 				for (ProxyProperty prop : type.getProperties().values()) {
 					ProxySessionTracker tracker = getTracker();
@@ -303,15 +370,19 @@ public class ProxyManager implements EventListener {
 						Object value = prop.getValue(keyObject);
 						if (tracker != null)
 							tracker.propertyChanged(keyObject, prop, value, null);
-						for (ProxySessionTracker tmp : s_syncedTrackers)
-							if (tmp != tracker)
+						for (int i = 0; i < trackers.length(); i++) {
+							ProxySessionTracker tmp = trackers.get(i);
+							if (tmp != null && tmp != tracker)
 								tmp.propertyChanged(keyObject, prop, value, null);
+						}
 					} catch(ProxyException e) {
 						log.error("Error while calling getValue on " + prop + " for " + keyObject + ": " + e.getMessage(), e);
 					}
 				}
 				type = type.getSuperType();
 			}
+		}
+		synchronized(s_syncedTrackers) {
 		}
 	}
 	
@@ -371,11 +442,14 @@ public class ProxyManager implements EventListener {
 		ProxySessionTracker tracker = getTracker();
 		if (tracker != null)
 			tracker.expireProperty(keyObject, property);
-		synchronized(s_syncedTrackers) {
-			for (ProxySessionTracker tmp : s_syncedTrackers)
-				if (tmp != tracker)
+		AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
+		if (trackers != null)
+			for (int i = 0; i < trackers.length(); i++) {
+				ProxySessionTracker tmp = trackers.get(i);
+				if (tmp != null && tmp != tracker) {
 					tmp.expireProperty(keyObject, property);
-		}
+				}
+			}
 	}
 	
 	/**
@@ -514,11 +588,14 @@ public class ProxyManager implements EventListener {
 		ProxySessionTracker tracker = getTracker();
 		if (tracker != null)
 			tracker.invalidateCache(keyObject);
-		synchronized(s_syncedTrackers) {
-			for (ProxySessionTracker tmp : s_syncedTrackers)
-				if (tmp != tracker)
+		AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
+		if (trackers != null)
+			for (int i = 0; i < trackers.length(); i++) {
+				ProxySessionTracker tmp = trackers.get(i);
+				if (tmp != null && tmp != tracker) {
 					tmp.invalidateCache(keyObject);
-		}
+				}
+			}
 	}
 
 	/**
@@ -531,12 +608,15 @@ public class ProxyManager implements EventListener {
 			for (Proxied obj : keyObjects)
 				tracker.invalidateCache(obj);
 		}
-		synchronized(s_syncedTrackers) {
-			for (ProxySessionTracker tmp : s_syncedTrackers)
-				for (Proxied obj : keyObjects)
-					if (tmp != tracker)
+		AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
+		if (trackers != null)
+			for (int i = 0; i < trackers.length(); i++) {
+				ProxySessionTracker tmp = trackers.get(i);
+				if (tmp != null && tmp != tracker) {
+					for (Proxied obj : keyObjects)
 						tmp.invalidateCache(obj);
-		}
+				}
+			}
 	}
 
 	/**
@@ -552,15 +632,18 @@ public class ProxyManager implements EventListener {
 					tracker.invalidateCache((Proxied)obj);
 			}
 		}
-		synchronized(s_syncedTrackers) {
-			for (ProxySessionTracker tmp : s_syncedTrackers)
-				if (tmp != tracker)
+		AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
+		if (trackers != null)
+			for (int i = 0; i < trackers.length(); i++) {
+				ProxySessionTracker tmp = trackers.get(i);
+				if (tmp != null && tmp != tracker) {
 					for (Iterator iter = list.iterator(); iter.hasNext(); ) {
 						Object obj = iter.next();
 						if (obj instanceof Proxied)
 							tmp.invalidateCache((Proxied)obj);
 					}
-		}
+				}
+			}
 	}
 	
 	/**

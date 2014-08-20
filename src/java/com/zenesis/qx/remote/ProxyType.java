@@ -27,6 +27,7 @@
  */
 package com.zenesis.qx.remote;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Set;
 
@@ -110,5 +111,12 @@ public interface ProxyType extends JsonSerializable {
 	 * @return
 	 */
 	public boolean supportsEvent(String eventName);
+	
+	/**
+	 * Creates a new instance of the type
+	 * @param clazz
+	 * @return
+	 */
+	public Proxied newInstance(Class <? extends Proxied> clazz) throws InstantiationException, IllegalAccessException, InvocationTargetException;
 	
 }

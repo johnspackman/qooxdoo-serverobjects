@@ -121,4 +121,9 @@ public class ProxyTypeArray implements ProxyType {
 		serialize(gen, sp);
 	}
 
+	@Override
+	public Proxied newInstance(Class<? extends Proxied> clazz) throws InstantiationException, IllegalAccessException {
+		return clazz.newInstance();
+	}
+
 }
