@@ -158,7 +158,7 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 		int index = indexOf(o);
 		boolean result = super.remove(o);
 		if (result)
-			fire(ChangeData.removed(index, result));
+			fire(ChangeData.removed(index, o));
 		return result;
 	}
 
