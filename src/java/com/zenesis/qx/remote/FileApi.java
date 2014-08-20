@@ -52,15 +52,23 @@ public class FileApi implements Proxied {
 		public String uploadId;
 		
 		protected FileInfo(File file, String rootAbsPath) {
-			this.name = file.getName();
 			this.type = file.isDirectory() ? FileType.FOLDER : FileType.FILE;
 			this.size = file.length();
 			this.lastModified = file.lastModified();
 			this.exists = file.exists();
 			String absPath = file.getAbsolutePath();
+			if (file.isDirectory())
+				absPath += "/";
 			if (!absPath.startsWith(rootAbsPath))
 				throw new IllegalArgumentException("File is not within root, rootAbsPath=" + rootAbsPath + ", file=" + file.getAbsolutePath());
-			absolutePath = file.getAbsolutePath().substring(rootAbsPath.length() - 1);
+			String absolutePath = file.getAbsolutePath().substring(rootAbsPath.length() - 1);
+			if (absolutePath.length() == 0) {
+				absolutePath = "/";
+				this.name = "";
+			} else {
+				this.name = file.getName();
+			}
+			this.absolutePath= absolutePath;
 		}
 	}
 
