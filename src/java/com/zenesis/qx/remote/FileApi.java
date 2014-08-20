@@ -258,7 +258,7 @@ public class FileApi implements Proxied {
 		File dest = getFile(strDest);
 		if (src == null || dest == null)
 			return false;
-		copyTo(src, dest);
+		copyTo(src, dest, true);
 		return true;
 	}
 	
@@ -441,9 +441,9 @@ public class FileApi implements Proxied {
 			return;
 		}
 		
-		copyTo(src, dest);
+		copyTo(src, dest, false);
 		src.delete();
-		onChange(ChangeType.DELETE, src, null);
+		onChange(ChangeType.MOVE, dest, src);
 	}
 	
 	/**
@@ -453,13 +453,14 @@ public class FileApi implements Proxied {
 	 * @param dest
 	 * @throws IOException
 	 */
-	protected void copyTo(File src, File dest) throws IOException {
+	protected void copyTo(File src, File dest, boolean notify) throws IOException {
 		if (src.isFile()) {
 			if (dest.isDirectory())
 				throw new IOException("Cannot copy " + src.getAbsolutePath() + " to " + dest.getAbsolutePath() + " because dest is a directory");
 			if (!dest.getParentFile().exists()) {
 				dest.getParentFile().mkdirs();
-				onChange(ChangeType.CREATE_FOLDER, dest.getParentFile(), null);
+				if (notify)
+					onChange(ChangeType.CREATE_FOLDER, dest.getParentFile(), null);
 			}
 			FileOutputStream os = null;
 			FileInputStream is = null;
@@ -474,7 +475,8 @@ public class FileApi implements Proxied {
 				is = null;
 				os.close();
 				os = null;
-				onChange(ChangeType.COPY, dest, src);
+				if (notify)
+					onChange(ChangeType.COPY, dest, src);
 			}catch(IOException e) {
 				if (is != null)
 					try { is.close(); } catch(IOException e2) {}
@@ -487,13 +489,14 @@ public class FileApi implements Proxied {
 				throw new IOException("Cannot copy " + src.getAbsolutePath() + " to " + dest.getAbsolutePath() + " because dest is a file");
 			if (!dest.exists()) {
 				dest.mkdirs();
-				onChange(ChangeType.CREATE_FOLDER, dest, null);
+				if (notify)
+					onChange(ChangeType.CREATE_FOLDER, dest, null);
 			}
 			File[] files = src.listFiles();
 			if (files != null)
 				for (int i = 0; i < files.length; i++) {
 					File destChild = new File(dest, files[i].getName());
-					copyTo(files[i], destChild);
+					copyTo(files[i], destChild, notify);
 				}
 		}
 	}
