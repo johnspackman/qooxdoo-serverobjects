@@ -463,9 +463,6 @@ public class EventManager {
 	 * @return
 	 */
 	protected synchronized boolean _removeListener(Object keyObject, String eventName, EventListener listener) {
-//		if (listener.toString().equals("/aaa/CLS Implants BioHorizons.mov"))
-//			listener = listener;
-		
 		if (eventName == null && listener == null)
 			return removeBinding(keyObject);
 		
