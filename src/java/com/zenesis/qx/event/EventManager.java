@@ -27,9 +27,11 @@
  */
 package com.zenesis.qx.event;
 
+import java.lang.ref.WeakReference;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -38,9 +40,9 @@ import org.apache.log4j.Logger;
 /**
  * Manages events and listeners on arbitrary objects.
  * 
- * The listeners are stored as values in a WeakHashMap where the key is
- * the object to listen to.  The value of the map is either: a) an instance
- * of NamedEventListener, b) a small array of NamedEventListeners, or c) a 
+ * The listeners are stored as Bindings in a LinkedList where the target is
+ * the object to listen to and is a WeakReference.  The listener is either: 
+ * a) an instance of NamedEventListener, b) a small array of NamedEventListeners, or c) a 
  * HashMap where the key is the name of the event and the value is the listener.
  * 
  * The NamedEventListener's listener object is either a small array of 
@@ -49,7 +51,14 @@ import org.apache.log4j.Logger;
  * The reason for using Objects and reflection instead of always using HashMap
  * and LinkedHashSet is to keep the overhead down and support the common use case
  * where an object will have only a few events listened to, and each event
- * will only be listened to by a single piece of code (this is pure hypothesis!).
+ * will only be listened to by a single piece of code (this is a guess).
+ * 
+ * Note that Maps cannot be used to track the bindings to a particular object
+ * because that means using the target object as a key - and Maps require that
+ * the hashCode for keys never changes, but List.hashCode always changes when
+ * you change the contents of the list.  Instead, LinkedList is used and every
+ * time the object is found it is moved half way up the list so it's found
+ * faster next time.  
  * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
@@ -286,10 +295,31 @@ public class EventManager {
 		}
 	}
 	
+	/*
+	 * Records the binding between a target object and the listeners; listener is either
+	 * a NamedEventyListener, an array of NamedEventListeners, or a Map indexed by name
+	 */
+	private static final class Binding {
+		public WeakReference targetRef;
+		public Object listener;
+		
+		public Binding(Object target, Object listener) {
+			super();
+			this.targetRef = new WeakReference(target);
+			this.listener = listener;
+		}
+		
+		public Object getTarget() {
+			return targetRef.get();
+		}
+	}
+	
+	// Linked list of bindings - note this cannot be a map because maps require the 
+	//	target to be immutable (Collections change their hashCode as they are modified)
+	private LinkedList<Binding> bindings = new LinkedList<Binding>();
+	
 	private static EventManager s_instance;
 	
-	private WeakHashMap<Object, Object> listeners = new WeakHashMap<Object, Object>();
-
 	/**
 	 * Constructor; the first instance of EventManager will become the global default
 	 */
@@ -334,36 +364,35 @@ public class EventManager {
 	protected synchronized boolean _addListener(Object keyObject, String eventName, EventListener listener) throws IllegalArgumentException{
 		if (!supportsEvent(keyObject, eventName))
 			return false;
-		
-		Object identityObject = getIdentity(keyObject);
-		Object current = listeners.get(identityObject);
+
+		Binding binding = getBinding(keyObject);
 		
 		// If the object is not yet known, then create a new NEL and return
-		if (current == null) {
+		if (binding == null) {
 			NamedEventListener nel = new NamedEventListener(eventName, listener);
-			listeners.put(identityObject, nel);
+			bindings.push(new Binding(keyObject, nel));
 			return true;
 		}
 		
-		final Class clazz = current.getClass();
+		final Class clazz = binding.listener.getClass();
 		
 		// A NamedEventListener?  Then we've found it
 		if (clazz == NamedEventListener.class) {
-			NamedEventListener nel = (NamedEventListener)current;
+			NamedEventListener nel = (NamedEventListener)binding.listener;
 			if (nel.eventName.equals(eventName))
 				nel.addListener(listener);
 			else {
 				NamedEventListener[] nels = new NamedEventListener[TINY_ARRAY_SIZE];
 				nels[0] = nel;
 				nels[1] = new NamedEventListener(eventName, listener);
-				listeners.put(identityObject, nels);
+				bindings.push(new Binding(keyObject, nels));
 			}
 			return true;
 		}
 
 		// If there is an array, it's an array of NamedEventListeners
 		if (clazz.isArray()){
-			NamedEventListener[] nels = (NamedEventListener[])current;
+			NamedEventListener[] nels = (NamedEventListener[])binding.listener;
 			
 			// Look for a NamedEventListener for the eventName, or a free slot in the array
 			int index = 0;
@@ -397,15 +426,15 @@ public class EventManager {
 				map.put(eventName, new NamedEventListener(eventName, listener));
 				
 				// Replace the array with the map
-				listeners.put(identityObject, map);
+				bindings.push(new Binding(keyObject, map));
 			}
 			
 			return true;
 		}
 		
 		// By elimination, it must be a HashMap
-		assert(current.getClass() == HashMap.class);
-		HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)current;
+		assert(binding.listener.getClass() == HashMap.class);
+		HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)binding.listener;
 		NamedEventListener nel = map.get(eventName);
 		if (nel == null)
 			map.put(eventName, new NamedEventListener(eventName, listener));
@@ -434,25 +463,25 @@ public class EventManager {
 	 * @return
 	 */
 	protected synchronized boolean _removeListener(Object keyObject, String eventName, EventListener listener) {
-		if (listener.toString().equals("/aaa/CLS Implants BioHorizons.mov"))
-			listener = listener;
-		Object identityObject = getIdentity(keyObject);
-		if (eventName == null && listener == null)
-			return listeners.remove(identityObject) != null;
+//		if (listener.toString().equals("/aaa/CLS Implants BioHorizons.mov"))
+//			listener = listener;
 		
-		Object current = listeners.get(identityObject);
-		if (current == null)
+		if (eventName == null && listener == null)
+			return removeBinding(keyObject);
+		
+		Binding binding = getBinding(keyObject);
+		if (binding == null)
 			return false;
 		
-		final Class clazz = current.getClass();
+		final Class clazz = binding.listener.getClass();
 		
 		// A NamedEventListener?  Then check the eventName 
 		if (clazz == NamedEventListener.class) {
-			NamedEventListener nel = (NamedEventListener)current;
+			NamedEventListener nel = (NamedEventListener)binding.listener;
 			if (eventName != null && !nel.eventName.equals(eventName))
 				return false;
 			if (listener == null) {
-				listeners.remove(identityObject);
+				bindings.remove(binding);
 				return true;
 			}
 			return nel.removeListener(listener);
@@ -460,7 +489,7 @@ public class EventManager {
 
 		// If there is an array, it's an array of NamedEventListeners
 		if (clazz.isArray()){
-			NamedEventListener[] nels = (NamedEventListener[])current;
+			NamedEventListener[] nels = (NamedEventListener[])binding.listener;
 			boolean removed = false;
 			
 			// Look for a NamedEventListener for the eventName
@@ -478,8 +507,8 @@ public class EventManager {
 		}
 		
 		// By elimination, it must be a HashMap
-		assert(current.getClass() == HashMap.class);
-		HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)current;
+		assert(binding.listener.getClass() == HashMap.class);
+		HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)binding.listener;
 		if (eventName == null) {
 			boolean removed = false;
 			for (NamedEventListener nel : map.values())
@@ -515,15 +544,15 @@ public class EventManager {
 	 * @return
 	 */
 	protected synchronized boolean _hasListener(Object keyObject, String eventName, EventListener listener) {
-		Object current = listeners.get(getIdentity(keyObject));
-		if (current == null)
+		Binding binding = getBinding(keyObject);
+		if (binding == null)
 			return false;
 		
-		final Class clazz = current.getClass();
+		final Class clazz = binding.listener.getClass();
 		
 		// A NamedEventListener?  Then check the eventName 
 		if (clazz == NamedEventListener.class) {
-			NamedEventListener nel = (NamedEventListener)current;
+			NamedEventListener nel = (NamedEventListener)binding.listener;
 			if (!nel.eventName.equals(eventName))
 				return false;
 			return nel.hasListener(listener);
@@ -531,7 +560,7 @@ public class EventManager {
 
 		// If there is an array, it's an array of NamedEventListeners
 		if (clazz.isArray()){
-			NamedEventListener[] nels = (NamedEventListener[])current;
+			NamedEventListener[] nels = (NamedEventListener[])binding.listener;
 			
 			// Look for a NamedEventListener for the eventName
 			for (int i = 0; i < TINY_ARRAY_SIZE; i++)
@@ -542,8 +571,8 @@ public class EventManager {
 		}
 		
 		// By elimination, it must be a HashMap
-		assert(current.getClass() == HashMap.class);
-		HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)current;
+		assert(binding.listener.getClass() == HashMap.class);
+		HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)binding.listener;
 		NamedEventListener nel = map.get(eventName);
 		if (nel == null)
 			return false;
@@ -603,15 +632,15 @@ public class EventManager {
 	 * @param data
 	 */
 	public void fireDataEvent(Event event) {
-		Object current = listeners.get(getIdentity(event.getOriginalTarget()));
-		if (current == null)
+		Binding binding = getBinding(event.getOriginalTarget());
+		if (binding == null)
 			return;
 		
-		final Class clazz = current.getClass();
+		final Class clazz = binding.listener.getClass();
 		
 		// A NamedEventListener?  Then check the eventName 
 		if (clazz == NamedEventListener.class) {
-			NamedEventListener nel = (NamedEventListener)current;
+			NamedEventListener nel = (NamedEventListener)binding.listener;
 			if (!nel.eventName.equals(event.getEventName()))
 				return;
 			nel.fireEvent(event);
@@ -620,7 +649,7 @@ public class EventManager {
 
 		// If there is an array, it's an array of NamedEventListeners
 		if (clazz.isArray()){
-			NamedEventListener[] nels = (NamedEventListener[])current;
+			NamedEventListener[] nels = (NamedEventListener[])binding.listener;
 			
 			// Look for a NamedEventListener for the eventName
 			for (int i = 0; i < TINY_ARRAY_SIZE; i++)
@@ -631,12 +660,46 @@ public class EventManager {
 		}
 		
 		// By elimination, it must be a HashMap
-		assert(current.getClass() == HashMap.class);
-		HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)current;
+		assert(binding.listener.getClass() == HashMap.class);
+		HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)binding.listener;
 		NamedEventListener nel = map.get(event.getEventName());
 		if (nel == null)
 			return;
 		nel.fireEvent(event);
+	}
+
+	/**
+	 * Finds the binding for an object, and moves it forward in the list if found
+	 * @param target
+	 * @return
+	 */
+	private Binding getBinding(Object target) {
+		int index = 0;
+		for (Binding bind : bindings) {
+			if (bind.getTarget() == target) {
+				if (index > 1) {
+					bindings.remove(bind);
+					bindings.add(index / 2, bind);
+				}
+				return bind;
+			}
+			index++;
+		}
+		return null;
+	}
+	
+	/**
+	 * Removes the binding for the target
+	 * @param target
+	 * @return
+	 */
+	private boolean removeBinding(Object target) {
+		for (Binding bind : bindings)
+			if (bind.getTarget() == target) {
+				bindings.remove(bind);
+				return true;
+			}
+		return false;
 	}
 
 	/**
@@ -645,21 +708,25 @@ public class EventManager {
 	 * @return
 	 */
 	public synchronized boolean compact() {
-		Map.Entry[] values = listeners.entrySet().toArray(new Map.Entry[listeners.entrySet().size()]);
+		Binding[] values = bindings.toArray(new Binding[bindings.size()]);
 		for (int i = 0; i < values.length; i++) {
-			Object current = values[i].getValue();
-			final Class clazz = current.getClass();
+			Binding binding = values[i];
+			final Class clazz = binding.listener.getClass();
+			
+			if (binding.getTarget() == null) {
+				bindings.remove(binding);
+			}
 			
 			// A NamedEventListener?  Then check the eventName 
-			if (clazz == NamedEventListener.class) {
-				NamedEventListener nel = (NamedEventListener)current;
+			else if (clazz == NamedEventListener.class) {
+				NamedEventListener nel = (NamedEventListener)binding.listener;
 				if (nel.isEmpty())
-					current = null;
+					bindings.remove(binding);
 			}
 
 			// If there is an array, it's an array of NamedEventListeners
 			else if (clazz.isArray()){
-				NamedEventListener[] nels = (NamedEventListener[])current;
+				NamedEventListener[] nels = (NamedEventListener[])binding.listener;
 				boolean nelsEmpty = true;
 				
 				// Look for a NamedEventListener for the eventName
@@ -671,12 +738,12 @@ public class EventManager {
 							nelsEmpty = false;
 					}
 				if (nelsEmpty)
-					current = null;
+					bindings.remove(binding);
 				
 			// By elimination, it must be a HashMap
 			} else {
-				assert(current.getClass() == HashMap.class);
-				HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)current;
+				assert(binding.listener.getClass() == HashMap.class);
+				HashMap<String, NamedEventListener> map = (HashMap<String, NamedEventListener>)binding.listener;
 				Object [] onels = map.values().toArray();
 				for (int j = 0; j < onels.length; j++) {
 					NamedEventListener nel = (NamedEventListener)onels[j];
@@ -684,13 +751,10 @@ public class EventManager {
 						map.remove(nel.eventName);
 				}
 				if (map.isEmpty())
-					current = null;
+					bindings.remove(binding);
 			}
-			if (current == null)
-				listeners.remove(values[i].getKey());
 		}
-		values = listeners.entrySet().toArray(new Map.Entry[listeners.entrySet().size()]);
-		return listeners.isEmpty();
+		return bindings.isEmpty();
 	}
 	
 	/**
@@ -701,32 +765,5 @@ public class EventManager {
 		if (s_instance == null)
 			new EventManager(true);
 		return s_instance;
-	}
-
-	private static final class IdentityObject {
-		private final Object obj;
-		
-		IdentityObject(Object obj) {
-			this.obj = obj;
-		}
-		
-		@Override
-		public int hashCode() {
-			return 1;
-		}
-
-		@Override
-		public boolean equals(Object that) {
-			return ((IdentityObject)that).obj == this.obj;
-		}
-		
-	}
-
-	public static Object getIdentity(Object obj) {
-		if (obj == null)
-			return null;
-		if (obj instanceof AbstractList)
-			return new IdentityObject(obj);
-		return obj;
 	}
 }
