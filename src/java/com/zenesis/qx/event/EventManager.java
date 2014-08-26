@@ -27,7 +27,6 @@
  */
 package com.zenesis.qx.event;
 
-import java.lang.ref.WeakReference;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,7 +62,6 @@ public class EventManager {
 	/*
 	 * Links an event name with a listener; the listener is actually either a) null,
 	 * b) an EventListener, c) and array of EventListeners, or d) a ArrayList of EventListeners.
-	 * In all cases, EventListeners are referenced via WeakReference
 	 */
 	private static final class NamedEventListener {
 		public final String eventName;
@@ -72,7 +70,7 @@ public class EventManager {
 		public NamedEventListener(String eventName, EventListener listener) {
 			super();
 			this.eventName = eventName;
-			this.listener = new WeakReference<EventListener>(listener);
+			this.listener = listener;
 		}
 		
 		/**
@@ -83,7 +81,7 @@ public class EventManager {
 		public void addListener(EventListener newListener) throws IllegalArgumentException{
 			// Nothing so far? Easy.
 			if (listener == null) {
-				listener = new WeakReference<EventListener>(newListener);
+				listener = newListener;
 				return;
 			}
 			
@@ -91,50 +89,50 @@ public class EventManager {
 			
 			// It's an array - try and use an empty slot
 			if (clazz.isArray()) {
-				WeakReference<EventListener>[] list = (WeakReference<EventListener>[])listener;
+				EventListener[] list = (EventListener[])listener;
 				for (int i = 0; i < TINY_ARRAY_SIZE; i++)
-					if (list[i] != null && list[i].get() == newListener)
+					if (list[i] == newListener)
 						throw new IllegalArgumentException("Cannot add the same listener to the same object and eventName twice");
 				
 				for (int i = 0; i < TINY_ARRAY_SIZE; i++) {
 					// Free slot?  Use it
-					if (list[i] == null || list[i].get() == null) {
-						list[i] = new WeakReference<EventListener>(newListener);
+					if (list[i] == null) {
+						list[i] = newListener;
 						return;
 					}
 				}
 				
 				// No room so upgrade to a ArrayList
-				ArrayList<WeakReference<EventListener>> set = new ArrayList<WeakReference<EventListener>>();
+				ArrayList<EventListener> set = new ArrayList<EventListener>();
 				for (int i = 0; i < TINY_ARRAY_SIZE; i++)
 					set.add(list[i]);
-				set.add(new WeakReference<EventListener>(newListener));
+				set.add(newListener);
 				listener = set;
 				
 			// Already a ArrayList - add to it
 			} else if (clazz == ArrayList.class) {
-				ArrayList<WeakReference<EventListener>> set = (ArrayList<WeakReference<EventListener>>)listener;
+				ArrayList<EventListener> set = (ArrayList<EventListener>)listener;
 				int pos = -1;
 				for (int i = 0;i < set.size(); i++) {
-					WeakReference<EventListener> tmp = set.get(i);
+					EventListener tmp = set.get(i);
 					if (tmp == null && pos == -1)
 						pos = i;
-					else if (tmp != null && tmp.get() == newListener)
+					else if (tmp == newListener)
 						throw new IllegalArgumentException("Cannot add the same listener to the same object and eventName twice");
 				}
 				if (pos != -1)
-					set.set(pos, new WeakReference<EventListener>(newListener));
+					set.set(pos, newListener);
 				else
-					set.add(new WeakReference<EventListener>(newListener));
+					set.add(newListener);
 				
 			// Must be an EventListener instance, convert to an array 
 			} else {
-				assert(clazz == WeakReference.class);
-				if (((WeakReference<EventListener>)listener).get() == newListener)
+				assert(clazz == EventListener.class);
+				if (listener == newListener)
 					throw new IllegalArgumentException("Cannot add the same listener to the same object and eventName twice");
-				WeakReference<EventListener>[] list = new WeakReference[TINY_ARRAY_SIZE];
-				list[0] = (WeakReference<EventListener>)listener;
-				list[1] = new WeakReference<EventListener>(newListener);
+				EventListener[] list = new EventListener[TINY_ARRAY_SIZE];
+				list[0] = (EventListener)listener;
+				list[1] = newListener;
 				this.listener = list;
 			}
 		}
@@ -152,9 +150,9 @@ public class EventManager {
 			
 			// It's an array - find it and remove it
 			if (clazz.isArray()) {
-				WeakReference<EventListener>[] list = (WeakReference<EventListener>[])listener;
+				EventListener[] list = (EventListener[])listener;
 				for (int i = 0; i < TINY_ARRAY_SIZE; i++) {
-					if (list[i] != null && list[i].get() == oldListener) {
+					if (list[i] == oldListener) {
 						list[i] = null;
 						return true;
 					}
@@ -164,10 +162,10 @@ public class EventManager {
 				
 			// Already a ArrayList
 			if (clazz == ArrayList.class) {
-				ArrayList<WeakReference<EventListener>> set = (ArrayList<WeakReference<EventListener>>)listener;
+				ArrayList<EventListener> set = (ArrayList<EventListener>)listener;
 				for (int i = 0; i < set.size(); i++) {
-					WeakReference<EventListener> tmp = set.get(i);
-					if (tmp != null && tmp.get() == oldListener) {
+					EventListener tmp = set.get(i);
+					if (tmp == oldListener) {
 						set.set(i, null);
 						return true;
 					}
@@ -176,8 +174,8 @@ public class EventManager {
 			}
 				
 			// Must be an EventListener instance, convert to an array 
-			assert(clazz == WeakReference.class);
-			if (((WeakReference<EventListener>)listener).get() != oldListener)
+			assert(clazz == EventListener.class);
+			if (listener != oldListener)
 				return false;
 			
 			listener = null;
@@ -197,25 +195,25 @@ public class EventManager {
 			
 			// It's an array - find it and remove it
 			if (clazz.isArray()) {
-				WeakReference<EventListener>[] list = (WeakReference<EventListener>[])listener;
+				EventListener[] list = (EventListener[])listener;
 				for (int i = 0; i < TINY_ARRAY_SIZE; i++)
-					if (list[i] != null && list[i].get() == oldListener)
+					if (list[i] == oldListener)
 						return true;
 				return false;
 			}
 				
 			// Already a ArrayList
 			if (clazz == ArrayList.class) {
-				ArrayList<WeakReference<EventListener>> set = (ArrayList<WeakReference<EventListener>>)listener;
-				for (WeakReference<EventListener> tmp : set)
-					if (tmp != null && tmp.get() == oldListener)
+				ArrayList<EventListener> set = (ArrayList<EventListener>)listener;
+				for (EventListener tmp : set)
+					if (tmp == oldListener)
 						return true;
 				return false;
 			}
 				
 			// Must be an EventListener instance 
-			assert(clazz == WeakReference.class);
-			if (((WeakReference<EventListener>)listener).get() != oldListener)
+			assert(clazz == EventListener.class);
+			if (listener != oldListener)
 				return false;
 			return true;
 		}
@@ -231,10 +229,10 @@ public class EventManager {
 			
 			// It's an array - find it and remove it
 			if (clazz.isArray()) {
-				WeakReference<EventListener>[] list = (WeakReference<EventListener>[])listener;
+				EventListener[] list = (EventListener[])listener;
 				for (int i = 0; i < TINY_ARRAY_SIZE; i++)
 					if (list[i] != null) {
-						EventListener listener = list[i].get();
+						EventListener listener = list[i];
 						if (listener != null)
 							listener.handleEvent(event);
 					}
@@ -243,20 +241,17 @@ public class EventManager {
 				
 			// Already a ArrayList
 			if (clazz == ArrayList.class) {
-				ArrayList<WeakReference<EventListener>> set = (ArrayList<WeakReference<EventListener>>)listener;
-				for (WeakReference<EventListener> ref : set) {
-					if (ref != null) {
-						EventListener listener = ref.get();
-						if (listener != null)
-							listener.handleEvent(event);
-					}
+				ArrayList<EventListener> set = (ArrayList<EventListener>)listener;
+				for (EventListener listener : set) {
+					if (listener != null)
+						listener.handleEvent(event);
 				}
 				return;
 			}
 				
 			// Must be an EventListener instance, convert to an array 
 			assert(clazz == EventListener.class);
-			EventListener listener = ((WeakReference<EventListener>)this.listener).get();
+			EventListener listener = (EventListener)this.listener;
 			if (listener != null)
 				listener.handleEvent(event);
 		}
@@ -269,25 +264,25 @@ public class EventManager {
 			
 			// It's an array
 			if (clazz.isArray()) {
-				WeakReference<EventListener>[] list = (WeakReference<EventListener>[])listener;
+				EventListener[] list = (EventListener[])listener;
 				for (int i = 0; i < TINY_ARRAY_SIZE; i++)
-					if (list[i] != null && list[i].get() != null)
+					if (list[i] != null)
 						return false;
 				return true;
 			}
 				
 			// Already a ArrayList
 			if (clazz == ArrayList.class) {
-				ArrayList<WeakReference<EventListener>> set = (ArrayList<WeakReference<EventListener>>)listener;
-				for (WeakReference<EventListener> ref : set)
-					if (ref != null && ref.get() != null)
+				ArrayList<EventListener> set = (ArrayList<EventListener>)listener;
+				for (EventListener ref : set)
+					if (ref != null)
 						return false;
 				return true;
 			}
 				
 			// Must be an EventListener instance 
-			assert(clazz == WeakReference.class);
-			return ((WeakReference<EventListener>)listener).get() == null;
+			assert(clazz == EventListener.class);
+			return listener == null;
 		}
 	}
 	
@@ -439,6 +434,8 @@ public class EventManager {
 	 * @return
 	 */
 	protected synchronized boolean _removeListener(Object keyObject, String eventName, EventListener listener) {
+		if (listener.toString().equals("/aaa/CLS Implants BioHorizons.mov"))
+			listener = listener;
 		Object identityObject = getIdentity(keyObject);
 		if (eventName == null && listener == null)
 			return listeners.remove(identityObject) != null;

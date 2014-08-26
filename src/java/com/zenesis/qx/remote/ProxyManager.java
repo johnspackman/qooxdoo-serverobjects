@@ -304,7 +304,7 @@ public class ProxyManager implements EventListener {
 			if (((String) oldValue).trim().length() == 0)
 				oldValue = null;
 		}
-		if (newValue == oldValue || (newValue != null && oldValue != null && newValue.equals(oldValue)))
+		if (newValue == oldValue)// || (newValue != null && oldValue != null && newValue.equals(oldValue)))
 			return oldValue;
 		propertyChanged(keyObject, propertyName, newValue, oldValue);
 		return newValue;
