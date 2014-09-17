@@ -670,7 +670,7 @@ public class EventManager {
 	 * @param target
 	 * @return
 	 */
-	private Binding getBinding(Object target) {
+	private synchronized Binding getBinding(Object target) {
 		int index = 0;
 		for (Binding bind : bindings) {
 			if (bind.getTarget() == target) {
