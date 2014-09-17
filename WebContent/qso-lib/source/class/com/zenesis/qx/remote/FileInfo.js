@@ -140,7 +140,9 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
 		    this.setAbsolutePath("/");
 		  else {
   		  var abs = this.getParentFolder();
-  		  if (!abs.match(/\/$/))
+  		  if (!abs)
+  		    abs = "/";
+  		  else if (!abs.match(/\/$/))
   		    abs += "/";
   		  this.setAbsolutePath(abs + value);
 		  }

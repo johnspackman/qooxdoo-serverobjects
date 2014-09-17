@@ -61,7 +61,7 @@ public class FileApi implements Proxied {
 				absPath += "/";
 			if (!absPath.startsWith(rootAbsPath))
 				throw new IllegalArgumentException("File is not within root, rootAbsPath=" + rootAbsPath + ", file=" + file.getAbsolutePath());
-			String absolutePath = file.getAbsolutePath().substring(rootAbsPath.length() - 1);
+			String absolutePath = file.getAbsolutePath().substring(rootAbsPath.length());
 			if (absolutePath.length() == 0) {
 				absolutePath = "/";
 				this.name = "";
@@ -108,7 +108,7 @@ public class FileApi implements Proxied {
 		if (!rootDir.exists() || !rootDir.isDirectory())
 			throw new IllegalArgumentException("FileApi must have a root directory, not " + rootDir.getAbsolutePath());
 		this.rootDir = rootDir.getAbsoluteFile();
-		rootAbsPath = rootDir.getAbsolutePath() + File.separatorChar;
+		rootAbsPath = this.rootDir.getAbsolutePath();
 		if (rootUrl != null) {
 			if (rootUrl.length() == 0 || rootUrl.charAt(rootUrl.length() - 1) != '/')
 				rootUrl += '/';
@@ -122,6 +122,8 @@ public class FileApi implements Proxied {
 	 * @return a File, or null if the path was outside of the root
 	 */
 	public File getFile(String path) {
+		if (path == null)
+			return null;
 		if (path.length() > 0 && path.charAt(path.length() - 1) == '/')
 			path = path.substring(0, path.length() - 1);
 		int pos;
@@ -253,13 +255,31 @@ public class FileApi implements Proxied {
 	 * @throws IOException
 	 */
 	@Method
-	public boolean copyTo(String strSrc, String strDest) throws IOException {
+	public FileInfo copyTo(String strSrc, String strDest) throws IOException {
 		File src = getFile(strSrc);
 		File dest = getFile(strDest);
 		if (src == null || dest == null)
-			return false;
-		copyTo(src, dest, true);
-		return true;
+			return null;
+		dest = copyTo(src, dest, false, true);
+		return getFileInfo(dest);
+	}
+	
+	/**
+	 * Copies the file; works across filing systems and tries to complete if at all possible.  Returns false if 
+	 * one or both paths were invalid.  Avoids filename conflicts by adding -1, -2, etc to the file
+	 * @param strSrc
+	 * @param strDest
+	 * @return true if it succeeded
+	 * @throws IOException
+	 */
+	@Method
+	public FileInfo copyToUnique(String strSrc, String strDest) throws IOException {
+		File src = getFile(strSrc);
+		File dest = getFile(strDest);
+		if (src == null || dest == null)
+			return null;
+		dest = copyTo(src, dest, true, true);
+		return getFileInfo(dest);
 	}
 	
 	/**
@@ -445,9 +465,32 @@ public class FileApi implements Proxied {
 			return;
 		}
 		
-		copyTo(src, dest, false);
+		copyTo(src, dest, false, false);
 		src.delete();
 		onChange(ChangeType.MOVE, dest, src);
+	}
+
+	/**
+	 * Makes sure the file has a unique filename
+	 * @param file
+	 * @return
+	 */
+	protected File makeUnique(File file) {
+		if (!file.exists())
+			return file;
+		File folder = file.getParentFile();
+		String name = file.getName();
+		String ext = "";
+		int pos = name.lastIndexOf('.');
+		if (pos > -1) {
+			ext = name.substring(pos);
+			name = name.substring(0, pos);
+		}
+		for (int i = 1; true; i++) {
+			File tmp = new File(folder, name + "-" + i + ext);
+			if (!tmp.exists())
+				return tmp;
+		}
 	}
 	
 	/**
@@ -457,15 +500,17 @@ public class FileApi implements Proxied {
 	 * @param dest
 	 * @throws IOException
 	 */
-	protected void copyTo(File src, File dest, boolean notify) throws IOException {
+	protected File copyTo(File src, File dest, boolean unique, boolean notify) throws IOException {
 		if (src.isFile()) {
 			if (dest.isDirectory())
-				throw new IOException("Cannot copy " + src.getAbsolutePath() + " to " + dest.getAbsolutePath() + " because dest is a directory");
+				dest = new File(dest, src.getName());
 			if (!dest.getParentFile().exists()) {
 				dest.getParentFile().mkdirs();
 				if (notify)
 					onChange(ChangeType.CREATE_FOLDER, dest.getParentFile(), null);
 			}
+			if (unique && dest.exists())
+				dest = makeUnique(dest);
 			FileOutputStream os = null;
 			FileInputStream is = null;
 			try {
@@ -500,9 +545,10 @@ public class FileApi implements Proxied {
 			if (files != null)
 				for (int i = 0; i < files.length; i++) {
 					File destChild = new File(dest, files[i].getName());
-					copyTo(files[i], destChild, notify);
+					copyTo(files[i], destChild, unique, notify);
 				}
 		}
+		return dest;
 	}
 	
 	/**
