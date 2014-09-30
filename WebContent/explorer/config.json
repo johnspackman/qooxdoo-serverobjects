@@ -31,11 +31,11 @@
   "let" :
   {
     "APPLICATION"  : "explorer",
-    "QOOXDOO_PATH" : "/Users/john/os/qooxdoo",
+    "QOOXDOO_PATH" : "/Users/john/os/qooxdoo-4.0.1-sdk",
     "QXTHEME"      : "explorer.theme.Theme",
     "API_EXCLUDE"  : ["qx.test.*", "${APPLICATION}.theme.*", "${APPLICATION}.test.*"],
     "LOCALES"      : [ "en" ],
-    "CACHE"        : "/Users/john/os/qooxdoo/cache",
+    "CACHE"        : "${QOOXDOO_PATH}/cache",
     "ROOT"         : "."
   },
   
@@ -52,10 +52,6 @@
         {
           "manifest" : "../qso-lib/Manifest.json",
           "uri" : "/qso-lib"
-        },
-        {
-          "manifest" : "../qx-gc/Manifest.json",
-          "uri" : "/qx-gc"
         },
         {
         	"manifest" : "contrib://UploadMgr/trunk/Manifest.json",

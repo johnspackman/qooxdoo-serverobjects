@@ -18,17 +18,6 @@
 		<load-on-startup>0</load-on-startup> 
 	</servlet>
 	
-  <servlet>
-    <description></description>
-    <display-name>MyServlet</display-name>
-    <servlet-name>MyServlet</servlet-name>
-    <servlet-class>it.servlet.myservlet.MyServlet</servlet-class>
-  </servlet>
-  <servlet-mapping>
-    <servlet-name>MyServlet</servlet-name>
-    <url-pattern>/MyServlet/*</url-pattern>
-  </servlet-mapping>
-  
 	<servlet-mapping>
 		<servlet-name>sampleServlet</servlet-name>
 		<url-pattern>/sampleServlet/*</url-pattern>
@@ -44,15 +33,18 @@
 		<filter-class>com.zenesis.qx.utils.QxUrlRewriteFilter</filter-class>
 		<init-param>
 			<param-name>rewrite-root</param-name>
-			<param-value>/Users/john/dev/Qooxdoo Server Objects</param-value>
+			<!--
+			This should be the WebContent folder that is in your archive of QSO.   
+			 -->
+			<param-value>/Users/john/dev/qx-serverobjects/WebContent</param-value>
 		</init-param>
 		<init-param>
 			<param-name>rewrite-1</param-name>
-			<param-value>/qooxdoo=/Users/john/os/qooxdoo</param-value>
+			<param-value>/qooxdoo=/Users/john/os/qooxdoo-4.0.1-sdk</param-value>
 		</init-param>
 		<init-param>
 			<param-name>rewrite-2</param-name>
-			<param-value>/explorer/cache-downloads=/Users/john/os/qooxdoo/cache/downloads</param-value>
+			<param-value>/explorer/cache-downloads=/Users/john/os/qooxdoo-4.0.1-sdk/cache/downloads</param-value>
 		</init-param>
 	</filter>
 	
