@@ -28,12 +28,9 @@
 package com.zenesis.qx.event;
 
 import java.lang.ref.WeakReference;
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 import org.apache.log4j.Logger;
 
