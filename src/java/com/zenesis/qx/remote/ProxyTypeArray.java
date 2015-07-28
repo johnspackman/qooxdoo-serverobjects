@@ -28,6 +28,7 @@
 package com.zenesis.qx.remote;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,6 +54,15 @@ public class ProxyTypeArray implements ProxyType {
 		super();
 		this.type = type;
 		this.array = array;
+	}
+
+	@Override
+	public void resolve(ProxyTypeManager typeManager) {
+	}
+
+	@Override
+	public Set<ProxyType> getExtraTypes() {
+		return Collections.EMPTY_SET;
 	}
 
 	/* (non-Javadoc)

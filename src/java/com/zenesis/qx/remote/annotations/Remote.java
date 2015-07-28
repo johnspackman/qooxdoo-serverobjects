@@ -72,5 +72,4 @@ public final class Remote {
 			this.remoteId = remoteId;
 		}
 	}
-
 }

@@ -155,10 +155,14 @@ public class UploadHandler {
 		UploadingFile uploading = new UploadingFile("0", file, filename, Collections.EMPTY_MAP);
         ArrayList<FileApi.FileInfo> files = new ArrayList<FileApi.FileInfo>();
         file = receiveFile(api, request.getInputStream(), uploading);
-        FileApi.FileInfo info = api.getFileInfo(file);
-        if (info != null)
-        	files.add(info);
-		tracker.getQueue().queueCommand(CommandId.CommandType.UPLOAD, null, null, files);
+		if (file != null)
+			file = tracker.interceptUpload(file);
+		if (file != null) {
+	        FileApi.FileInfo info = api.getFileInfo(file);
+	        if (info != null)
+	        	files.add(info);
+			tracker.getQueue().queueCommand(CommandId.CommandType.UPLOAD, null, null, files);
+		}
     }
     
     /**
@@ -216,10 +220,14 @@ public class UploadHandler {
 				UploadingFile uploading = new UploadingFile(uploadId, file, fileName, params);
 				
 				File receivedFile = receiveFile(api, filePart.getInputStream(), uploading);
-				FileInfo info = api.getFileInfo(receivedFile);
-				if (info != null) {
-					files.add(info);
-					info.uploadId = uploadId;
+				if (receivedFile != null)
+					receivedFile = tracker.interceptUpload(receivedFile);
+				if (receivedFile != null) {
+					FileInfo info = api.getFileInfo(receivedFile);
+					if (info != null) {
+						files.add(info);
+						info.uploadId = uploadId;
+					}
 				}
 			}
 		}

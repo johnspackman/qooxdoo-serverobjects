@@ -41,7 +41,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
 		/**
 		 * Fired when the map changes, data is a map containing:
 		 * 	type {String} one of "put", "remove"
-		 * 	values {Map[]} values which had changed, each map contains:
+		 * 	values {Object[]} values which had changed, each map contains:
 		 * 	  key {String}
 		 * 	  value {Object}
 		 * 	  oldValue {Object?}
@@ -145,9 +145,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
 				}
 				this.__lookup[name] = src[name];
 			}
-			if (Object.keys(removed) !== 0)
+			if (Object.keys(removed).length !== 0)
 				this.fireDataEvent("change", { type: "remove", values: removed });
-			if (Object.keys(changed) !== 0)
+			if (Object.keys(changed).length !== 0)
 				this.fireDataEvent("change", { type: "put", values: changed });
 		},
 		

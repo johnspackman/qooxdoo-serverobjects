@@ -44,6 +44,18 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 public interface ProxyType extends JsonSerializable {
 	
 	/**
+	 * Called after construction to resolve extra types
+	 * @param typeManager
+	 */
+	public void resolve(ProxyTypeManager typeManager);
+	
+	/**
+	 * Returns extra types required by the class
+	 * @return
+	 */
+	public Set<ProxyType> getExtraTypes();
+	
+	/**
 	 * Detects whether this type is for an interface
 	 * @return
 	 */

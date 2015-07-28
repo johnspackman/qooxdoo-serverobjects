@@ -453,6 +453,38 @@ public class ProxyManager implements EventListener {
 	}
 	
 	/**
+	 * Helper static method called when an on demand property has changed; the clients will be
+	 * updated only if they have received the property value
+	 * @param proxied
+	 * @param propertyName
+	 * @param oldValue
+	 * @param newValue
+	 */
+	public static void invalidateProperty(Proxied keyObject, String propertyName) {
+		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(keyObject.getClass());
+		ProxyProperty property = getProperty(type, propertyName);
+		if (property == null) {
+			log.warn("Cannot find a property called " + propertyName + " in " + keyObject);
+			return;
+		}
+		if (!property.isOnDemand()) {
+			log.warn("Cannot invalidate a property which is not on-demand, property=" + property);
+			return;
+		}
+		ProxySessionTracker tracker = getTracker();
+		if (tracker != null)
+			tracker.invalidateProperty(keyObject, property);
+		AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
+		if (trackers != null)
+			for (int i = 0; i < trackers.length(); i++) {
+				ProxySessionTracker tmp = trackers.get(i);
+				if (tmp != null && tmp != tracker) {
+					tmp.invalidateProperty(keyObject, property);
+				}
+			}
+	}
+	
+	/**
 	 * Detects whether the object has a given property
 	 * @param keyObject
 	 * @param propertyName

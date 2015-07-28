@@ -31,7 +31,7 @@
  * @author John Spackman [john.spackman@zenesis.com]
  */
 /*
- * #require(qx.core.Aspect) #ignore(auto-require)
+ * @require(qx.core.Aspect) @ignore(auto-require)
  */
 qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   extend : qx.core.Object,
@@ -228,6 +228,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     _processResponse : function(evt) {
       var txt = evt.getContent();
       var statusCode = evt.getStatusCode();
+      var req = evt.getTarget();
+      var asyncOnCompleteCallback = req.getUserData("asyncOnCompleteCallback");
 
       if (statusCode == 200) {
         txt = txt.trim();
@@ -239,11 +241,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             var data = eval("(" + txt + ")");
             result = this._processData(data);
           }
+          if (asyncOnCompleteCallback)
+            asyncOnCompleteCallback(evt);
           return result;
           
         } catch (e) {
           this.error("Exception during receive: " + this.__describeException(e));
           this._setException(e);
+          if (asyncOnCompleteCallback)
+            asyncOnCompleteCallback(evt, e);
           
         } finally {
           if (this.getPollServer()) {
@@ -254,6 +260,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       } else {
         this._handleIoError(evt);
+        if (asyncOnCompleteCallback)
+          asyncOnCompleteCallback(evt);
       }
     },
     
@@ -950,35 +958,35 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Object?} the value to set the property to
      */
     setPropertyValue : function(serverObject, propertyName, value, oldValue) {
-      if (this.isSettingProperty(serverObject, propertyName))
-        return;
-
-      // Skip changing date instances if they are equivalent
-      if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime())
-        return;
-
-      var data = {
-        cmd : "set",
-        serverId : serverObject.getServerId(),
-        propertyName : propertyName,
-        value : this.serializeValue(value)
-      };
-      var def = this.__classInfo[serverObject.classname];
-      
       var pd = serverObject.getPropertyDef(propertyName);
-      if (pd.sync == "queue") {
-        var queue = this.__queue;
-        if (queue)
-          for ( var i = 0; i < queue.length; i++) {
-            var qd = queue[i];
-            if (qd.cmd == "set" && qd.serverId == serverObject.getServerId() && qd.propertyName == propertyName) {
-              queue.splice(i, 1);
-              break;
+      
+      if (!this.isSettingProperty(serverObject, propertyName)) {
+        // Skip changing date instances if they are equivalent
+        if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime())
+          return;
+  
+        var data = {
+          cmd : "set",
+          serverId : serverObject.getServerId(),
+          propertyName : propertyName,
+          value : this.serializeValue(value)
+        };
+        var def = this.__classInfo[serverObject.classname];
+        
+        if (pd.sync == "queue") {
+          var queue = this.__queue;
+          if (queue)
+            for ( var i = 0; i < queue.length; i++) {
+              var qd = queue[i];
+              if (qd.cmd == "set" && qd.serverId == serverObject.getServerId() && qd.propertyName == propertyName) {
+                queue.splice(i, 1);
+                break;
+              }
             }
-          }
-        this._queueCommandToServer(data);
-      } else
-        this._sendCommandToServer(data);
+          this._queueCommandToServer(data);
+        } else
+          this._sendCommandToServer(data);
+      }
 
       // OnDemand properties need to have their event fired for them
       if (pd.onDemand && pd.event)
@@ -1197,6 +1205,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var req = new qx.io.remote.Request(this.getProxyUrl(), "POST", "text/plain");
       req.setAsynchronous(!!async);
       req.setData(text);
+      if (typeof async == "function")
+        req.setUserData("asyncOnCompleteCallback", async);
       
       // You must set the character encoding explicitly; even if the page is served as UTF8 and everything else is
       //  UTF8, not specifying will lead to the server screwing up decoding (presumably the default charset for the 
@@ -1354,7 +1364,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     __onPollTimeout : function() {
       this.__pollTimerId = null;
-      this.flushQueue(true);
+      this.flushQueue(true, true);
     },
 
     /**

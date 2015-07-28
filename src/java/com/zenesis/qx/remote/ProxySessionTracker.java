@@ -71,7 +71,7 @@ import com.zenesis.qx.event.EventManager;
  * @author John Spackman
  *
  */
-public class ProxySessionTracker {
+public class ProxySessionTracker implements UploadInterceptor {
 	
 	private static final Logger log = Logger.getLogger(ProxySessionTracker.class);
 	
@@ -366,6 +366,14 @@ public class ProxySessionTracker {
 		return bootstrap;
 	}
 	
+	@Override
+	public File interceptUpload(File file) {
+		if (bootstrap != null && bootstrap instanceof UploadInterceptor) {
+			file = ((UploadInterceptor)bootstrap).interceptUpload(file);
+		}
+		return file;
+	}
+
 	/**
 	 * Creates an object which can be serialised by Jackson JSON and passed to the
 	 * client ProxyTracker to convert into a suitable client object 
@@ -511,6 +519,11 @@ public class ProxySessionTracker {
 		if (deliveredTypes.contains(type))
 			throw new IllegalArgumentException("ProxyType " + type + " has already been sent to the client");
 		deliveredTypes.add(type);
+		for (ProxyType extra : type.getExtraTypes())
+			if (!isTypeDelivered(extra)) {
+				CommandQueue queue = getQueue();
+				queue.queueCommand(CommandId.CommandType.LOAD_TYPE, extra, null, null);
+			}
 	}
 	
 	/**
@@ -566,7 +579,7 @@ public class ProxySessionTracker {
 	}
 	
 	/**
-	 * Helper static method to register that an on-demand property has changed and it's value should be
+	 * Register that an on-demand property has changed and it's value should be
 	 * expired on the client, so that the next attempt to access it causes a refresh
 	 * @param proxied
 	 * @param propertyName
@@ -579,6 +592,26 @@ public class ProxySessionTracker {
 		CommandQueue queue = getQueue();
 		if (property.isOnDemand())
 			queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, property.getName(), null);
+	}
+	
+	/**
+	 * Register that an on-demand property has changed and it's value should be
+	 * resent to the client, if the client already has it
+	 * @param proxied
+	 * @param propertyName
+	 * @param oldValue
+	 * @param newValue
+	 */
+	public void invalidateProperty(Proxied keyObject, ProxyProperty property) {
+		if (!property.isOnDemand() || !doesClientHaveObject(keyObject))
+			return;
+		CommandQueue queue = getQueue();
+		try {
+			Object value = property.getValue(keyObject);
+			queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(), property.serialize(keyObject, value));
+		}catch(ProxyException e) {
+			throw new IllegalStateException(e.getMessage(), e);
+		}
 	}
 	
 	/**

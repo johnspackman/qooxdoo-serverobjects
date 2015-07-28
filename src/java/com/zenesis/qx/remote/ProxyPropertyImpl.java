@@ -7,8 +7,10 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
+
 import org.apache.log4j.Logger;
 
+import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote;
@@ -38,6 +40,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 	private Method getMethod;
 	private Method setMethod;
 	private Field field;
+	private String changeEventName;
 	
 	// Translators
 	private Method serializeMethod;
@@ -53,6 +56,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 	 */
 	public ProxyPropertyImpl(Class clazz, String name, Property anno, Properties annoProperties) {
 		super(name);
+		changeEventName = "change" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
 		this.anno = anno;
 		this.clazz = clazz;
 		sync = anno.sync();
@@ -258,10 +262,14 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 	public void setValue(Proxied proxied, Object value) throws ProxyException {
 		getAccessors();
 		value = deserialize(proxied, value);
+		Object oldValue = getValue(proxied);
+		if (value == oldValue)
+			return;
 		try {
 			if (field != null) {
 				if (!readOnly) {
 					field.set(proxied, value);
+					changedValue(proxied, value, oldValue);
 					return;
 				}
 			}
@@ -271,11 +279,13 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 				//	autoboxing to handle conversions between primitive types
 				if (value == null || !propertyClass.isCollection()) {
 					setMethod.invoke(proxied, value);
+					changedValue(proxied, value, oldValue);
 					return;
 				}
 				Class type = setMethod.getParameterTypes()[0];
 				if (type.isAssignableFrom(value.getClass())) {
 					setMethod.invoke(proxied, value);
+					changedValue(proxied, value, oldValue);
 					return;
 				}
 			}
@@ -309,6 +319,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 					}
 					if (setValue)
 						setMethod.invoke(proxied, coll);
+					changedValue(proxied, value, oldValue);
 					return;
 				}
 			}
@@ -332,6 +343,19 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			log.error("Exception while getting value for " + this + " on " + proxied + ": " + e.getMessage(), e);
 			throw new ProxyException(proxied, "Failed to set value for property " + name + " in class " + clazz + " to value " + value + ", method=" + setMethod + ", field=" + field, e);
 		}
+	}
+	
+	/**
+	 * Called when setValue has just changed the value of a property
+	 * @param proxied
+	 * @param value
+	 * @param oldValue
+	 */
+	protected void changedValue(Proxied proxied, Object value, Object oldValue) {
+		if (proxied instanceof PropertyChangeListener)
+			((PropertyChangeListener)proxied).propertyChanged(this, value, oldValue);
+		if (EventManager.hasListener(proxied, changeEventName, null))
+			EventManager.fireDataEvent(proxied, changeEventName, new EventManager.ChangeValue(value, oldValue));
 	}
 
 	/**

@@ -114,6 +114,7 @@ public class ProxyTypeManager {
 			if (type == null) {
 				type = new ProxyTypeImpl(null, clazz, interfaces);
 				proxyTypes.put(clazz, type);
+				type.resolve(this);
 			}
 			return type;
 		}
@@ -125,8 +126,10 @@ public class ProxyTypeManager {
 		
 		// Create the type
 		type = newProxyType(factory, superType, clazz, interfaces);
-		if (type != null)
+		if (type != null) {
 			proxyTypes.put(clazz, type);
+			type.resolve(this);
+		}
 		return type;
 	}
 	

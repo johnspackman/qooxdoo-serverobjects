@@ -51,7 +51,7 @@ public class FileApi implements Proxied {
 		public final boolean exists;
 		public String uploadId;
 		
-		protected FileInfo(File file, String rootAbsPath) {
+		public FileInfo(File file, String rootAbsPath) {
 			this.type = file.isDirectory() ? FileType.FOLDER : FileType.FILE;
 			this.size = file.length();
 			this.lastModified = file.lastModified();

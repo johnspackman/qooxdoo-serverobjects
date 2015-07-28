@@ -45,10 +45,16 @@ public @interface Properties {
 	 * The list of Property annotations for a class
 	 * @return
 	 */
-	public Property[] value();
+	public Property[] value() default {};
 	
 	/**
 	 * Whether to automatically generate events
 	 */
 	public boolean autoEvents() default true;
+	
+	/**
+	 * Extra classes to send
+	 * @return
+	 */
+	public Class[] refs() default {};
 }

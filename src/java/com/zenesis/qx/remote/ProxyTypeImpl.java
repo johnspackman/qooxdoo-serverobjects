@@ -200,6 +200,9 @@ public class ProxyTypeImpl extends AbstractProxyType {
 	// Interfaces implements by clazz 
 	private final Set<ProxyType> interfaces;
 	
+	// Additional types required
+	private Set<ProxyType> extraTypes;
+	
 	// Methods (not including property accessors)
 	private final ProxyMethod[] methods;
 	
@@ -350,6 +353,29 @@ public class ProxyTypeImpl extends AbstractProxyType {
 		this.methods = methodsCompiler.toArray();
 	}
 	
+	@Override
+	public void resolve(ProxyTypeManager typeManager) {
+		for (Class tmp = clazz; tmp != null; tmp = tmp.getSuperclass()) {
+			Properties anno = (Properties)tmp.getAnnotation(Properties.class);
+			if (anno != null) {
+				for (int i = 0; i < anno.refs().length; i++) {
+					Class clz = anno.refs()[i];
+					ProxyType type = typeManager.getProxyType(clz);
+					if (type != null) {
+						if (extraTypes == null)
+							extraTypes = new HashSet();
+						extraTypes.add(type);
+					}
+				}
+			}
+		}
+	}
+
+	@Override
+	public Set<ProxyType> getExtraTypes() {
+		return extraTypes != null ? extraTypes : Collections.EMPTY_SET;
+	}
+
 	protected boolean isConflicting(Method method, Method existing) {
 		// The same method can appear more than once, but only if they are
 		//	identical - we just ignore it

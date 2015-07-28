@@ -1,6 +1,8 @@
 package com.zenesis.qx.remote.collections;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 
 import org.apache.log4j.Logger;
 
@@ -71,6 +73,34 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	// The property we're connected to
 	private Proxied proxiedObject;
 	private ProxyProperty proxyProperty;
+	private boolean sorting;
+	
+	/**
+	 * Sorts the list
+	 */
+	public void sort() {
+		sort(null);
+	}
+	
+	/**
+	 * Sorts the list with a comparator
+	 * @param comp
+	 */
+	public void sort(Comparator<T> comp) {
+		sorting = true;
+		try {
+			Collections.sort(this, comp);
+		} finally {
+			sorting = false;
+		}
+	}
+	
+	/**
+	 * @return true if the list is being sorted
+	 */
+	public boolean isSorting() {
+		return sorting;
+	}
 
 	/* (non-Javadoc)
 	 * @see AutoAttach.setProxyProperty
