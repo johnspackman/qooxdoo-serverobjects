@@ -311,6 +311,27 @@ public class EventManager {
 		}
 	}
 	
+	/*
+	 * Can be passed with changeXxxx events
+	 */
+	public static class ChangeValue {
+		private final Object value;
+		private final Object oldValue;
+		
+		public ChangeValue(Object value, Object oldValue) {
+			super();
+			this.value = value;
+			this.oldValue = oldValue;
+		}
+		
+		public Object getValue() {
+			return value;
+		}
+		public Object getOldValue() {
+			return oldValue;
+		}
+	}
+	
 	// Linked list of bindings - note this cannot be a map because maps require the 
 	//	target to be immutable (Collections change their hashCode as they are modified)
 	private LinkedList<Binding> bindings = new LinkedList<Binding>();
@@ -549,6 +570,8 @@ public class EventManager {
 			NamedEventListener nel = (NamedEventListener)binding.listener;
 			if (!nel.eventName.equals(eventName))
 				return false;
+			if (listener == null)
+				return true;
 			return nel.hasListener(listener);
 		}
 
@@ -558,8 +581,11 @@ public class EventManager {
 			
 			// Look for a NamedEventListener for the eventName
 			for (int i = 0; i < TINY_ARRAY_SIZE; i++)
-				if (nels[i].eventName.equals(eventName))
+				if (nels[i].eventName.equals(eventName)) {
+					if (listener == null)
+						return true;
 					return nels[i].hasListener(listener);
+				}
 			
 			return false;
 		}
@@ -570,6 +596,8 @@ public class EventManager {
 		NamedEventListener nel = map.get(eventName);
 		if (nel == null)
 			return false;
+		if (listener == null)
+			return true;
 		return nel.hasListener(listener);
 	}
 	
