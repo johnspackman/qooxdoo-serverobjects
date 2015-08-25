@@ -328,9 +328,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           var fileInfos = this.readProxyObject(elem.data);
           if (!result)
             result = [];
-          for (var i = 0; i < fileInfos.length; i++) {
-            result.push(fileInfos[i]);
-            this.fireDataEvent("uploadComplete", fileInfos[i]);
+          for (var j = 0; j < fileInfos.length; j++) {
+            result.push(fileInfos[j]);
+            this.fireDataEvent("uploadComplete", fileInfos[j]);
           }
 
         // An exception was thrown
