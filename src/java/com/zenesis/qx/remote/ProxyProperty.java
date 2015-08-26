@@ -64,6 +64,12 @@ public interface ProxyProperty extends JsonSerializable {
 	 * @return the onDemand
 	 */
 	public boolean isOnDemand();
+	
+	/**
+	 * The ondemand group for the property
+	 * @return
+	 */
+	public String getGroup();
 
 	/**
 	 * @return the sendExceptions

@@ -69,7 +69,13 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			event = new ProxyEvent(anno.event());
 		if (anno.nullable() != Toggle.DEFAULT)
 			nullable = anno.nullable() == Toggle.TRUE;
-		onDemand = anno.onDemand();
+		if (anno.group().length() != 0) {
+			onDemand = true;
+			group = anno.group();
+		} else {
+			onDemand = anno.onDemand();
+			group = null;
+		}
 		sendExceptions = anno.exceptions().booleanValue;
 		if (anno.readOnly() != Remote.Toggle.DEFAULT)
 			readOnly = anno.readOnly().booleanValue;

@@ -380,7 +380,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 * @param obj
 	 * @return
 	 */
-	public synchronized Object getProxy(Proxied obj) {
+	public synchronized Proxy getProxy(Proxied obj) {
 		if (obj == null)
 			return null;
 		

@@ -52,6 +52,13 @@ public @interface Property {
 	public String value() default "";
 	
 	/**
+	 * Properties in a group are treated as on demand and sent together, ie if
+	 * one property from that group is sent then all others in that same group are
+	 * also sent
+	 */
+	public String group() default "";
+	
+	/**
 	 * For array properties, these can be created on the client as native arrays or
 	 * as qx.data.Array (which is required for binding).  The default is to wrap.  
 	 * @return

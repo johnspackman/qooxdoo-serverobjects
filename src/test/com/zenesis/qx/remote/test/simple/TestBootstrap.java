@@ -32,11 +32,13 @@ import java.util.Date;
 
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.Method;
+import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.test.properties.ITestArrays;
 import com.zenesis.qx.remote.test.properties.ITestExceptions;
 import com.zenesis.qx.remote.test.properties.ITestProperties;
 import com.zenesis.qx.remote.test.properties.TestArrays;
 import com.zenesis.qx.remote.test.properties.TestExceptions;
+import com.zenesis.qx.remote.test.properties.TestGroups;
 import com.zenesis.qx.remote.test.properties.TestProperties;
 
 public class TestBootstrap implements ITestBootstrap {
@@ -48,6 +50,9 @@ public class TestBootstrap implements ITestBootstrap {
 	
 	private TestProperties clientTestProperties;
 	private Pippo lastPippo;
+	
+	@Property
+	private TestGroups testGroups = new TestGroups();
 
 	public TestBootstrap() {
 		super();
@@ -109,6 +114,10 @@ public class TestBootstrap implements ITestBootstrap {
 		return testArrays;
 	}
 	
+	public TestGroups getTestGroups() {
+		return testGroups;
+	}
+
 	@Method
 	public Pippo getPippo() {
 		return lastPippo = new Pippo();

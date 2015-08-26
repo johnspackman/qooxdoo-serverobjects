@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.ServletException;
+
 import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -353,23 +354,40 @@ public class RequestHandler {
 			String name = methodName.substring(3, 4).toLowerCase();
 			if (methodName.length() > 4)
 				name += methodName.substring(4);
+			ProxyProperty property = null;
 			for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null; type = type.getSuperType()) {
-				ProxyProperty property = type.getProperties().get(name);
+				property = type.getProperties().get(name);
 				if (property != null) {
-					Object result = null;
-					if (methodName.startsWith("get")) {
-						readParameters(jp, null);
-						result = property.getValue(serverObject);
-					} else {
-						Object[] values = readParameters(jp, new Class[] { property.getPropertyClass().getJavaType() });
-						property.setValue(serverObject, values[0]);
-					}
-					if (property.isOnDemand())
-						tracker.setClientHasValue(serverObject, property);
-					tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, serverObject, null, new FunctionReturn(asyncId, result));
 					found = true;
 					break;
 				}
+			}
+			if (found) {
+				Object result = null;
+				if (methodName.startsWith("get")) {
+					readParameters(jp, null);
+					result = property.getValue(serverObject);
+				} else {
+					Object[] values = readParameters(jp, new Class[] { property.getPropertyClass().getJavaType() });
+					property.setValue(serverObject, values[0]);
+				}
+				if (property.getGroup() != null) {
+					for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null; type = type.getSuperType()) {
+						for (ProxyProperty tmp : type.getProperties().values()) {
+							if (tmp.getGroup() != null && tmp.getGroup().equals(property.getGroup())) {
+								if (!tracker.doesClientHaveValue(serverObject, tmp)) {
+									Object value = tmp.getValue(serverObject);
+									tracker.setClientHasValue(serverObject, tmp);
+									tracker.getQueue().queueCommand(CommandId.CommandType.SET_VALUE, serverObject, 
+											tmp.getName(), tmp.serialize(serverObject, value));
+								}
+							}
+						}
+					}
+				}
+				if (property.isOnDemand())
+					tracker.setClientHasValue(serverObject, property);
+				tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, serverObject, null, new FunctionReturn(asyncId, result));
 			}
 		}
 

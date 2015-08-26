@@ -19,6 +19,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	
 	// Whether on demand
 	protected boolean onDemand;
+	protected String group;
 	
 	// Any event that gets fired
 	protected ProxyEvent event;
@@ -162,6 +163,14 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	@Override
 	public boolean isOnDemand() {
 		return onDemand;
+	}
+
+	/**
+	 * @return the group
+	 */
+	@Override
+	public String getGroup() {
+		return group;
 	}
 
 	/**

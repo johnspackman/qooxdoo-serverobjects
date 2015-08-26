@@ -146,7 +146,23 @@ qx.Class.define("demoapp.Application", {
 			tp.setQueued("queued from client");
 			qx.core.Assert.assertEquals(numCalls, manager.getNumberOfCalls());
 			tp.setImmediate("immediate from client");
-			qx.core.Assert.assertEquals(numCalls + 1, manager.getNumberOfCalls());
+			numCalls++;
+			qx.core.Assert.assertEquals(numCalls, manager.getNumberOfCalls());
+			
+			var tg = boot.getTestGroups();
+			qx.core.Assert.assertEquals(numCalls, manager.getNumberOfCalls());
+			qx.core.Assert.assertEquals(tg.getAlpha(), "Alpha");
+      qx.core.Assert.assertEquals(numCalls, manager.getNumberOfCalls());
+      qx.core.Assert.assertEquals(tg.getBravo(), "Bravo");
+      numCalls++;
+      qx.core.Assert.assertEquals(numCalls, manager.getNumberOfCalls());
+      qx.core.Assert.assertEquals(tg.getCharlie(), "Charlie");
+      qx.core.Assert.assertEquals(numCalls, manager.getNumberOfCalls());
+      qx.core.Assert.assertEquals(tg.getDelta(), "Delta");
+      numCalls++;
+      qx.core.Assert.assertEquals(numCalls, manager.getNumberOfCalls());
+      qx.core.Assert.assertEquals(tg.getEcho(), "Echo");
+      qx.core.Assert.assertEquals(numCalls, manager.getNumberOfCalls());
 			
 			str = tp.getChangeLog();
 			this.debug("tp.changeLog = " + str);
