@@ -172,7 +172,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     __exception : null,
     
     __preRequestCallback: null,
-
+    
     /**
      * The Servlet at the other end is configured to return an initial object
      * for this session; it can be any arbitrary object because QSO will
@@ -572,6 +572,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             data.extend = def.extend.prototype.$$proxyDef;
           } else
             def.extend = com.zenesis.qx.remote.Proxy;
+          var mis = com.zenesis.qx.remote.ProxyManager.__mixins[data.className];
+          if (mis != null) {
+            def.include = [];
+            mis.forEach(function(mixin) {
+              def.include.push(mixin);
+            });
+          }
         }
 
         // Add interfaces
@@ -1513,7 +1520,25 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     getInstance : function() {
       return this.__instance;
+    },
+    
+    // Client mixins to add to server classes
+    __mixins: {},
+    
+    /**
+     * Adds a mixin for a server class
+     * @param className {String} the name of the server class
+     * @param mixin {Mixin} the mixin to add
+     */
+    addMixin: function(className, mixin) {
+      if (qx.Class.getByName(className) != null)
+        throw new Error("Cannot add mixins for class " + className + " because the class has already been loaded");
+      var mis = this.__mixins[className];
+      if (mis === undefined)
+        mis = this.__mixins[className] = [];
+      mis.push(mixin);
     }
+
   },
   
   environment: {
