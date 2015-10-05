@@ -1,31 +1,34 @@
-Qooxdoo Server Objects
-======================
+# Server Objects
 
-Please note that starting with the release on github (in Feb 2013), the project structure has been reorganised so that there is only one Eclipse project required during development.
+  * [Tutorial / Getting Started By Example](docs/tutorial.md)
+  * [File Handling and Uploads](docs/uploads.md)
+  * [Installing / Setting Up Eclipse](docs/eclipse.md)
+  * [Advanced Usage](docs/advanced.md)
+  * [Issues, Roadmap, and Dependencies](docs/issues.md)
 
-Any problems please contact me through the Qooxdoo mailing list, although feel free to CC me at john.spackman@zenesis.com to make sure I don't miss your mail.
+The Qooxdoo ServerObjects contrib (aka QSO) is an alternative to the existing RPC mechanisms which are available as part of Qooxdoo and/or as other contribs; the main difference is that QSO is focused on mirroring objects and classes, including the class and interface hierarchy.  The goal is to allow a unified object model to exist on the client and the server, where property values are kept synchronized and events and method invocations are transparently transferred.  
 
+## Benefits
 
-Getting QxServerObjects
------------------------
+* **Automatic (and configurable)**: Class/interface definitions are discovered automatically on the server via reflection, and fine tuned by the developer using annotations; QSO will transfer class definitions to the Qooxdoo client automatically and on demand.
+* **Low impact**: The impact on server classes is minimal - the only requirement for the server class is that they implement an interface.  It is a requirement of QSO that it can be added to existing server classes without having to change the API of those classes (apart from adding the interface at some point in the class hierarchy).  All other definitions or customisations are implemented using annotations.
+* **Transparent**: The objects and hierarchy are transferred automatically – there is no separate API to learn/use in order to invoke server methods, you just use the API you wrote on the server.
+* **Custom Serialization**: property values can be serialized/deserialized using custom pre/post methods defined on a per-property basis (defined using annotations).
+* **Bi-directional objects**: The client implementation of server classes (ie those classes defined in Java that are automatically transferred to the client as Qooxdoo classes) is complete – new instances can be created and used on the client and then sent to the server with no effort from the developer.
+* **Exceptions**: Exceptions on the server are transferred to the client too.
+* **Java Properties and Events**: adds rich property definitions to the server and an event model that can be used anywhere.
+* **Established Code**: QSO is used by over 100+ classes and interfaces for client-server apps on 8 different websites (so far) where it is used for end-user apps and control-panel style server or website management apps; the clients include a large corporate extranet, SMEs, and a charity.
+* **Performance**: Based on the Jackson JSON parser/serializer which is significantly faster than the competition and which provides support for lots of low-level parsing/serialization customisation (performance test results: http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html#437, or Jackson home page: http://jackson.codehaus.org/)
+* **Support**: free support is provided via the mailing list, commercial support is available on request to <john.spackman@zenesis.com> or by visiting www.zenesis.com
 
-The best way to try out QxServerObjects is to clone the Git repo and open the project into Eclipse.  I'm using Eclipse Juno (4.2) but Eclipse 3.7 should work just fine too.
+Note: QSO uses a protocol based on JSON to communicate with the server that, while easy to read and understand, is not compliant with any other JSON based protocol such as JSON-RPC. 
 
-The project uses Apache Tomcat as it's server runtime - please make sure you have that installed in Eclipse before continuing.
+## Properties and Events
 
-Clone the repo:
-	git clone git://github.com/johnspackman/qx-serverobjects.git
+Property values and method return values can be cached or on-demand (configured via annotations in the Java classes), and events triggered by property changes are fired on both the server and the client.
 
-To add the project in Eclipse, choose File -> Import... -> "Existing projects into workspace" and select the qx-serverobjects repo that Git created for you.
+This implies that code on the server can listen to events and fire events when property values have been changed; while Java has the concept of properties by convention (ie “javabeans”), it is only basic (ie there are seXxx and getXxx methods) and not as rich as the the Qooxdoo property and event models.
 
-Go to your Servers view, right-click the background and choose New -> Server; choose your server type (eg Apache Tomcat 6) and click Finish.  Right click on your new server and choose "Add and Remove..." and add the QxServerObjects project to your new server.
+QSO gives your Java objects a rich property definition and event model that mirror Qooxdoo, plus a few extra features to support client/server interaction, eg whether properties are on-demand or how arrays are copied.  Properties can be defined as getXxx/setXxxx methods or as fields.
 
-
-Configuring your local Qooxdoo installation
--------------------------------------------
-In the QxServerObjects project, you need to edit WebContent/demoapp/config.json and WebContent/WEB-INF/web.xml and change the references to "/Users/john/os/qooxdoo" to be your own local installation of Qooxdoo.
-
-Open a command prompt or terminal window and go to your qx-serverobjects directory; cd to WebContent/demoapp and run ./generate source.
-
-Start the server and then browse to http://localhost:8080/ and click on the link to run the demoapp Source version.  You should get an alert message saying "All tests passed!"
-	
+The event model can be used on any object – ie it can be used independently from QSO and does not require objects to implement an interface.
