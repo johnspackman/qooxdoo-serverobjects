@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -52,7 +52,7 @@ import com.zenesis.qx.remote.annotations.Remote;
  */
 public class ProxyMethod implements JsonSerializable {
 	
-	private static final Logger log = Logger.getLogger(ProxyMethod.class); 
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxyMethod.class); 
 	
 	public static final Comparator<ProxyMethod> ALPHA_COMPARATOR = new Comparator<ProxyMethod>() {
 

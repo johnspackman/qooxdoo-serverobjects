@@ -31,7 +31,8 @@
  * @author John Spackman [john.spackman@zenesis.com]
  */
 /*
- * @require(qx.core.Aspect) @ignore(auto-require)
+ * @require(qx.core.Aspect) 
+ * @ignore(auto-require)
  */
 qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   extend : qx.core.Object,
@@ -126,7 +127,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     "ioError": "qx.event.type.Data",
     
     /** Fired when a file upload is completed, data is the FileInfo form the server */
-    "uploadComplete": "qx.event.type.Data"
+    "uploadComplete": "qx.event.type.Data",
+    
+    /** Fired to queue any pending requests */
+    "queuePending": "qx.event.type.Event",
+    
+    /** Fired when connected, data is the bootstrap object */
+    "connected": "qx.event.type.Data"
   },
 
   members : {
@@ -192,6 +199,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var ex = this.clearException();
       if (ex)
         throw ex;
+      this.fireDataEvent("connected", this.__serverObjects[0]);
       return this.__serverObjects[0];
     },
 
@@ -1187,21 +1195,38 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @return {String} the server response
      */
     _sendCommandToServer : function(obj, async) {
-      // Queue any client-created object which need to be sent to the server
-      this._queueClientObjects();
-
-      // Queue any dirty arrays
-      this._queueDirtyArrays();
-
-      // Queue any objects which can be removed from the server
-      this._queueDisposedServerObjects();
+      // We must not allow recursive commands, otherwise a partially formed request can be sent to the server
+      //  so we just queue it instead.
+      if (this.__queuingCommandsForServer) {
+        if (!this.__queue)
+          this.__queue = [];
+        this.__queue.push(obj);
+        return;
+      }
+      this.__queuingCommandsForServer = true;
+      
+      try {
+        // Queue any client-created object which need to be sent to the server
+        this._queueClientObjects();
+  
+        // Queue any dirty arrays
+        this._queueDirtyArrays();
+  
+        // Queue any objects which can be removed from the server
+        this._queueDisposedServerObjects();
+        
+        // Allow listeners to 
+        this.fireEvent("queuePending");
+      } finally {
+        this.__queuingCommandsForServer = false;
+      }
 
       // Consume the queue
       var queue = this.__queue;
       if (queue && queue.length) {
         this.__queue = null;
         if (obj)
-          queue[queue.length] = obj;
+          queue.push(obj);
         obj = queue;
       }
       if (!obj)

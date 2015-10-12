@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Manages events and listeners on arbitrary objects.
@@ -61,7 +61,7 @@ import org.apache.log4j.Logger;
  */
 public class EventManager {
 	
-	private static final Logger log = Logger.getLogger(EventManager.class);
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(EventManager.class);
 	
 	private static final int TINY_ARRAY_SIZE = 5;
 	

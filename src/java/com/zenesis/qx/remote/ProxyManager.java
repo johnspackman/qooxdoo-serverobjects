@@ -47,7 +47,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.zenesis.qx.event.Event;
 import com.zenesis.qx.event.EventListener;
@@ -60,7 +60,7 @@ import com.zenesis.qx.remote.CommandId.CommandType;
  */
 public class ProxyManager implements EventListener {
 	
-	private static final Logger log = Logger.getLogger(ProxyManager.class);
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxyManager.class);
 
 	// Singleton instance
 	private static ProxyManager s_instance;

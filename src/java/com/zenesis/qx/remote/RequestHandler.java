@@ -44,7 +44,7 @@ import java.util.Map;
 
 import javax.servlet.ServletException;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -68,7 +68,7 @@ import com.zenesis.qx.remote.CommandId.CommandType;
  */
 public class RequestHandler {
 	
-	private static final Logger log = Logger.getLogger(RequestHandler.class);
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(RequestHandler.class);
 	
 	// Command type strings received from the client
 	private static final String CMD_BOOTSTRAP = "bootstrap";	// Reset application session and get bootstrap
@@ -323,6 +323,8 @@ public class RequestHandler {
 	protected void cmdCallServerMethod(JsonParser jp) throws ServletException, IOException {
 		// Get the basics
 		Object obj = getFieldValue(jp, "serverId", Object.class);
+		String methodName = getFieldValue(jp, "methodName", String.class);
+		int asyncId = getFieldValue(jp, "asyncId", Integer.class);
 		Class serverClass = null;
 		Proxied serverObject = null;
 		if (obj instanceof Integer) {
@@ -336,8 +338,6 @@ public class RequestHandler {
 				log.error("Cannot find server class " + obj + ": " + e.getMessage());
 			}
 		}
-		String methodName = getFieldValue(jp, "methodName", String.class);
-		int asyncId = getFieldValue(jp, "asyncId", Integer.class);
 		
 		
 		// Onto what should be parameters

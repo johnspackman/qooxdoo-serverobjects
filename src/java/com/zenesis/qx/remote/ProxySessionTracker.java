@@ -38,7 +38,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -73,7 +73,7 @@ import com.zenesis.qx.event.EventManager;
  */
 public class ProxySessionTracker implements UploadInterceptor {
 	
-	private static final Logger log = Logger.getLogger(ProxySessionTracker.class);
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxySessionTracker.class);
 	
 	/*
 	 * This class encapsulates data that needs to be sent to the server

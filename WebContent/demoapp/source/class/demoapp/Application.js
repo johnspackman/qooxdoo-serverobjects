@@ -59,7 +59,7 @@ qx.Class.define("demoapp.Application", {
 				// visibility
 				qx.log.appender.Console;
 			}
-		
+			
 			/*
 			 * -------------------------------------------------------------------------
 			 * Below is your actual application code...
@@ -69,6 +69,7 @@ qx.Class.define("demoapp.Application", {
 			new demoapp.test.DemoTest().testMap();
 			
 			var manager = new com.zenesis.qx.remote.ProxyManager("/sampleServlet/ajax", true);
+      com.zenesis.qx.remote.LogAppender.install();
 			
 			var boot = manager.getBootstrapObject();
 			

@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.zenesis.qx.event.EventManager;
 
@@ -52,7 +52,7 @@ import com.zenesis.qx.event.EventManager;
 public class ProxyTypeManager {
 	
 	@SuppressWarnings("unused")
-	private static final Logger log = Logger.getLogger(ProxyTypeManager.class);
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxyTypeManager.class);
 	
 	// Singleton instance
 	public static final ProxyTypeManager INSTANCE = new ProxyTypeManager();

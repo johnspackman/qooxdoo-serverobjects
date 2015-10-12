@@ -33,7 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -59,7 +59,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 public class ProxyObjectMapper extends ObjectMapper {
 	
 	@SuppressWarnings("unused")
-	private static final Logger log = Logger.getLogger(ProxyObjectMapper.class);
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxyObjectMapper.class);
 	
 	private static final SimpleDateFormat DF = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	

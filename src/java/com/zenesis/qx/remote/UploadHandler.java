@@ -42,7 +42,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.oreilly.servlet.multipart.FilePart;
 import com.oreilly.servlet.multipart.MultipartParser;
@@ -60,7 +60,7 @@ import com.zenesis.qx.remote.RequestHandler.ExceptionDetails;
  */
 public class UploadHandler {
 	
-	private static final Logger log = Logger.getLogger(UploadHandler.class);
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(UploadHandler.class);
 
 	public static final int MAX_UPLOAD_SIZE = 1024 * 1024 * 50; 	// Default max size of uploads, 50Mb
 	public static final String DEFAULT_ENCODING = "ISO-8859-1";		// Default encoding for parameters

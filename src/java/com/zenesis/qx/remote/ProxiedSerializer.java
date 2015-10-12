@@ -29,7 +29,7 @@ package com.zenesis.qx.remote;
 
 import java.io.IOException;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -43,7 +43,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
  */
 public class ProxiedSerializer extends JsonSerializer<Proxied> {
 	
-	private static final Logger log = Logger.getLogger(ProxiedSerializer.class);
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxiedSerializer.class);
 
 	/* (non-Javadoc)
 	 * @see org.codehaus.jackson.map.JsonSerializer#serialize(java.lang.Object, org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)

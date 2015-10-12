@@ -3,7 +3,7 @@ package com.zenesis.qx.remote;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Misc functions to manipulate values
@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
  */
 public class Helpers {
 	
-	private static final Logger log = Logger.getLogger(Helpers.class); 
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(Helpers.class); 
 	
 	/**
 	 * Converts an enum to camel case string, ie MY_ENUM_VALUE -> myEnumValue.

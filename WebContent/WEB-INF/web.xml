@@ -40,11 +40,11 @@
 		</init-param>
 		<init-param>
 			<param-name>rewrite-1</param-name>
-			<param-value>/qooxdoo=/Users/john/os/qooxdoo-4.0.1-sdk</param-value>
+			<param-value>/qooxdoo=/Users/john/dev/Grasshopper/smart/Local/WebContent/public/grasshopper/qooxdoo-trunk</param-value>
 		</init-param>
 		<init-param>
 			<param-name>rewrite-2</param-name>
-			<param-value>/explorer/cache-downloads=/Users/john/os/qooxdoo-4.0.1-sdk/cache/downloads</param-value>
+			<param-value>/explorer/cache-downloads=/Users/john/dev/Grasshopper/smart/Local/WebContent/public/grasshopper/qooxdoo-trunk/cache/downloads</param-value>
 		</init-param>
 	</filter>
 	

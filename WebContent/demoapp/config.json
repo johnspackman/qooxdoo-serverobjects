@@ -37,7 +37,7 @@
   "let" :
   {
     "APPLICATION"  : "demoapp",
-    "QOOXDOO_PATH" : "/Users/john/os/qooxdoo",
+    "QOOXDOO_PATH" : "../../../../../../../../Local/WebContent/public/grasshopper/qooxdoo-trunk",
     "QXTHEME"      : "qx.theme.Modern",
     "API_EXCLUDE"  : ["qx.test.*", "${APPLICATION}.theme.*", "${APPLICATION}.test.*", "${APPLICATION}.simulation.*"],
     "LOCALES"      : [ "en" ],

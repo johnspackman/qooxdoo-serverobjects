@@ -30,6 +30,8 @@ package com.zenesis.qx.remote.test.simple;
 import java.util.Calendar;
 import java.util.Date;
 
+import com.zenesis.qx.remote.LogEntry;
+import com.zenesis.qx.remote.LogEntrySink;
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
@@ -41,7 +43,7 @@ import com.zenesis.qx.remote.test.properties.TestExceptions;
 import com.zenesis.qx.remote.test.properties.TestGroups;
 import com.zenesis.qx.remote.test.properties.TestProperties;
 
-public class TestBootstrap implements ITestBootstrap {
+public class TestBootstrap implements ITestBootstrap, LogEntrySink {
 	
 	private ITestScalars testScalars = new TestScalars();
 	private final TestProperties testProperties = new TestProperties();
@@ -57,6 +59,12 @@ public class TestBootstrap implements ITestBootstrap {
 	public TestBootstrap() {
 		super();
 		ProxyManager.loadProxyType(ArrayContainer.class);
+	}
+	
+	@Override
+	public void addLogEntries(LogEntry[] entries) {
+		for (LogEntry entry : entries)
+			System.out.println(entry.toString());
 	}
 
 	@Override

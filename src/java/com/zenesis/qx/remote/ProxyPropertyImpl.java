@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.annotations.Properties;
@@ -18,7 +18,7 @@ import com.zenesis.qx.remote.annotations.Remote.Toggle;
 
 public class ProxyPropertyImpl extends AbstractProxyProperty {
 	
-	private static final Logger log = Logger.getLogger(ProxyPropertyImpl.class); 
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxyPropertyImpl.class); 
 
 	public static final Comparator<ProxyProperty> ALPHA_COMPARATOR = new Comparator<ProxyProperty>() {
 

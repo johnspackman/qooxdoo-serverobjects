@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.AutoAttach;
@@ -21,7 +21,7 @@ import com.zenesis.qx.remote.ProxyProperty;
 @SuppressWarnings("serial")
 public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	
-	private static final Logger log = Logger.getLogger(ArrayList.class); 
+	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ArrayList.class); 
 
 	// The type of change
 	public enum Type {
