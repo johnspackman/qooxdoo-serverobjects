@@ -1,4 +1,4 @@
-package com.zenesis.qx.remote.test.simple;
+package com.zenesis.qx.remote.test.collections;
 
 import java.util.HashMap;
 
@@ -7,7 +7,7 @@ import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote.Array;
 
-public class TestMap implements Proxied {
+public class TestJavaUtilMap implements Proxied {
 	
 	public enum Names {
 		ALPHA, BRAVO, CHARLIE
@@ -18,13 +18,13 @@ public class TestMap implements Proxied {
 
 	private HashMap<String, String> stringMap = new HashMap<String, String>();
 	
-	@Property(arrayType=TestMap.class, keyType=Names.class)
-	private HashMap<Names, TestMap> objectMap = new HashMap<TestMap.Names, TestMap>();
+	@Property(arrayType=TestJavaUtilMap.class, keyType=Names.class)
+	private HashMap<Names, TestJavaUtilMap> objectMap = new HashMap<TestJavaUtilMap.Names, TestJavaUtilMap>();
 	
 	@Property(arrayType=Numbers.class, keyType=Names.class)
 	private HashMap<Names, Numbers> enumMap = new HashMap();
 	
-	public TestMap() {
+	public TestJavaUtilMap() {
 		stringMap.put("alpha", "one");
 		stringMap.put("bravo", "two");
 		stringMap.put("charlie", "three");
@@ -50,7 +50,7 @@ public class TestMap implements Proxied {
 	/**
 	 * @return the objectMap
 	 */
-	public HashMap<Names, TestMap> getObjectMap() {
+	public HashMap<Names, TestJavaUtilMap> getObjectMap() {
 		return objectMap;
 	}
 	

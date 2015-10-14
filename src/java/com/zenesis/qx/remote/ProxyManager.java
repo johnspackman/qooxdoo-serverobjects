@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.zip.GZIPOutputStream;
@@ -52,6 +53,7 @@ import org.apache.logging.log4j.Logger;
 import com.zenesis.qx.event.Event;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.remote.CommandId.CommandType;
+import com.zenesis.qx.remote.collections.ChangeData;
 
 /**
  * This class needs to be implemented by whatever software hosts the proxies
@@ -347,6 +349,30 @@ public class ProxyManager implements EventListener {
 				ProxySessionTracker tmp = trackers.get(i);
 				if (tmp != null && tmp != tracker) {
 					tmp.propertyChanged(keyObject, property, newValue, oldValue);
+				}
+			}
+	}
+	
+	/**
+	 * Helper static method to register that a property has changed; this also fires a server event for
+	 * the property if an event is defined
+	 * @param proxied
+	 * @param propertyName
+	 * @param oldValue
+	 * @param newValue
+	 */
+	public static void collectionChanged(Proxied keyObject, ChangeData change) {
+		if (!(keyObject instanceof Map || keyObject instanceof Collection))
+			throw new IllegalArgumentException("Object " + keyObject + " is not a collection");
+		ProxySessionTracker tracker = getTracker();
+		if (tracker != null)
+			tracker.collectionChanged(keyObject, change);
+		AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
+		if (trackers != null)
+			for (int i = 0; i < trackers.length(); i++) {
+				ProxySessionTracker tmp = trackers.get(i);
+				if (tmp != null && tmp != tracker) {
+					tmp.collectionChanged(keyObject, change);
 				}
 			}
 	}

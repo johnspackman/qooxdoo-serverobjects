@@ -25,22 +25,21 @@
  * 
  * Base class for proxy objects to mirror Proxied objects on the server
  */
-qx.Class.define("com.zenesis.qx.remote.Proxy", {
-	extend: qx.core.Object,
-	
-	construct: function(serverId) {
-		this.base(arguments);
-		qx.core.Assert.assertTrue(!serverId || serverId > 0, "Invalid use of Proxy - invalid serverId " + (serverId||"null") + " specified");
-		var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
-		this.__serverClass = PM.getClassInfo(this.classname);
-		if (serverId === undefined || serverId === null) {
-			this.__isPending = true;
-			this.__serverId = PM.registerClientObject(this);
-		} else {
-			this.__isPending = false;
-			this.__serverId = serverId;
-		}
-	},
+qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
+  
+  construct: function() {
+    var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
+    this.__serverClass = PM.getClassInfo(this.classname);
+    if (qx.Class.hasOwnMixin(this.constructor, com.zenesis.qx.remote.MProxy) && 
+        !this.constructor.prototype.$$proxyDef.isMProxyInitialised) {
+      var t = this;
+      [ "addListener", "removeListener" ].forEach(function(name) {
+        var fn = t[name];
+        fn.base = t.constructor.superclass.prototype[name];
+      });
+      this.constructor.prototype.$$proxyDef.isMProxyInitialised = true;
+    }
+  },
 	
 	destruct: function() {
 		var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
@@ -50,12 +49,17 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 	members: {
 		__serverId: null,
 		__serverClass: null,
-		__isPending: false,
+		//__isPending: undefined,
 
 		/**
 		 * Returns the server ID for this object
 		 */
 		getServerId: function() {
+      if (this.__serverId === undefined || this.__serverId === null) {
+        var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
+        this.__isPending = true;
+        this.__serverId = PM.registerClientObject(this);
+      }
 			return this.__serverId;
 		},
 		
@@ -64,8 +68,9 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 		 * has returned a new server ID for it; to be called by ProxyManager only
 		 */
 		setServerId: function(serverId) {
-			qx.core.Assert.assert(this.__serverId < 0);
-			this.__serverId = serverId;
+	    var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
+	    delete this.__isPending;
+	    this.__serverId = serverId;
 		},
 		
 		/**
@@ -74,7 +79,7 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 		 */
 		setSentToServer: function() {
 			qx.core.Assert.assertTrue(this.__isPending);
-			this.__isPending = false;
+			delete this.__isPending;
 		},
 		
 		/**
@@ -105,6 +110,9 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 		_applyProperty: function(propertyName, value, oldValue) {
 			var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
 			var propDef = this.getPropertyDef(propertyName);
+			
+			// Add change handler for arrays; note that this works for maps too because they are also
+			// "wrapped"
 			if (propDef.array == "wrap" && !propDef.noArrayEdits) {
 				if (oldValue)
 					oldValue.removeListenerById(propDef.changeListenerId);
@@ -281,20 +289,6 @@ qx.Class.define("com.zenesis.qx.remote.Proxy", {
 			}
 			return null;
 		}
-	},
-	
-	statics: {
-	  /**
-	   * Calls a static method on the server
-	   */
-    _callServer: function(clazz, name, args) {
-      var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
-      var result = PM.callServerMethod(clazz, name, args);
-      var ex = PM.clearException();
-      if (ex)
-        throw ex;
-      return result;
-    }
 	}
 	
 });

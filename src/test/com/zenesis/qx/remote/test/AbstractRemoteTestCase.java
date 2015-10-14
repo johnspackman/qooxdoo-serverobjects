@@ -38,12 +38,12 @@ import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.ProxySessionTracker;
 import com.zenesis.qx.remote.RequestHandler;
-import com.zenesis.qx.remote.test.simple.TestBootstrap;
+import com.zenesis.qx.remote.test.simple.MainTests;
 import com.zenesis.qx.test.AbstractTestCase;
 
 public abstract class AbstractRemoteTestCase extends AbstractTestCase {
 
-	protected Class<? extends Proxied> bootstrapClass = TestBootstrap.class;
+	protected Class<? extends Proxied> bootstrapClass = MainTests.class;
 	protected ProxySessionTracker tracker;
 	
 	/* (non-Javadoc)

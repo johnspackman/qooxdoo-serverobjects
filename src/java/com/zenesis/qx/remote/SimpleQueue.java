@@ -54,13 +54,20 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 	 */
 	@Override
 	public synchronized void queueCommand(CommandType type, Object object, String propertyName, Object data) {
+		CommandId id = new CommandId(type, object, propertyName);
 		if (type == CommandType.BOOTSTRAP && !values.isEmpty()) {
 			LinkedHashMap<CommandId, Object> tmp = new LinkedHashMap<CommandId, Object>();
-			tmp.put(new CommandId(type, object, propertyName), data);
+			tmp.put(id, data);
 			tmp.putAll(values);
 			values = tmp;
 		} else
-			values.put(new CommandId(type, object, propertyName), data);
+			values.put(id, data);
+	}
+	
+	@Override
+	public synchronized Object getCommand(CommandType type, Object object, String propertyName) {
+		CommandId id = new CommandId(type, object, propertyName);
+		return values.get(id);
 	}
 
 	/* (non-Javadoc)

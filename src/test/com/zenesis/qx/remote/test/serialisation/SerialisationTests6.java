@@ -30,7 +30,7 @@ package com.zenesis.qx.remote.test.serialisation;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import com.zenesis.qx.remote.test.AbstractRemoteTestCase;
-import com.zenesis.qx.remote.test.simple.TestBootstrap;
+import com.zenesis.qx.remote.test.simple.MainTests;
 
 /**
  * These tests check things that cropped up but were not covered by other serialisation tests
@@ -44,7 +44,7 @@ public class SerialisationTests6 extends AbstractRemoteTestCase {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
 
-		pw.println(tracker.toJSON(new TestBootstrap()));
+		pw.println(tracker.toJSON(new MainTests()));
 		assertFromFile(sw.toString(), "SerialisationTests6.test1");
 	}
 

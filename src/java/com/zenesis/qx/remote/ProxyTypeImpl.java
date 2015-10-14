@@ -51,6 +51,7 @@ import com.zenesis.qx.remote.annotations.ExplicitProxyOnly;
 import com.zenesis.qx.remote.annotations.FactoryMethod;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
+import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
 
 public class ProxyTypeImpl extends AbstractProxyType {
 	
@@ -197,6 +198,12 @@ public class ProxyTypeImpl extends AbstractProxyType {
 	// Base ProxyType that represents the class that clazz is derived from
 	private final ProxyType superType;
 	
+	// Base Qooxdoo class, null is qx.core.Object
+	private final String qooxdooExtend;
+	
+	// @SerializeConstructorArgs method
+	private final Method serializeConstructorArgs;
+	
 	// Interfaces implements by clazz 
 	private final Set<ProxyType> interfaces;
 	
@@ -303,7 +310,11 @@ public class ProxyTypeImpl extends AbstractProxyType {
 			}
 		}
 		
+		Method serializeConstructorArgs = null;
 		for (Method method : clazz.getDeclaredMethods()) {
+			if (method.isAnnotationPresent(SerializeConstructorArgs.class)) {
+				serializeConstructorArgs = method;
+			}
 			String name = method.getName();
 			if (name.length() < 4 || !name.startsWith("get") || !Character.isUpperCase(name.charAt(3)))
 				continue;
@@ -351,6 +362,8 @@ public class ProxyTypeImpl extends AbstractProxyType {
 		this.properties = properties.isEmpty() ? null : properties;
 		this.events = events.isEmpty() ? null : events;
 		this.methods = methodsCompiler.toArray();
+		this.qooxdooExtend = annoProperties != null && annoProperties.extend().length() > 0 ? annoProperties.extend() : null;
+		this.serializeConstructorArgs = serializeConstructorArgs;
 	}
 	
 	@Override
@@ -517,6 +530,16 @@ public class ProxyTypeImpl extends AbstractProxyType {
 	@Override
 	public ProxyType getSuperType() {
 		return superType;
+	}
+
+	@Override
+	public String getQooxdooExtend() {
+		return qooxdooExtend;
+	}
+
+	@Override
+	public Method serializeConstructorArgs() {
+		return serializeConstructorArgs;
 	}
 
 	@Override

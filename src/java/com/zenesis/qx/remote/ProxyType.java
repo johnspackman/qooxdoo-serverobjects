@@ -28,6 +28,7 @@
 package com.zenesis.qx.remote;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 
@@ -71,6 +72,18 @@ public interface ProxyType extends JsonSerializable {
 	 * @return
 	 */
 	public ProxyType getSuperType();
+	
+	/**
+	 * Returns the base Qooxdoo class; if null, then qx.core.Object is used.
+	 * @return
+	 */
+	public String getQooxdooExtend();
+	
+	/**
+	 * Method used to serialise constructor arguments
+	 * @return
+	 */
+	public Method serializeConstructorArgs();
 
 	/**
 	 * @return the methods

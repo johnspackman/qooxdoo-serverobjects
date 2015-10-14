@@ -82,6 +82,10 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 					gen.writeStringField("array", "native");
 				else
 					gen.writeStringField("array", "wrap");
+				if (propertyClass.getCollectionClass() != null && Proxied.class.isAssignableFrom(propertyClass.getCollectionClass())) {
+					ProxyType type = ProxyTypeManager.INSTANCE.getProxyType((Class<Proxied>)propertyClass.getCollectionClass());
+					gen.writeObjectField("arrayClass", type);
+				}
 				
 			} else { 
 				if (clazz == boolean.class || clazz == Boolean.class)

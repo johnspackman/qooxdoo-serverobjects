@@ -28,6 +28,7 @@
 package com.zenesis.qx.remote;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -78,6 +79,16 @@ public class ProxyTypeArray implements ProxyType {
 	 */
 	@Override
 	public ProxyType getSuperType() {
+		return null;
+	}
+
+	@Override
+	public String getQooxdooExtend() {
+		return null;
+	}
+
+	@Override
+	public Method serializeConstructorArgs() {
 		return null;
 	}
 

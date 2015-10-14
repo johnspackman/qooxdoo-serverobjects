@@ -51,6 +51,8 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.CommandId.CommandType;
+import com.zenesis.qx.utils.DiagUtils;
+import com.zenesis.qx.utils.ArrayUtils;
 
 /**
  * Handles the request and responses for a client.
@@ -147,10 +149,6 @@ public class RequestHandler {
 	// Client Objects, indexed by client ID (negative) 
 	private HashMap<Integer, Proxied> clientObjects;
 	
-	// The property currently having it's property set
-	private Proxied setPropertyObject;
-	private String setPropertyName;
-	
 	/**
 	 * @param tracker
 	 */
@@ -188,7 +186,7 @@ public class RequestHandler {
 				while ((length = request.read(buffer)) > 0) {
 					sw.write(buffer, 0, length);
 				}
-				log.debug("Received: " + sw.toString());
+				log.trace("Received: " + sw.toString());
 				request = new StringReader(sw.toString());
 			}
 			JsonParser jp = objectMapper.getJsonFactory().createJsonParser(request);
@@ -200,7 +198,7 @@ public class RequestHandler {
 	
 			if (tracker.hasDataToFlush()) {
 				Writer actualResponse = response;
-				if (log.isDebugEnabled()) {
+				if (log.isTraceEnabled()) {
 					final Writer tmp = response;
 					actualResponse = new Writer() {
 						@Override
@@ -554,115 +552,137 @@ public class RequestHandler {
 	protected void cmdEditArray(JsonParser jp) throws ServletException, IOException {
 		// Get the basics
 		int serverId = getFieldValue(jp, "serverId", Integer.class);
+		Proxied serverObject = getProxied(serverId);
 		String propertyName = getFieldValue(jp, "propertyName", String.class);
 		String action = getFieldValue(jp, "type", String.class);
-		Integer start = null;
-		Integer end = null;
-		
-		if (!action.equals("replaceAll")) {
-			start = getFieldValue(jp, "start", Integer.class);
-			end = getFieldValue(jp, "end", Integer.class);
+
+		tracker.beginMutate(serverObject, propertyName);
+		try {
+			if (action.equals("replaceAll"))
+				arrayReplaceAll(jp, serverId, propertyName);
+			else
+				arrayUpdate(jp, serverId, propertyName);
+		}finally {
+			tracker.endMutate(serverObject, propertyName);
 		}
-		
+	}
+	
+	private void arrayUpdate(JsonParser jp, int serverId, String propertyName) throws ServletException, IOException {
 		// Get our info
 		Proxied serverObject = getProxied(serverId);
 		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverObject.getClass());
 		ProxyProperty prop = getProperty(type, propertyName);
 		
 		if (prop.getPropertyClass().isMap()) {
-			Map items = null;
-			
-			// Get the optional array of items
-			if (jp.nextToken() == JsonToken.FIELD_NAME &&
-					jp.getCurrentName().equals("items") &&
-					jp.nextToken() == JsonToken.START_OBJECT) {
-				
-				items = readMap(jp, prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
-			}
+			Object removed = readOptionalArray(jp, "removed", prop.getPropertyClass().getKeyClass());
+			Map put = readOptionalMap(jp, "put", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
 			
 			// Quick logging
-			if (log.isInfoEnabled()) {
-				String str = "";
-				if (items != null)
-					for (Object key : items.keySet()) {
-						if (str.length() > 0)
-							str += ", ";
-						str += String.valueOf(key) + "=" + String.valueOf(items.get(key));
-					}
-				log.info("edit-array: property=" + prop + ", type=" + action + ", start=" + start + ", end=" + end + str);
-			}
+			if (log.isInfoEnabled())
+				log.info("edit-array: update map: property=" + prop + ", removed=" + DiagUtils.arrayToString(removed) + ", put=" + DiagUtils.mapToString(put));
 			
-			if (action.equals("replaceAll")) {
-				Map map = (Map)prop.getValue(serverObject);
-				if (map == null) {
-					try {
-						map = (Map)prop.getPropertyClass().getCollectionClass().newInstance();
-					}catch(Exception e) {
-						throw new IllegalArgumentException(e.getMessage(), e);
-					}
-					prop.setValue(serverObject, map);
-				}
-				map.clear();
-				map.putAll(items);
-			} else
-				throw new IllegalArgumentException("Unsupported action in cmdEditArray: " + action);
+			Map map = ArrayUtils.getMap(serverObject, prop);
+
+			if (map instanceof Proxied)
+				tracker.beginMutate((Proxied)map, null);
+			
+			ArrayUtils.removeAll(map, removed);
+			if (put != null)
+				map.putAll(put);
 			
 			// Because collection properties are objects and we change them without the serverObject's
 			//	knowledge, we have to make sure we notify other trackers ourselves
-			ProxyManager.propertyChanged(serverObject, propertyName, items, null);
+			if (map instanceof Proxied)
+				tracker.endMutate((Proxied)map, null);
+			else
+				ProxyManager.propertyChanged(serverObject, propertyName, map, null);
+			
+			jp.nextToken();
+		} else {
+			Class clazz = prop.getPropertyClass().getJavaType();
+			Object removed = readOptionalArray(jp, "removed", clazz);
+			Object added = readOptionalArray(jp, "added", clazz);
+			Object array = readOptionalArray(jp, "array", clazz);
+			if (log.isInfoEnabled())
+				log.info("edit-array: update array: property=" + prop + 
+						", removed=" + DiagUtils.arrayToString(removed) + 
+						", added=" + DiagUtils.arrayToString(added) + 
+						", array=" + DiagUtils.arrayToString(array));
+			
+			Collection list;
+			Object currentArray = null;
+			if (prop.getPropertyClass().isCollection()) {
+				list = ArrayUtils.getCollection(serverObject, prop);
+			} else {
+				currentArray = prop.getValue(serverObject);
+				list = new ArrayList();
+				ArrayUtils.addAll(list, currentArray);
+			}
+			if (list instanceof Proxied)
+				tracker.beginMutate((Proxied)list, null);
+			
+			ArrayUtils.removeAll(list, removed);
+			ArrayUtils.addAll(list, added);
+			if (!ArrayUtils.sameArray(list, array))
+				ArrayUtils.matchOrder(list, array);
+			
+			if (!prop.getPropertyClass().isCollection()) {
+				prop.setValue(serverObject, ArrayUtils.toArray(list, clazz));
+			}
+				
+			// Because collection properties are objects and we change them without the serverObject's
+			//	knowledge, we have to make sure we notify other trackers ourselves
+			if (list instanceof Proxied)
+				tracker.endMutate((Proxied)list, null);
+			else
+				ProxyManager.propertyChanged(serverObject, propertyName, list, null);
+			
+			jp.nextToken();
+		}
+		
+	}
+	
+	private void arrayReplaceAll(JsonParser jp, int serverId, String propertyName) throws ServletException, IOException {
+		// Get our info
+		Proxied serverObject = getProxied(serverId);
+		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverObject.getClass());
+		ProxyProperty prop = getProperty(type, propertyName);
+		
+		if (prop.getPropertyClass().isMap()) {
+			Map items = readOptionalMap(jp, "items", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
+			if (log.isInfoEnabled())
+				log.info("edit-array: replaceAll map: property=" + prop + ", items=" + DiagUtils.mapToString(items));
+			
+			Map map = ArrayUtils.getMap(serverObject, prop);
+			map.clear();
+			map.putAll(items);
+			
+			// Because collection properties are objects and we change them without the serverObject's
+			//	knowledge, we have to make sure we notify other trackers ourselves
+			if (!(map instanceof Proxied))
+				ProxyManager.propertyChanged(serverObject, propertyName, items, null);
 			
 			jp.nextToken();
 		} else {
 			// NOTE: items is an Array!!  But because it may be an array of primitive types, we have
 			//	to use java.lang.reflect.Array to access members because we cannot cast arrays of
 			//	primitives to Object[]
-			Object items = null;
+			Object items = readOptionalArray(jp, "items", prop.getPropertyClass().getJavaType());
+			if (log.isInfoEnabled())
+				log.info("edit-array: replaceAll array: property=" + prop + ", items=" + DiagUtils.arrayToString(items));
 			
-			// Get the optional array of items
-			if (jp.nextToken() == JsonToken.FIELD_NAME &&
-					jp.getCurrentName().equals("items") &&
-					jp.nextToken() == JsonToken.START_ARRAY) {
+			if (prop.getPropertyClass().isCollection()) {
+				Collection list = ArrayUtils.getCollection(serverObject, prop);
+				list.clear();
+				ArrayUtils.addAll(list, items);
 				
-				items = readArray(jp, prop.getPropertyClass().getJavaType());
-			}
-			int itemsLength = Array.getLength(items);
-			
-			// Quick logging
-			if (log.isInfoEnabled()) {
-				String str = "";
-				if (items != null)
-					for (int i = 0; i < itemsLength; i++) {
-						if (str.length() != 0)
-							str += ", ";
-						str += Array.get(items, i);
-					}
-				log.info("edit-array: property=" + prop + ", type=" + action + ", start=" + start + ", end=" + end + str);
-			}
-			
-			if (action.equals("replaceAll")) {
-				if (prop.getPropertyClass().isCollection()) {
-					Collection list = (Collection)prop.getValue(serverObject);
-					if (list == null) {
-						try {
-							list = (Collection)prop.getPropertyClass().getCollectionClass().newInstance();
-						}catch(Exception e) {
-							throw new IllegalArgumentException(e.getMessage(), e);
-						}
-						prop.setValue(serverObject, list);
-					}
-					list.clear();
-					if (items != null)
-						for (int i = 0; i < itemsLength; i++)
-							list.add(Array.get(items, i));
-					
-					// Because collection properties are objects and we change them without the serverObject's
-					//	knowledge, we have to make sure we notify other trackers ourselves
+				// Because collection properties are objects and we change them without the serverObject's
+				//	knowledge, we have to make sure we notify other trackers ourselves
+				if (!(list instanceof Proxied))
 					ProxyManager.propertyChanged(serverObject, propertyName, list, null);
-				} else {
-					prop.setValue(serverObject, items);
-				}
-			} else
-				throw new IllegalArgumentException("Unsupported action in cmdEditArray: " + action);
+			} else {
+				prop.setValue(serverObject, items);
+			}
 			
 			jp.nextToken();
 		}
@@ -833,10 +853,7 @@ public class RequestHandler {
 	 * @param value
 	 */
 	protected void setPropertyValue(ProxyType type, Proxied proxied, String propertyName, Object value) throws ProxyException {
-		if (setPropertyObject != null || setPropertyName != null)
-			throw new IllegalStateException("Recursive property setting!");
-		setPropertyObject = proxied;
-		setPropertyName = propertyName;
+		tracker.beginMutate(proxied, propertyName);
 		try {
 			ProxyProperty property = getProperty(type, propertyName);
 			
@@ -853,8 +870,7 @@ public class RequestHandler {
 				}
 			}
 		}finally {
-			setPropertyObject = null;
-			setPropertyName = null;
+			tracker.endMutate(proxied, propertyName);
 		}
 	}
 	
@@ -891,18 +907,6 @@ public class RequestHandler {
 		} 
 		
 		return value;
-	}
-	
-	/**
-	 * Detects if a property is currently being set as part of synchronising with the client
-	 * @param proxied
-	 * @param propertyName
-	 * @return
-	 */
-	public boolean isSettingProperty(Proxied proxied, String propertyName) {
-		if (setPropertyObject == null || setPropertyName == null)
-			return false;
-		return setPropertyObject == proxied && setPropertyName.equals(propertyName);
 	}
 	
 	/**
@@ -968,6 +972,8 @@ public class RequestHandler {
 		if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
 			return null;
 		
+		if (clazz == null)
+			clazz = Object.class;
 		boolean isProxyClass = Proxied.class.isAssignableFrom(clazz);
 		ArrayList result = new ArrayList();
 		for (; jp.nextToken() != JsonToken.END_ARRAY;) {
@@ -997,6 +1003,24 @@ public class RequestHandler {
 	}
 	
 	/**
+	 * Reads an array from JSON, where each value is of the class clazz; only if the property
+	 * exists
+	 * @param jp parser
+	 * @param name name of the property
+	 * @param clazz class of each instance
+	 * @return
+	 * @throws IOException
+	 */
+	private Object readOptionalArray(JsonParser jp, String name, Class clazz) throws IOException {
+		if (jp.nextToken() == JsonToken.FIELD_NAME &&
+				jp.getCurrentName().equals(name) &&
+				jp.nextToken() == JsonToken.START_ARRAY) {
+			return readArray(jp, clazz);
+		}
+		return null;
+	}
+	
+	/**
 	 * Reads an array from JSON, where each value is of the class clazz.  Note that while the result
 	 * is an array, you cannot assume that it is an array of Object, or use generics because generics
 	 * are always Objects - this is because arrays of primitive types are not arrays of Objects
@@ -1009,6 +1033,8 @@ public class RequestHandler {
 		if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
 			return null;
 		
+		if (clazz == null)
+			clazz = Object.class;
 		boolean isProxyClass = Proxied.class.isAssignableFrom(clazz);
 		if (keyClazz == null)
 			keyClazz = String.class;
@@ -1034,6 +1060,24 @@ public class RequestHandler {
 		}
 		
 		return result;
+	}
+	
+	/**
+	 * Reads a map, if the property exists
+	 * @param jp parser
+	 * @param name name of the property
+	 * @param keyClazz class of keys
+	 * @param valueClazz class of values
+	 * @return
+	 * @throws IOException
+	 */
+	private Map readOptionalMap(JsonParser jp, String name, Class keyClazz, Class valueClazz) throws IOException {
+		if (jp.nextToken() == JsonToken.FIELD_NAME &&
+				jp.getCurrentName().equals(name) &&
+				jp.nextToken() == JsonToken.START_OBJECT) {
+			return readMap(jp, keyClazz, valueClazz);
+		}
+		return null;
 	}
 	
 	/**

@@ -24,6 +24,7 @@
  * Processes the incoming log entry and sends it to the client
  * 
  * Unlike other appenders, this will not function until initialise() has been explicitly called
+ * @ignore(com.zenesis.qx.remote.LogEntrySink)
  */
 qx.Class.define("com.zenesis.qx.remote.LogAppender", {
   /*
@@ -45,8 +46,9 @@ qx.Class.define("com.zenesis.qx.remote.LogAppender", {
       var t = this;
       function init() {
         var boot = PM.getBootstrapObject();
-        if (!qx.Interface.classImplements(boot.constructor, com.zenesis.qx.remote.LogEntrySink))
-          this.error("Cannot send logs to " + boot.classname + " because it does not support it");
+        var ifc = qx.Interface.getByName("com.zenesis.qx.remote.LogEntrySink");
+        if (!ifc || !qx.Interface.classImplements(boot.constructor, ifc))
+          this.error("Cannot send logs to " + boot.classname + " because it does not implement com.zenesis.qx.remote.LogEntrySink");
         else
           PM.addListener("queuePending", t.__queuePending, t);
       }

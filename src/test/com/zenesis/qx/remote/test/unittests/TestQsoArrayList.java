@@ -1,4 +1,4 @@
-package com.zenesis.qx.remote.test.simple;
+package com.zenesis.qx.remote.test.unittests;
 
 import junit.framework.TestCase;
 
@@ -7,8 +7,7 @@ import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.collections.ArrayList;
-import com.zenesis.qx.remote.collections.ArrayList.ChangeData;
-import com.zenesis.qx.remote.collections.ArrayList.Type;
+import com.zenesis.qx.remote.collections.ArrayList.ArrayChangeData;
 
 public class TestQsoArrayList extends TestCase {
 
@@ -16,55 +15,49 @@ public class TestQsoArrayList extends TestCase {
 	private ArrayList<String> array = new ArrayList<String>();
 	private static final class Listener implements EventListener {
 		
-		private ArrayList<ChangeData> events = new ArrayList<ArrayList.ChangeData>();
+		private ArrayList<ArrayChangeData> events = new ArrayList<ArrayChangeData>();
 		
 		@Override
 		public void handleEvent(Event event) {
-			events.add((ChangeData)event.getData());
+			events.add((ArrayChangeData)event.getData());
 		}
 		
 		public void assertAdded(String value) {
-			ChangeData data = events.remove(0);
-			assertTrue(data.type == Type.ADD);
-			assertEquals(data.added.length, 1);
-			assertEquals(data.removed.length, 0);
-			assertEquals(data.added[0], value);
+			ArrayChangeData data = events.remove(0);
+			assertEquals(data.added.size(), 1);
+			assertEquals(data.removed, null);
+			assertEquals(data.added.get(0), value);
 		}
 		
 		public void assertAdded(String[] values) {
-			ChangeData data = events.remove(0);
-			assertTrue(data.type == Type.ADD);
-			assertEquals(values.length, data.added.length);
-			assertEquals(0, data.removed.length);
+			ArrayChangeData data = events.remove(0);
+			assertEquals(values.length, data.added.size());
+			assertEquals(null, data.removed);
 			for (int i = 0; i < values.length; i++)
-				assertEquals(values[i], data.added[i]);
+				assertEquals(values[i], data.added.get(i));
 		}
 		
 		public void assertRemoved(String value) {
-			ChangeData data = events.remove(0);
-			assertTrue(data.type == Type.REMOVE);
-			assertEquals(data.added.length, 0);
-			assertEquals(data.removed.length, 1);
-			assertEquals(data.removed[0], value);
+			ArrayChangeData data = events.remove(0);
+			assertEquals(data.added, null);
+			assertEquals(data.removed.size(), 1);
+			assertEquals(data.removed.get(0), value);
 		}
 		
 		public void assertRemoved(String[] values) {
-			ChangeData data = events.remove(0);
-			assertTrue(data.type == Type.REMOVE);
-			assertEquals(0, data.added.length);
-			assertEquals(values.length, data.removed.length);
-			for (int i = 0; i < data.removed.length; i++)
-				assertEquals(values[i], data.removed[i]);
+			ArrayChangeData data = events.remove(0);
+			assertEquals(null, data.added);
+			assertEquals(values.length, data.removed.size());
+			for (int i = 0; i < data.removed.size(); i++)
+				assertEquals(values[i], data.removed.get(i));
 		}
 		
 		public void assertChanged(String value, String oldValue, int index) {
-			ChangeData data = events.remove(0);
-			assertEquals(Type.ADD_REMOVE, data.type);
-			assertEquals(1, data.added.length);
-			assertEquals(value, data.added[0]);
-			assertEquals(1, data.removed.length);
-			assertEquals(oldValue, data.removed[0]);
-			assertEquals(index, data.start);
+			ArrayChangeData data = events.remove(0);
+			assertEquals(1, data.added.size());
+			assertEquals(value, data.added.get(0));
+			assertEquals(1, data.removed.size());
+			assertEquals(oldValue, data.removed.get(0));
 		}
 		
 		public void assertEmpty() {

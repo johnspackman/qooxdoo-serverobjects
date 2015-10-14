@@ -214,6 +214,12 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 				log.fatal("Missing @Property.arrayType for property " + this);
 			else
 				log.warn("Missing @Property.arrayType for property " + this);
+			if (propertyClass.getKeyClass() == null) {
+				 if (readOnly == null || !readOnly)
+					log.fatal("Missing @Property.keyClass for property " + this);
+				else
+					log.warn("Missing @Property.keyClass for property " + this);
+			}
 			propertyClass.setWrapArray(anno.array() != Remote.Array.NATIVE);
 		}
 		

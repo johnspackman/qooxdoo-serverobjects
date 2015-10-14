@@ -46,7 +46,7 @@ import com.zenesis.qx.remote.test.properties.TestProperties;
 	@Property("testProperties"),
 	@Property("clientTestProperties")
 })
-public interface ITestBootstrap extends Proxied {
+public interface IMainTests extends Proxied {
 
 	/**
 	 * Returns the test for scalar values; this always returns the same instance so

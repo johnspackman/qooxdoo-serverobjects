@@ -33,6 +33,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import java.util.HashSet;
 
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -47,6 +49,8 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.event.EventManager;
+import com.zenesis.qx.remote.collections.ChangeData;
+import com.zenesis.qx.utils.ArrayUtils;
 
 
 /**
@@ -126,6 +130,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 			if (sendProperties) {
 				jgen.writeObjectField("clazz", proxyType);
 				if (!proxyType.isInterface()) {
+					serializeConstructorArgs(jgen);
+					
 					// Write property values
 					boolean sentValues = false;
 					ArrayList<String> order = new ArrayList<String>();
@@ -182,8 +188,22 @@ public class ProxySessionTracker implements UploadInterceptor {
 			serialize(gen, sp);
 		}
 		
+		private void serializeConstructorArgs(JsonGenerator jgen) throws IOException {
+			if (proxyType.serializeConstructorArgs() != null) {
+				try {
+					jgen.writeFieldName("constructorArgs");
+					jgen.writeStartArray();
+					proxyType.serializeConstructorArgs().invoke(proxied, new Object[] { jgen });
+					jgen.writeEndArray();
+				} catch(InvocationTargetException e) {
+					throw new IllegalStateException("Cannot serialize constructor for " + proxied + ": " + e.getMessage(), e);
+				} catch(IllegalAccessException e) {
+					throw new IllegalStateException("Cannot serialize constructor for " + proxied + ": " + e.getMessage());
+				}
+			}
+		}
 	}
-
+	
 	/*
 	 * This encapsulates a POJO to distinguish it from a Proxied definition
 	 */
@@ -252,6 +272,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 		 */
 		@Override
 		public int hashCode() {
+			if (propertyName == null)
+				return proxied.hashCode();
 			return proxied.hashCode() ^ propertyName.hashCode();
 		}
 
@@ -261,6 +283,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 		@Override
 		public boolean equals(Object obj) {
 			PropertyId that = (PropertyId)obj;
+			if (propertyName == null)
+				return that.proxied == proxied && that.propertyName == null;
 			return that.proxied == proxied && propertyName.equals(that.propertyName);
 		}
 	}
@@ -273,6 +297,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	private final HashMap<Proxied, Integer> objectIds = new HashMap<Proxied, Integer>();
 	private final HashSet<Proxied> invalidObjects = new HashSet<Proxied>();
 	private final HashSet<PropertyId> knownOnDemandProperties = new HashSet<ProxySessionTracker.PropertyId>();
+	private final HashSet<PropertyId> mutatingProperties = new HashSet<ProxySessionTracker.PropertyId>();
 
 	// The Object mapper
 	private ProxyObjectMapper objectMapper;
@@ -295,7 +320,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass) {
 		super();
 		this.bootstrapClass = bootstrapClass;
-		objectMapper = new ProxyObjectMapper(this);
+		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled());
 	}
 	
 	/**
@@ -306,7 +331,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir) {
 		super();
 		this.bootstrapClass = bootstrapClass;
-		objectMapper = new ProxyObjectMapper(this, false, rootDir);
+		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
 	}
 	
 	/**
@@ -527,6 +552,39 @@ public class ProxySessionTracker implements UploadInterceptor {
 	}
 	
 	/**
+	 * Marks a property as being mutated by the client
+	 * @param proxied
+	 * @param propertyName
+	 */
+	public void beginMutate(Proxied proxied, String propertyName) {
+		PropertyId id = new PropertyId(proxied, propertyName);
+		if (mutatingProperties.contains(id))
+			throw new IllegalArgumentException("Property " + id + " is already being mutated");
+		mutatingProperties.add(id);
+	}
+	
+	/**
+	 * Marks a property as no longer being mutated by the client
+	 * @param proxied
+	 * @param propertyName
+	 */
+	public void endMutate(Proxied proxied, String propertyName) {
+		PropertyId id = new PropertyId(proxied, propertyName);
+		if (!mutatingProperties.remove(id))
+			throw new IllegalArgumentException("Property " + id + " is not being mutated");
+	}
+
+	/**
+	 * Detects whether a property is being mutated by the client
+	 * @param proxied
+	 * @param propertyName
+	 */
+	public boolean isMutating(Proxied proxied, String propertyName) {
+		PropertyId id = new PropertyId(proxied, propertyName);
+		return mutatingProperties.contains(id);
+	}
+	
+	/**
 	 * Registers that a property has changed; this also fires a server event for
 	 * the property if an event is defined
 	 * @param proxied
@@ -536,7 +594,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 */
 	public void propertyChanged(Proxied keyObject, ProxyProperty property, Object newValue, Object oldValue) {
 		CommandQueue queue = getQueue();
-		if (!doesClientHaveObject(keyObject))
+		if (!doesClientHaveObject(keyObject) || isMutating(keyObject, property.getName()))
 			return;
 		if (property.isOnDemand() && !doesClientHaveValue(keyObject, property))
 			return; //queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, propertyName, null);
@@ -545,6 +603,22 @@ public class ProxySessionTracker implements UploadInterceptor {
 		if (property.getEvent() != null) {
 			EventManager.fireDataEvent(keyObject, property.getEvent().getName(), newValue);
 		}
+	}
+	
+	/**
+	 * Registers that a collection has changed
+	 * @param proxied
+	 * @param propertyName
+	 * @param oldValue
+	 * @param newValue
+	 */
+	public void collectionChanged(Proxied keyObject, ChangeData change) {
+		CommandQueue queue = getQueue();
+		if (!doesClientHaveObject(keyObject) || isMutating(keyObject, null))
+			return;
+		Object[] current = (Object[])queue.getCommand(CommandId.CommandType.EDIT_ARRAY, keyObject, null);
+		current = ArrayUtils.addToObjectArray(current, change);
+		queue.queueCommand(CommandId.CommandType.EDIT_ARRAY, keyObject, null, current);
 	}
 	
 	/**

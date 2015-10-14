@@ -57,4 +57,10 @@ public @interface Properties {
 	 * @return
 	 */
 	public Class[] refs() default {};
+	
+	/**
+	 * The Qooxdoo class to extend
+	 * @return
+	 */
+	public String extend() default "";
 }

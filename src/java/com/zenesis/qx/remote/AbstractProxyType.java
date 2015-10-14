@@ -57,6 +57,8 @@ public abstract class AbstractProxyType implements ProxyType {
 				gen.writeBooleanField("isInterface", true);
 			if (getSuperType() != null)
 				gen.writeObjectField("extend", getSuperType());
+			else if (getQooxdooExtend() != null)
+				gen.writeObjectField("extend", getQooxdooExtend());
 			if (!interfaces.isEmpty()) {
 				gen.writeArrayFieldStart("interfaces");
 				for (ProxyType type : interfaces)

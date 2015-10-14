@@ -35,6 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.zenesis.qx.remote.ProxyManager;
+import com.zenesis.qx.remote.test.simple.MainTests;
 import com.zenesis.qx.remote.test.simple.TestBootstrap;
 
 @SuppressWarnings("serial")
@@ -46,7 +47,7 @@ public class SampleServlet extends HttpServlet {
 		String uri = request.getPathInfo();
 		
 		if ("/ajax".equals(uri)) {
-			ProxyManager.handleRequest(request, response, TestBootstrap.class, "sampleServlet", false);
+			ProxyManager.handleRequest(request, response, TestBootstrap.class, "sampleServlet", true);
 		} else
 			throw new ServletException("Unrecognised URL " + uri);
 	}

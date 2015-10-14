@@ -27,6 +27,8 @@
  */
 package com.zenesis.qx.remote;
 
+import com.zenesis.qx.remote.CommandId.CommandType;
+
 
 /**
  * Controls the writing of events and properties to the queue to be dispatched to
@@ -44,6 +46,8 @@ package com.zenesis.qx.remote;
 public interface CommandQueue {
 
 	public void queueCommand(CommandId.CommandType type, Object object, String propertyName, Object data);
+
+	public Object getCommand(CommandType type, Object object, String propertyName);
 	
 	/**
 	 * Detects whether there is anything to be sent to the client

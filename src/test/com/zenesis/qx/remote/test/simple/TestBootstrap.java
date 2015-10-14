@@ -1,194 +1,43 @@
-/**
- * ************************************************************************
- * 
- *    server-objects - a contrib to the Qooxdoo project that makes server 
- *    and client objects operate seamlessly; like Qooxdoo, server objects 
- *    have properties, events, and methods all of which can be access from
- *    either server or client, regardless of where the original object was
- *    created.
- * 
- *    http://qooxdoo.org
- * 
- *    Copyright:
- *      2010 Zenesis Limited, http://www.zenesis.com
- * 
- *    License:
- *      LGPL: http://www.gnu.org/licenses/lgpl.html
- *      EPL: http://www.eclipse.org/org/documents/epl-v10.php
- *      
- *      This software is provided under the same licensing terms as Qooxdoo,
- *      please see the LICENSE file in the Qooxdoo project's top-level directory 
- *      for details.
- * 
- *    Authors:
- *      * John Spackman (john.spackman@zenesis.com)
- * 
- * ************************************************************************
- */
 package com.zenesis.qx.remote.test.simple;
-
-import java.util.Calendar;
-import java.util.Date;
 
 import com.zenesis.qx.remote.LogEntry;
 import com.zenesis.qx.remote.LogEntrySink;
+import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
-import com.zenesis.qx.remote.test.properties.ITestArrays;
-import com.zenesis.qx.remote.test.properties.ITestExceptions;
-import com.zenesis.qx.remote.test.properties.ITestProperties;
-import com.zenesis.qx.remote.test.properties.TestArrays;
-import com.zenesis.qx.remote.test.properties.TestExceptions;
-import com.zenesis.qx.remote.test.properties.TestGroups;
-import com.zenesis.qx.remote.test.properties.TestProperties;
+import com.zenesis.qx.remote.test.collections.TestQsoArrayList;
+import com.zenesis.qx.remote.test.collections.TestQsoMap;
+import com.zenesis.qx.remote.test.multiuser.TestMultiUser;
 
-public class TestBootstrap implements ITestBootstrap, LogEntrySink {
-	
-	private ITestScalars testScalars = new TestScalars();
-	private final TestProperties testProperties = new TestProperties();
-	private final TestExceptions testExceptions = new TestExceptions();
-	private final ITestArrays testArrays = new TestArrays();
-	
-	private TestProperties clientTestProperties;
-	private Pippo lastPippo;
+public class TestBootstrap implements Proxied, LogEntrySink {
 	
 	@Property
-	private TestGroups testGroups = new TestGroups();
+	private TestMultiUser multiUser = new TestMultiUser();
 
-	public TestBootstrap() {
-		super();
-		ProxyManager.loadProxyType(ArrayContainer.class);
-	}
-	
 	@Override
 	public void addLogEntries(LogEntry[] entries) {
 		for (LogEntry entry : entries)
-			System.out.println(entry.toString());
-	}
-
-	@Override
-	public ITestScalars getTestScalars() {
-		return testScalars;
-	}
-
-	@Override
-	public boolean verifyTestScalars(ITestScalars testScalars) {
-		return testScalars == this.testScalars;
-	}
-
-	@Override
-	public ITestProperties getTestProperties() {
-		ProxyManager.preloadProperty(testProperties, "onDemandPreload", testProperties.getOnDemandPreload());
-		return testProperties;
-	}
-
-	@Override
-	public boolean checkClientTestProperties() {
-		if (clientTestProperties == null || clientTestProperties == testProperties)
-			return false;
-		String watched = clientTestProperties.getWatchedString();
-		return "setByClientProperty".equals(watched);
-	}
-
-	@Override
-	public TestProperties getClientTestProperties() {
-		return clientTestProperties;
-	}
-
-	@Override
-	public void setClientTestProperties(TestProperties props) {
-		this.clientTestProperties = props;
-	}
-
-	@Override
-	public boolean checkNewTestProperties(ITestProperties props) {
-		if (props == null || props == testProperties)
-			return false;
-		String watched = props.getWatchedString();
-		return "setByClientMethod".equals(watched);
-	}
-
-	@Override
-	public ITestExceptions getTestExceptions() {
-		return testExceptions;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.zenesis.qx.remote.test.simple.ITestBootstrap#getTestArrays()
-	 */
-	@Override
-	public ITestArrays getTestArrays() {
-		return testArrays;
-	}
-	
-	public TestGroups getTestGroups() {
-		return testGroups;
+			System.out.println("::CLIENT:: " + entry.toString());
 	}
 
 	@Method
-	public Pippo getPippo() {
-		return lastPippo = new Pippo();
+	public Object getMainTests() {
+		return new MainTests();
+	}
+
+	@Method
+	public Object getArrayListTests() {
+		return new TestQsoArrayList();
 	}
 	
 	@Method
-	public boolean wasLastPippoDisposed() {
-		boolean has = ProxyManager.getTracker().hasProxied(lastPippo);
-		return !has;
+	public Object getMapTests() {
+		return new TestQsoMap();
 	}
 
-	@Method
-	public String testPippoArray(Pippo[] pippos) {
-		String str = "";
-		for (int i = 0; i < pippos.length; i++) {
-			str += "Pippo #" + i + ": name=" + pippos[i].getName();
-		}
-		System.out.println("Received pippos: " + str);
-		return str;
+	public TestMultiUser getMultiUser() {
+		return multiUser;
 	}
-	
-	@Method
-	public String testPippoArray2(Pippo[] pippos) {
-		String str = "";
-		for (int i = 0; i < pippos.length; i++) {
-			str += "Pippo #" + i + ": name=" + pippos[i].getName();
-		}
-		System.out.println("Received pippos: " + str);
-		return str;
-	}
-	
-	@Method
-	public TestMap getTestMap() {
-		return new TestMap();
-	}
-	
-	@Method
-	public int waitForMillis(int millis) {
-		try {
-			Thread.sleep(millis);
-		}catch(InterruptedException e) {
-			// Nothing
-		}
-		return millis;
-	}
-	
-	@Method
-	public Date getTodaysDate() {
-		return new Date();
-	}
-	
-	@Method
-	public boolean isYesterday(Date dt) {
-		Calendar cal = Calendar.getInstance();
-		cal.setTime(new Date());
-		cal.add(Calendar.DATE, -1);
-		return dt.getYear() + 1900 == cal.get(Calendar.YEAR) &&
-				dt.getMonth() == cal.get(Calendar.MONTH) &&
-				dt.getDate() == cal.get(Calendar.DAY_OF_MONTH);
-	}
-	
-	@Method
-	public static String myStaticMethod(String value) {
-		return "static+" + value;
-	}
+
 }

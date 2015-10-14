@@ -29,6 +29,7 @@
  * Matches the server-side c.z.g.af.remote.ProxyManager.
  * 
  * @author John Spackman [john.spackman@zenesis.com]
+ * @ignore(com.zenesis.qx.remote.LogEntrySink)
  */
 /*
  * @require(qx.core.Aspect) 
@@ -45,6 +46,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
    * @ignore(qx.util.Json)
    */
   construct : function(proxyUrl) {
+    this.base(arguments);
     if (!com.zenesis.qx.remote.ProxyManager.__initialised) {
       com.zenesis.qx.remote.ProxyManager.__initialised = true;
     }
@@ -57,32 +59,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
     this.__serverObjects = [];
     this.setProxyUrl(proxyUrl);
-
-    /*
-     * Qooxdoo 0.8.2 compatability
-     */
-    if (!qx.lang.Type) {
-      qx.lang.Type = {
-        getClass : function(value) {
-          var classString = Object.prototype.toString.call(value);
-          return classString.slice(8, -1);
-        },
-        isArray : qx.lang.Array.isArray,
-        isDate : function(value) {
-          // Added "value !== null" because IE throws an exception "Object
-          // expected"
-          // by executing "value instanceof Array" if value is a DOM element
-          // that
-          // doesn't exist. It seems that there is a internal difference between
-          // a
-          // JavaScript null and a null returned from calling DOM.
-          // e.q. by document.getElementById("ReturnedNull").
-          return (value !== null && (this.getClass(value) == "Date" || value instanceof Date));
-        }
-      };
-    }
-    if (!qx.lang.Json)
-      qx.lang.Json = qx.Class.getByName("qx.util.Json");
   },
 
   properties : {
@@ -385,6 +361,26 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           var upname = qx.lang.String.firstUp(elem.name);
           obj["expire" + upname](false);
 
+          // A server property value changed, update the client
+        } else if (type == "edit-array") {
+          var obj = this.readProxyObject(elem.object);
+          elem.data.forEach(function(data) {
+            if (data.removed)
+              data.removed.forEach(function(item) {
+                obj.remove(item);
+              });
+            if (data.added) {
+              data.added.forEach(function(item) {
+                obj.push(item);
+              });
+            }
+            if (data.put) {
+              data.put.forEach(function(entry) {
+                obj.put(entry.key, entry.value);
+              });
+            }
+          });
+
           // The server has sent a class definition
         } else if (type == "define") {
           this.getClassOrCreate(elem.object);
@@ -432,9 +428,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (typeof data == "undefined" || data === null)
         return null;
       var result = null;
-
-      // Array - unpack individual elements
-      if (qx.lang.Type.isArray(data)) {
+      var t = this;
+      
+      function readArray(data) {
+        var result;
+        
         // Do we really have to process each element?
         var ok = true;
         for ( var i = 0; ok && i < data.length; i++)
@@ -449,93 +447,125 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         else {
           result = [];
           for ( var i = 0; i < data.length; i++)
-            result[i] = this.readProxyObject(data[i]);
+            result[i] = t.readProxyObject(data[i]);
+        }
+        
+        return result;
+      }
+      
+      function readMap(data) {
+        var result;
+        
+        // Do we really have to process every value?
+        var ok = true;
+        for ( var propName in data)
+          if (typeof data[propName] == "object") {
+            ok = false;
+            break;
+          }
+
+        // All simple values? then just use the already parsed data
+        if (ok)
+          result = data;
+
+        // Copy one by one, recursively
+        else {
+          /*
+           * Note that ordering is not defined and if server objects with
+           * recursive references are passed for the first time in a map, they
+           * may fail to create.
+           */
+          result = {};
+          for ( var propName in data) {
+            var propValue = data[propName];
+            if (propValue)
+              propValue = t.readProxyObject(propValue);
+            result[propName] = propValue;
+          }
+        }
+        
+        return result;
+      }
+      
+      function readServerObject(data) {
+        var result;
+        var serverId = data.serverId;
+
+        // Get or create it
+        result = t.getServerObject(serverId);
+        if (!result) {
+          var clazz = t.getClassOrCreate(data.clazz);
+          if (data.constructorArgs) {
+            function construct(constructor, args) {
+              function F() {
+                  return constructor.apply(this, args);
+              }
+              F.prototype = constructor.prototype;
+              return new F();
+            }
+            var constructorArgs = readArray(data.constructorArgs);
+            result = construct(clazz, constructorArgs);
+          } else
+            result = new clazz();
+          result.setServerId(serverId);
+          t.__serverObjects[serverId] = result;
+        }
+        
+        // Assign any values
+        if (data.order) {
+          for ( var i = 0; i < data.order.length; i++) {
+            var propName = data.order[i];
+            var propValue = data.values[propName];
+            // if (propName == "resources" || propName == "questions")
+            // debugger;
+            if (propValue)
+              propValue = t.readProxyObject(propValue);
+            t.setPropertyValueFromServer(result, propName, propValue);
+          }
         }
 
-        // Object - is it a server object or a map?
+        /*
+         * Cannot cycle through the names in "values" because the order is not
+         * guaranteed, and ordering is important if we're going to be able to
+         * recreate the objects because only the first reference contains the
+         * class and object definition - thereafter, just a serverId is sent
+         * if (data.values) { for (var propName in data.values) { var
+         * propValue = data.values[propName]; if (propValue) propValue =
+         * t.readProxyObject(propValue);
+         * t.setPropertyValueFromServer(result, propName, propValue); } }
+         */
+
+        // Prefetched method return values
+        if (data.prefetch) {
+          for ( var methodName in data.prefetch) {
+            var value = data.prefetch[methodName];
+            if (!result.$$proxy.cachedResults)
+              result.$$proxy.cachedResults = {};
+            if (value)
+              value = t.readProxyObject(value);
+            result.$$proxy.cachedResults[methodName] = value;
+          }
+        }
+        
+        return result;
+      }
+
+      if (qx.lang.Type.isArray(data)) {
+        result = readArray(data);
+
       } else if (typeof data == "object") {
 
-        // It's a server object
+        // Object - is it a server object or a map?
         if (data.serverId !== undefined) {
-          var serverId = data.serverId;
-
-          // Get or create it
-          result = this.getServerObject(serverId);
-          if (!result) {
-            var clazz = this.getClassOrCreate(data.clazz);
-            result = this.__serverObjects[serverId] = new clazz(serverId);
-          }
-
-          // Assign any values
-          if (data.order) {
-            for ( var i = 0; i < data.order.length; i++) {
-              var propName = data.order[i];
-              var propValue = data.values[propName];
-              // if (propName == "resources" || propName == "questions")
-              // debugger;
-              if (propValue)
-                propValue = this.readProxyObject(propValue);
-              this.setPropertyValueFromServer(result, propName, propValue);
-            }
-          }
-
-          /*
-           * Cannot cycle through the names in "values" because the order is not
-           * guaranteed, and ordering is important if we're going to be able to
-           * recreate the objects because only the first reference contains the
-           * class and object definition - thereafter, just a serverId is sent
-           * if (data.values) { for (var propName in data.values) { var
-           * propValue = data.values[propName]; if (propValue) propValue =
-           * this.readProxyObject(propValue);
-           * this.setPropertyValueFromServer(result, propName, propValue); } }
-           */
-
-          // Prefetched method return values
-          if (data.prefetch) {
-            for ( var methodName in data.prefetch) {
-              var value = data.prefetch[methodName];
-              if (!result.$$proxy.cachedResults)
-                result.$$proxy.cachedResults = {};
-              if (value)
-                value = this.readProxyObject(value);
-              result.$$proxy.cachedResults[methodName] = value;
-            }
-          }
-
-          // Must be a map
+          result = readServerObject(data);
         } else {
-          // Do we really have to process every value?
-          var ok = true;
-          for ( var propName in data)
-            if (typeof data[propName] == "object") {
-              ok = false;
-              break;
-            }
-
-          // All simple values? then just use the already parsed data
-          if (ok)
-            result = data;
-
-          // Copy one by one, recursively
-          else {
-            /*
-             * Note that ordering is not defined and if server objects with
-             * recursive references are passed for the first time in a map, they
-             * may fail to create.
-             */
-            result = {};
-            for ( var propName in data) {
-              var propValue = data[propName];
-              if (propValue)
-                propValue = this.readProxyObject(propValue);
-              result[propName] = propValue;
-            }
-          }
+          result = readMap(data);
         }
 
+      } else {
         // Scalar value, just use it direct
-      } else
         result = data;
+      }
 
       return result;
     },
@@ -578,17 +608,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           if (data.extend) {
             def.extend = this.getClassOrCreate(data.extend);
             data.extend = def.extend.prototype.$$proxyDef;
-          } else
-            def.extend = com.zenesis.qx.remote.Proxy;
+          } else {
+            def.extend = qx.core.Object;
+          }
+          if (!qx.Class.hasMixin(def.extend, com.zenesis.qx.remote.MProxy))
+            def.include = [com.zenesis.qx.remote.MProxy];
           var mis = com.zenesis.qx.remote.ProxyManager.__mixins[data.className];
           if (mis != null) {
-            def.include = [];
+            if (def.include === undefined)
+              def.include = [];
             mis.forEach(function(mixin) {
               def.include.push(mixin);
             });
           }
         }
-
+        
         // Add interfaces
         if (data.interfaces) {
           var interfaces = data.interfaces;
@@ -610,7 +644,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (data.isInterface)
               def.members[methodName] = new Function('');
             else if (method.staticMethod)
-              def.statics[methodName] = new Function('return com.zenesis.qx.remote.Proxy._callServer(' + data.className + 
+              def.statics[methodName] = new Function('return com.zenesis.qx.remote.ProxyManager._callServer(' + data.className + 
                   ', "' + methodName + '", qx.lang.Array.fromArguments(arguments));');
             else
               def.members[methodName] = new Function('return this._callServer("' + methodName
@@ -652,10 +686,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
             if (fromDef.event)
               toDef.event = fromDef.event;
+            
+            var arrayClassName = null;
+            if ((fromDef.map || fromDef.array) && fromDef.arrayClass) {
+              arrayClassName = fromDef.arrayClass.className;
+              deferredTypes.push(fromDef.arrayClass);
+            }
 
-            if (!!fromDef.map) {
+            if (fromDef.map) {
               if (fromDef.array && fromDef.array == "wrap")
-                toDef.check = "com.zenesis.qx.remote.Map";
+                toDef.check = arrayClassName||"com.zenesis.qx.remote.Map";
 
               // Checks
             } else if (fromDef.check) {
@@ -665,7 +705,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             } else if (fromDef.array) {
               if (fromDef.array == "wrap") {
                 toDef.transform = "_transformToDataArray";
-                toDef.check = "qx.data.Array";
+                toDef.check = arrayClassName||"qx.data.Array";
               } else
                 toDef.check = "Array";
             }
@@ -753,6 +793,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     serializeValue : function(value) {
       if (!value)
         return value;
+      var to = typeof value;
+      if (["boolean", "number", "string"].indexOf(to) > -1)
+        return value;
+      if (["function", "symbol"].indexOf(to) > -1) {
+        this.error("Cannot serialize an object of type " + to + " to the server");
+        return null;
+      }
+      
+      // If serialising an entire array or map, then it will no longer be dirty; this is important
+      // otherwise the subsequent change records will cause duplicate entries
+      if (value && this.__queuingCommandsForServer && this.__dirtyArrays && typeof value.toHashCode == "function") {
+        delete this.__dirtyArrays[value.toHashCode()];
+      }
 
       if (value instanceof com.zenesis.qx.remote.Map) {
         var result = {};
@@ -781,10 +834,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return value.getTime();
       }
 
-      if (!value.classname)
-        return value;
-
-      if (value instanceof com.zenesis.qx.remote.Proxy) {
+      if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
         var id = value.getServerId();
         if (id < 0)
           this._queueClientObject(id);
@@ -796,7 +846,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return null;
       }
 
-      return value;
+      // Assume it's an ordinary map object; deliberately not using hasOwnProperty()
+      var result = {};
+      for (var name in value) {
+        result[name] = this.serializeValue(value[name]);
+      }
+      return result;
     },
 
     /**
@@ -903,11 +958,49 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (!this.__dirtyArrays)
         this.__dirtyArrays = {};
       var array = evt.getTarget();
-      this.__dirtyArrays[array.toHashCode()] = {
-        array : array,
-        serverObject : serverObject,
-        propertyName : propDef.name
-      };
+      var data = evt.getData();
+      var info = this.__dirtyArrays[array.toHashCode()];
+      if (!info)
+        info = this.__dirtyArrays[array.toHashCode()] = {
+          array : array,
+          serverObject : serverObject,
+          propertyName : propDef.name
+        };
+      if (array instanceof qx.data.Array) {
+        if (!info.added)
+          info.added = [];
+        if (!info.removed)
+          info.removed = [];
+        data.removed.forEach(function(item) {
+          if (qx.lang.Array.remove(data.added, item) === undefined) {
+            info.removed.push(item);
+          }
+        });
+        data.added.forEach(function(item) {
+          if (qx.lang.Array.remove(info.removed, item) === undefined) {
+            info.added.push(item);
+          }
+        });
+      } else {
+        if (!info.put)
+          info.put = {};
+        if (!info.removed)
+          info.removed = [];
+        if (data.type == "put") {
+          data.values.forEach(function(entry) {
+            qx.lang.Array.remove(info.removed, entry.key);
+            info.put[entry.key] = entry.value;
+          });
+        } else if (data.type == "remove") {
+          data.values.forEach(function(entry) {
+            var key = entry.key;
+            if (info.put[key] !== undefined) {
+              delete info.put[key];
+            }
+            info.removed.push(key);
+          });
+        }
+      }
     },
 
     /**
@@ -916,16 +1009,25 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     _queueDirtyArrays : function() {
       if (!this.__dirtyArrays)
         return;
-      for ( var arrHash in this.__dirtyArrays) {
-        var arrData = this.__dirtyArrays[arrHash];
-        var data = {
+      for (var arrHash in this.__dirtyArrays) {
+        var info = this.__dirtyArrays[arrHash];
+        var queue = {
           cmd : "edit-array",
-          serverId : arrData.serverObject.getServerId(),
-          propertyName : arrData.propertyName,
-          type : "replaceAll",
-          items : this.serializeValue(arrData.array)
+          serverId : info.serverObject.getServerId(),
+          propertyName : info.propertyName,
+          type: "update"
         };
-        this._queueCommandToServer(data);
+        if (info.array instanceof qx.data.Array) {
+          queue.removed = this.serializeValue(info.removed);
+          queue.added = this.serializeValue(info.added);
+          queue.array = this.serializeValue(info.array);
+          
+        // Must be a Map
+        } else {
+          queue.removed = this.serializeValue(info.removed);
+          queue.put = this.serializeValue(info.put);
+        }
+        this._queueCommandToServer(queue);
       }
       this.__dirtyArrays = null;
     },
@@ -1034,7 +1136,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var def = serverObject.getPropertyDef(propertyName);
         var upname = qx.lang.String.firstUp(propertyName);
         
-        if (def) {
+        // If there is a property definition, and the value is not a Proxied instance, then
+        //  we coerce the value; EG dates are converted from strings, scalar arrays are merged
+        //  into qx.data.Array, etc
+        if (def && (!value || value.$$proxy === undefined)) {
           if (def.check && def.check == "Date") {
             value = value !== null ? new Date(value) : null;
 
@@ -1057,10 +1162,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                 }
               }
               
+              var arrayClass;
+              if ((def.map || def.array) && def.arrayClass)
+                arrayClass = qx.Class.getByName(def.arrayClass.className);
+              
               // Maps
               if (!!def.map) {
                 if (current === null) {
-                  value = new com.zenesis.qx.remote.Map(value);
+                  value = new (arrayClass||com.zenesis.qx.remote.Map)(value);
                   serverObject["set" + upname](value);
                 } else {
                   current.replaceAll(value);
@@ -1070,7 +1179,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               } else {
                 value = qx.lang.Array.cast(value, Array);
                 if (current === null || current === undefined) {
-                  var arr = new qx.data.Array();
+                  var arr = new (arrayClass||qx.data.Array)();
                   arr.append(value);
                   serverObject["set" + upname](arr);
                 } else {
@@ -1295,7 +1404,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     
     /**
      * Queues an individual client object
-     * @param clientId
+     * @param clientId {Integer}
      */
     _queueClientObject: function(clientId) {
       var pco = this.__clientObjects;
@@ -1395,6 +1504,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Callback for polling the server
      */
     __onPollTimeout : function() {
+      this.debug("poll");
       this.__pollTimerId = null;
       this.flushQueue(true, true);
     },
@@ -1562,6 +1672,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (mis === undefined)
         mis = this.__mixins[className] = [];
       mis.push(mixin);
+    },
+    
+    /**
+     * Calls a static method on the server
+     */
+    _callServer: function(clazz, name, args) {
+      var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
+      var result = PM.callServerMethod(clazz, name, args);
+      var ex = PM.clearException();
+      if (ex)
+        throw ex;
+      return result;
     }
 
   },

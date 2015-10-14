@@ -46,6 +46,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
@@ -301,6 +302,8 @@ public class ProxyObjectMapper extends ObjectMapper {
 	 */
 	public ProxyObjectMapper(ProxySessionTracker tracker, boolean indent, File rootDir) {
 		super();
+		if (indent)
+			this.enable(SerializationFeature.INDENT_OUTPUT);
 		this.tracker = tracker;
 		SimpleModule module = new SimpleModule("ProxyObjectMapper", Version.unknownVersion());
 		module.addSerializer(Proxied.class, new ProxiedSerializer());

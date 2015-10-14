@@ -1,16 +1,19 @@
 package com.zenesis.qx.remote.collections;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.zenesis.qx.event.EventManager;
-import com.zenesis.qx.remote.AutoAttach;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
-import com.zenesis.qx.remote.ProxyProperty;
+import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
+import com.zenesis.qx.remote.annotations.Properties;
 
 /**
  * Provides an implementation of ArrayList which monitors changes to the array
@@ -18,62 +21,34 @@ import com.zenesis.qx.remote.ProxyProperty;
  * 
  * @author John Spackman
  */
-@SuppressWarnings("serial")
-public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
+@Properties(extend="qx.data.Array")
+public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied {
 	
-	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ArrayList.class); 
-
-	// The type of change
-	public enum Type {
-		ADD, REMOVE, ADD_REMOVE
-	}
-	
-	public static final class ChangeData {
-		
-		public final Type type;
-		public final int start;
-		public final int end;
-		public final Object[] added;
-		public final Object[] removed;
-
-		private ChangeData(Type type, int start, int end, Object[] added, Object[] removed) {
-			super();
-			this.type = type;
-			this.start = start;
-			this.end = end;
-			this.added = added;
-			this.removed = removed;
-		}
-
-		static ChangeData added(int start, Object added) {
-			return new ChangeData(Type.ADD, start, start, new Object[] { added }, new Object[0]);
-		}
-
-		static ChangeData added(int start, int end, Object[] added) {
-			return new ChangeData(Type.ADD, start, end, added, new Object[0]);
-		}
-
-		static ChangeData removed(int start, Object removed) {
-			return new ChangeData(Type.REMOVE, start, start, new Object[0], new Object[] { removed });
-		}
-
-		static ChangeData removed(int start, int end, Object[] removed) {
-			return new ChangeData(Type.REMOVE, start, end, new Object[0], removed);
-		}
-
-		static ChangeData replace(int start, Object added, Object removed) {
-			return new ChangeData(Type.ADD_REMOVE, start, start, new Object[] { added}, new Object[] { removed });
-		}
-
-		static ChangeData replace(int start, int end, Object[] added, Object[] removed) {
-			return new ChangeData(Type.ADD_REMOVE, start, end, added, removed);
-		}
-	}
-
-	// The property we're connected to
-	private Proxied proxiedObject;
-	private ProxyProperty proxyProperty;
+	private final int hashCode;
 	private boolean sorting;
+	
+	public ArrayList() {
+		super();
+		hashCode = new Object().hashCode();
+	}
+
+	public ArrayList(Collection<? extends T> c) {
+		super(c);
+		hashCode = new Object().hashCode();
+	}
+
+	public ArrayList(int initialCapacity) {
+		super(initialCapacity);
+		hashCode = new Object().hashCode();
+	}
+
+	@SerializeConstructorArgs
+	public void serializeConstructorArgs(JsonGenerator jgen) throws IOException {
+		jgen.writeStartArray();
+		for (Object value : this)
+			jgen.writeObject(value);
+		jgen.writeEndArray();
+	}
 	
 	/**
 	 * Sorts the list
@@ -95,6 +70,15 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 		}
 	}
 	
+	@Override
+	public Iterator<T> iterator() {
+		return new ValueIterator();
+	}
+	
+	Iterator<T> superIterator() {
+		return super.iterator();
+	}
+	
 	/**
 	 * @return true if the list is being sorted
 	 */
@@ -103,25 +87,12 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	}
 
 	/* (non-Javadoc)
-	 * @see AutoAttach.setProxyProperty
-	 */
-	@Override
-	public void setProxyProperty(Proxied proxiedObject, ProxyProperty proxyProperty) {
-		if (this.proxiedObject != null && proxiedObject != null && this.proxiedObject != proxiedObject)
-			throw new IllegalArgumentException("Cannot share instances of " + getClass() + " between Proxied objects, was=" + this.proxiedObject + ", new=" + proxiedObject);
-		if (this.proxyProperty != null && proxyProperty != null && this.proxyProperty != proxyProperty)
-			throw new IllegalArgumentException("Cannot share instances of " + getClass() + " between Proxied properties, was=" + this.proxyProperty + ", new=" + proxyProperty);
-		this.proxiedObject = proxiedObject;
-		this.proxyProperty = proxyProperty;
-	}
-
-	/* (non-Javadoc)
 	 * @see java.util.ArrayList#add(int, java.lang.Object)
 	 */
 	@Override
 	public void add(int index, T element) {
 		super.add(index, element);
-		fire(ChangeData.added(index, element));
+		fire(new ArrayChangeData().add(element));
 	}
 
 	/* (non-Javadoc)
@@ -130,7 +101,7 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	@Override
 	public boolean add(T e) {
 		boolean result = super.add(e);
-		fire(ChangeData.added(size() - 1, e));
+		fire(new ArrayChangeData().add(e));
 		return result;
 	}
 
@@ -139,11 +110,13 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	 */
 	@Override
 	public boolean addAll(Collection c) {
-		int len = this.size();
 		boolean result = super.addAll(c);
 		if (!result)
 			return false;
-		fire(ChangeData.added(len, this.size() - 1, c.toArray()));
+		ArrayChangeData event = new ArrayChangeData();
+		for (Object o : c)
+			event.add(o);
+		fire(event);
 		return result;
 	}
 
@@ -155,7 +128,10 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 		boolean result = super.addAll(index, c);
 		if (!result)
 			return false;
-		fire(ChangeData.added(index, index + c.size(), c.toArray()));
+		ArrayChangeData event = new ArrayChangeData();
+		for (Object o : c)
+			event.add(o);
+		fire(event);
 		return result;
 	}
 
@@ -164,10 +140,13 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	 */
 	@Override
 	public void clear() {
-		Object[] removed = toArray();
+		if (size() == 0)
+			return;
+		ArrayChangeData event = new ArrayChangeData();
+		for (Object o : this)
+			event.remove(o);
 		super.clear();
-		if (removed.length != 0)
-			fire(ChangeData.removed(0, removed.length, removed));
+		fire(event);
 	}
 
 	/* (non-Javadoc)
@@ -176,7 +155,7 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	@Override
 	public T remove(int index) {
 		T result = super.remove(index);
-		fire(ChangeData.removed(index, result));
+		fire(new ArrayChangeData().remove(result));
 		return result;
 	}
 
@@ -185,10 +164,9 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	 */
 	@Override
 	public boolean remove(Object o) {
-		int index = indexOf(o);
 		boolean result = super.remove(o);
 		if (result)
-			fire(ChangeData.removed(index, o));
+			fire(new ArrayChangeData().remove(o));
 		return result;
 	}
 
@@ -205,12 +183,12 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 			return;
 		if (toIndex >= size())
 			toIndex = size() - 1;
-		
-		Object[] removed = new Object[toIndex - fromIndex];
-		for (int i = 0; i < removed.length; i++)
-			removed[i] = this.get(i + fromIndex);
+
+		ArrayChangeData event = new ArrayChangeData();
+		for (int i = fromIndex; i < toIndex; i++)
+			event.remove(this.get(i));
 		super.removeRange(fromIndex, toIndex);
-		fire(ChangeData.removed(fromIndex, toIndex, removed));
+		fire(event);
 	}
 
 	/* (non-Javadoc)
@@ -219,7 +197,7 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	@Override
 	public T set(int index, T element) {
 		T result = super.set(index, element);
-		fire(ChangeData.replace(index, element, result));
+		fire(new ArrayChangeData().remove(result).add(element));
 		return result;
 	}
 
@@ -228,24 +206,15 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	 */
 	@Override
 	public boolean removeAll(Collection c) {
-		ArrayList removed = new ArrayList<T>();
-		int start = -1;
-		int end = -1;
-		for (Object obj : c) {
-			int index = indexOf(obj);
-			if (index > -1) {
-				super.remove(obj);
-				removed.add(obj);
-				if (start == -1)
-					start = index;
-				end = index;
-			}
-		}
-		if (!removed.isEmpty()) {
-			fire(ChangeData.removed(start, end, removed.toArray()));
-			return true;
-		}
-		return false;
+		if (isEmpty() || c.isEmpty())
+			return false;
+		ArrayChangeData event = new ArrayChangeData<T>();
+		for (Object o : c)
+			if (contains(o))
+				event.remove(o);
+		boolean result = super.removeAll(c);
+		fire(event);
+		return result;
 	}
 
 	/* (non-Javadoc)
@@ -253,34 +222,86 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements AutoAttach {
 	 */
 	@Override
 	public boolean retainAll(Collection c) {
-		ArrayList removed = new ArrayList<T>();
-		int start = -1;
-		int end = -1;
-		for (int i = 0; i < size(); i++) {
-			Object obj = get(i);
-			if (!c.contains(obj)) {
-				super.remove(obj);
-				removed.add(obj);
-				if (start == -1)
-					start = i;
-				end = i;
-				i--;
-			}
-		}
-		if (!removed.isEmpty()) {
-			fire(ChangeData.removed(start, end, removed.toArray()));
-			return true;
-		}
-		return false;
+		if (isEmpty())
+			return false;
+		ArrayChangeData event = new ArrayChangeData<T>();
+		for (Object o : this)
+			if (!c.contains(o))
+				event.remove(o);
+		boolean result = super.retainAll(c);
+		fire(event);
+		return result;
 	}
 	
+	@Override
+	public int hashCode() {
+		/*
+		 * We MUST override hashcode because ProxyManager depends on HashMap to lookup the server ID
+		 * for an object, but in Java the hashCode changes as you modify the collection; this means
+		 * that mutable collections cannot be used as keys in maps.  The hashcode is generated during
+		 * construction so that there is a kind of distribution of values (rather than just returning 
+		 * 1 here) 
+		 */
+		return hashCode;
+	}
+
 	/**
 	 * Fires an event
 	 * @param event
 	 */
-	private void fire(ChangeData event) {
+	private void fire(ArrayChangeData event) {
 		EventManager.fireDataEvent(this, "change", event);
-		if (proxyProperty != null)
-			ProxyManager.propertyChanged(proxyProperty, proxiedObject, this, null);
+		ProxyManager.collectionChanged(this, event);
 	}
+	
+	public static class ArrayChangeData<T> extends ChangeData {
+		public java.util.ArrayList<T> added;
+		public java.util.ArrayList<T> removed;
+
+		public ArrayChangeData add(T o) {
+			if (removed == null || !removed.remove(o)) {
+				if (added == null)
+					added = new java.util.ArrayList<T>(5);
+				added.add(o);
+			}
+			return this;
+		}
+		
+		public ArrayChangeData remove(T o) {
+			if (added == null || !added.remove(o)) {
+				if (removed == null)
+					removed = new java.util.ArrayList<T>(5);
+				removed.add(o);
+			}
+			return this;
+		}
+		
+	}
+	
+	private final class ValueIterator implements Iterator<T> {
+		
+		private final Iterator<T> iterator;
+		private T last;
+		
+		public ValueIterator() {
+			iterator = superIterator();
+		}
+
+		@Override
+		public boolean hasNext() {
+			return iterator.hasNext();
+		}
+
+		@Override
+		public T next() {
+			return last = iterator.next();
+		}
+
+		@Override
+		public void remove() {
+			fire(new ArrayChangeData().remove(last));
+		}
+		
+	}
+
 }

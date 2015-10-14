@@ -1,4 +1,4 @@
-package com.zenesis.qx.remote.test.simple;
+package com.zenesis.qx.remote.test.collections;
 
 import java.util.ArrayList;
 
@@ -7,7 +7,7 @@ import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
 
-public class ArrayContainer implements Proxied {
+public class TestJavaUtilArrayContainer implements Proxied {
 	
 	public static class Child implements Proxied {
 		@Property
