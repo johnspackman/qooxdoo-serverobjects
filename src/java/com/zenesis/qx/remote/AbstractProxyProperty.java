@@ -3,6 +3,8 @@ package com.zenesis.qx.remote;
 import java.io.IOException;
 import java.util.Date;
 
+import org.hamcrest.core.IsAnything;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -36,6 +38,9 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	// The data type of the property and  (if an array) the component type of the array
 	protected MetaClass propertyClass;
 	
+	// Whether the client should automatically initialise the property (arrays and maps only)
+	protected boolean create;
+	
 	public AbstractProxyProperty(String name) {
 		super();
 		if (name.equals("property"))
@@ -53,6 +58,8 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 			gen.writeBooleanField("onDemand", true);
 		if (isReadOnly())
 			gen.writeBooleanField("readOnly", true);
+		if (create)
+			gen.writeBooleanField("create", true);
 		
 		if (propertyClass != null) {
 			Class clazz = propertyClass.getJavaType();
@@ -191,6 +198,13 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	@Override
 	public MetaClass getPropertyClass() {
 		return propertyClass;
+	}
+
+	/**
+	 * @return the autoClientCreate
+	 */
+	public boolean isCreate() {
+		return create;
 	}
 
 }

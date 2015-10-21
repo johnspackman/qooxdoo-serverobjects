@@ -149,4 +149,11 @@ public @interface Property {
 	 * @return
 	 */
 	public String set() default "";
+	
+	/**
+	 * Whether the client should automatically create this property in it's constructor,
+	 * when the client creates an instance.  This is only appropriate for arrays and maps
+	 * @return
+	 */
+	public boolean create() default false;
 }

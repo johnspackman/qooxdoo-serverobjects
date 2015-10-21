@@ -56,6 +56,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 	 */
 	public ProxyPropertyImpl(Class clazz, String name, Property anno, Properties annoProperties) {
 		super(name);
+		create = anno.create();
 		changeEventName = "change" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
 		this.anno = anno;
 		this.clazz = clazz;

@@ -528,8 +528,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           for ( var i = 0; i < data.order.length; i++) {
             var propName = data.order[i];
             var propValue = data.values[propName];
-            // if (propName == "resources" || propName == "questions")
-            // debugger;
             if (propValue)
               propValue = t.readProxyObject(propValue);
             t.setPropertyValueFromServer(result, propName, propValue);
@@ -606,14 +604,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       try {
         // Create the JSON definition for qx.Class
         var def;
+        var strConstructorCode = null;
         if (data.isInterface)
           def = {
             members : {},
             statics: {}
           };
         else {
+          strConstructorCode = 
+            "var args = qx.lang.Array.fromArguments(arguments);\n" +
+            "args.unshift(arguments);\n" +
+            "this.base.apply(this, args);\n" +
+            "this.$$proxy = {};\n"
           def = {
-            construct : new Function('serverId', 'this.base(arguments, serverId); this.$$proxy = {};'),
             members : {},
             statics: {}
           };
@@ -624,11 +627,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             def.extend = qx.core.Object;
           }
           var mis = com.zenesis.qx.remote.ProxyManager.__mixins[data.className];
-          if (mis != null) {
-            if (def.include === undefined)
-              def.include = [];
+          if (mis) {
             mis.forEach(function(mixin) {
-              def.include.push(mixin);
+              if (mixin.patch) {
+                if (def.patch === undefined)
+                  def.patch = [mixin.mixin];
+                else
+                  def.patch.push(mixin.mixin);
+              } else {
+                if (def.include === undefined)
+                  def.include = [mixin.mixin];
+                else
+                  def.include.push(mixin.mixin);
+              }
             });
           }
         }
@@ -675,6 +686,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (data.properties) {
           def.properties = {};
           for ( var propName in data.properties) {
+            var upname = qx.lang.String.firstUp(propName);
             var fromDef = data.properties[propName];
             fromDef.name = propName;
 
@@ -719,9 +731,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               } else
                 toDef.check = "Array";
             }
+            
+            if ((fromDef.map || fromDef.array) && fromDef.create)
+              strConstructorCode += "this.set" + upname + "(new " + toDef.check + "());\n";
 
             // Create an apply method
-            var applyName = "_apply" + qx.lang.String.firstUp(propName);
+            var applyName = "_apply" + upname;
             toDef.apply = applyName;
             def.members[applyName] = new Function('value', 'oldValue', 'name', 'this._applyProperty("' + propName
                 + '", value, oldValue, name);');
@@ -748,7 +763,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           clazz = qx.Interface.define(data.className, def) || qx.Interface.getByName(data.className);
           clazz.$$proxyDef = data;
         } else {
+          var patch = def.patch;
+          delete def.patch;
+          def.construct = new Function(strConstructorCode);
           clazz = qx.Class.define(data.className, def);
+          if (patch)
+            patch.forEach(function(mixin) {
+              qx.Class.patch(clazz, mixin);
+            });
           if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy))
             qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
           clazz.prototype.$$proxyDef = data;
@@ -1680,14 +1702,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Adds a mixin for a server class
      * @param className {String} the name of the server class
      * @param mixin {Mixin} the mixin to add
+     * @param patch {Boolean?} if true patch is used instead of include, default false
      */
-    addMixin: function(className, mixin) {
+    addMixin: function(className, mixin, patch) {
       if (qx.Class.getByName(className) != null)
         throw new Error("Cannot add mixins for class " + className + " because the class has already been loaded");
       var mis = this.__mixins[className];
       if (mis === undefined)
         mis = this.__mixins[className] = [];
-      mis.push(mixin);
+      mis.push({ mixin: mixin, patch: patch });
     },
     
     /**
