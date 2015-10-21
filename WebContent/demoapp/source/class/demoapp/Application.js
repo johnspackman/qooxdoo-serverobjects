@@ -440,11 +440,8 @@ qx.Class.define("demoapp.Application", {
           setTimeout(checkForReady, 500);
         else {
           btnUpdate.setEnabled(true);
-          numCalls = manager.getNumberOfCalls();
           if (cbxAutoUpdate.getValue()) {
-            var waitFor = (status.yourIndex * 1000) + 500;
-            t.log("Ready - waiting for " + waitFor + "ms");
-            setTimeout(makeChanges, waitFor);
+            makeChanges();
           }
         }
       }
@@ -470,6 +467,9 @@ qx.Class.define("demoapp.Application", {
       }
       
       function makeChanges() {
+        //syncUsers();
+        numCalls = manager.getNumberOfCalls();
+        
         t.log("Starting, yourIndex=" + status.yourIndex);
         var index = status.yourIndex - 1;
         var stringMap = multiUser.getStringMap();

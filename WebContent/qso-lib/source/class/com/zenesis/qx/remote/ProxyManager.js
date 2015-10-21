@@ -219,7 +219,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         txt = txt.trim();
         try {
           if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-            this.debug("received: txt=" + (txt.length > 200 ? txt.substring(0, 200) + "..." : txt));
+            console.log("received: txt=" + txt); // Use console.log because LogAppender would cause recursive logging
           var result = null;
           if (txt.length) {
             var data = eval("(" + txt + ")");
@@ -269,7 +269,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       txt = txt.trim();
       try {
         if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-          this.debug("received: txt=" + (txt.length > 200 ? txt.substring(0, 200) + "..." : txt));
+          console.log("received: txt=" + txt); // Use console.log because LogAppender would cause recursive logging
         if (!txt.length)
           return null;
         var data = eval("(" + txt + ")");
@@ -288,6 +288,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Object} the response compiled from JSON
      */
     _processData : function(data) {
+      var t = this;
       var result = null;
       for ( var i = 0, l = data.length; i < l; i++) {
         var elem = data[i];
@@ -363,23 +364,34 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
           // A server property value changed, update the client
         } else if (type == "edit-array") {
-          var obj = this.readProxyObject(elem.object);
-          elem.data.forEach(function(data) {
-            if (data.removed)
-              data.removed.forEach(function(item) {
-                obj.remove(item);
+          (function() {
+            var serverObject = t.readProxyObject(elem.object);
+            var savePropertyObject = t.__setPropertyObject;
+            var savePropertyName = t.__setPropertyName;
+            t.__setPropertyObject = serverObject;
+            t.__setPropertyName = null;
+            try {
+              elem.data.forEach(function(data) {
+                if (data.removed)
+                  data.removed.forEach(function(item) {
+                    serverObject.remove(item);
+                  });
+                if (data.added) {
+                  data.added.forEach(function(item) {
+                    serverObject.push(item);
+                  });
+                }
+                if (data.put) {
+                  data.put.forEach(function(entry) {
+                    serverObject.put(entry.key, entry.value);
+                  });
+                }
               });
-            if (data.added) {
-              data.added.forEach(function(item) {
-                obj.push(item);
-              });
+            } finally {
+              t.__setPropertyObject = savePropertyObject;
+              t.__setPropertyName = savePropertyName;
             }
-            if (data.put) {
-              data.put.forEach(function(entry) {
-                obj.put(entry.key, entry.value);
-              });
-            }
-          });
+          })();
 
           // The server has sent a class definition
         } else if (type == "define") {
@@ -611,8 +623,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           } else {
             def.extend = qx.core.Object;
           }
-          if (!qx.Class.hasMixin(def.extend, com.zenesis.qx.remote.MProxy))
-            def.include = [com.zenesis.qx.remote.MProxy];
           var mis = com.zenesis.qx.remote.ProxyManager.__mixins[data.className];
           if (mis != null) {
             if (def.include === undefined)
@@ -738,7 +748,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           clazz = qx.Interface.define(data.className, def) || qx.Interface.getByName(data.className);
           clazz.$$proxyDef = data;
         } else {
-          clazz = qx.Class.define(data.className, def) || qx.Class.getByName(data.className);
+          clazz = qx.Class.define(data.className, def);
+          if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy))
+            qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
           clazz.prototype.$$proxyDef = data;
         }
         this.__classInfo[data.className] = data;
@@ -931,7 +943,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       return methodResult;
     },
     
-
+    
     /**
      * Handler for "change" event on properties with arrays wrapped by
      * qx.data.Array. For use only by Proxy.
@@ -946,7 +958,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     onWrappedArrayChange : function(evt, serverObject, propDef) {
       if (propDef.readOnly)
         return;
+      // Changing a property from the server
       if (serverObject === this.__setPropertyObject && propDef.name == this.__setPropertyName)
+        return;
+      // Server is updating the array or map
+      if (this.__setPropertyObject && !this.__setPropertyName && this.__setPropertyObject === evt.getTarget())
         return;
       var data = evt.getData();
 
@@ -1357,7 +1373,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       // Send it
       if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-        this.debug("Sending to server: " + (text.length > 200 ? text.substring(0, 200) + "..." : text));
+        console.log("Sending to server: " + text); // Use console.log because LogAppender would cause recursive logging
 
       req.addListener("completed", this._processResponse, this);
       req.addListener("failed", this._processResponse, this);

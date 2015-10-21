@@ -30,15 +30,6 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
   construct: function() {
     var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
     this.__serverClass = PM.getClassInfo(this.classname);
-    if (qx.Class.hasOwnMixin(this.constructor, com.zenesis.qx.remote.MProxy) && 
-        !this.constructor.prototype.$$proxyDef.isMProxyInitialised) {
-      var t = this;
-      [ "addListener", "removeListener" ].forEach(function(name) {
-        var fn = t[name];
-        fn.base = t.constructor.superclass.prototype[name];
-      });
-      this.constructor.prototype.$$proxyDef.isMProxyInitialised = true;
-    }
   },
 	
 	destruct: function() {

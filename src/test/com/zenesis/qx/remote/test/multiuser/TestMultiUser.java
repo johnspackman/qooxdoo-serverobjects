@@ -16,6 +16,7 @@ public class TestMultiUser implements Proxied {
 	}
 
 	private static HashMap<ProxySessionTracker, Status> trackers = new HashMap<ProxySessionTracker, TestMultiUser.Status>();
+	private static int numReady = 0;
 	private static HashMap<String, String> stringMap = new HashMap<String, String>();
 	private static ArrayList<String> stringArray = new ArrayList<String>();
 	
@@ -39,8 +40,21 @@ public class TestMultiUser implements Proxied {
 		for (Status status : trackers.values())
 			status.yourIndex = index++;
 		
+		numReady++;
 		ProxySessionTracker tracker = ProxyManager.getTracker();
 		return trackers.get(tracker);
+	}
+	
+	@Method
+	public void syncUsers() {
+		/*
+		while (numReady != trackers.size())
+			try {
+				Thread.sleep(250);
+			} catch(InterruptedException e) {
+				throw new IllegalStateException(e.getMessage(), e);
+			}
+			*/
 	}
 	
 	@Property(arrayType=String.class, keyType=String.class)
@@ -59,8 +73,9 @@ public class TestMultiUser implements Proxied {
 	}
 
 	@Method
-	public void resetAll() {
+	public synchronized void resetAll() {
 		trackers.clear();
+		numReady = 0;
 		stringMap.clear();
 		stringMap.put("alpha", "one");
 		stringMap.put("bravo", "two");
