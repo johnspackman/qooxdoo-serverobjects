@@ -117,8 +117,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     // Server object array and hash lookup
     __serverObjects : null,
 
+    // Current value returned by getCurrentNewServerId
+    __currentNewServerId: null,
+    
     // Client-created server objects and hash lookup
     __clientObjects : null,
+    __clientObjectsLastId: 0,
 
     // Dirty arrays
     __dirtyArrays : null,
@@ -195,11 +199,27 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @return {Integer} the new ID for this object
      */
     registerClientObject : function(obj) {
+      qx.core.Assert.assertTrue(obj.__serverId === null);
       if (!this.__clientObjects)
-        this.__clientObjects = [ "invalid" ];
-      var index = this.__clientObjects.length;
+        this.__clientObjects = {};
+      var index = ++this.__clientObjectsLastId;
       this.__clientObjects[index] = obj;
+      this.debug("Registering client object " + obj.toHashCode() + " client id=" + index);
+      obj.addListenerOnce("changeServerId", function(evt) {
+        this.debug("Changing ServerId for " + evt.getTarget().toHashCode() + " from " + evt.getOldData() + " to " + evt.getData());
+      });
       return 0 - index;
+    },
+    
+    /**
+     * Unregisters a client object
+     */
+    unregisterClientObject: function(obj) {
+      var id = obj.getServerId() * -1;
+      qx.core.Assert.assertTrue(id > 0, "Object does not have a client ID, id=" + id);
+      qx.core.Assert.assertTrue(this.__clientObjects[id] === obj, "Object is not a pending client object");
+      this.debug("Unregistering client object " + obj.toHashCode() + " client id=" + id);
+      delete this.__clientObjects[id];
     },
 
     /**
@@ -327,11 +347,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         } else if (type == "mapClientId") {
           var index = 0 - elem.data.clientId;
           var clientObject = this.__clientObjects[index];
-          this.__clientObjects[index] = null;
           qx.core.Assert.assertEquals(elem.data.clientId, clientObject.getServerId());
 
           clientObject.setServerId(elem.data.serverId);
-          //qx.core.Assert.assertEquals(elem.data.serverId, this.__serverObjects.length);
           this.__serverObjects[elem.data.serverId] = clientObject;
           
           // Now read in new/changed properties
@@ -412,23 +430,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           qx.core.Assert.assertTrue(false, "Unexpected type of command from server: " + type);
       }
 
-      // Once all client objects are processed, the __clientObjects array should
-      // be full of
-      // nulls and therefore all client IDs are disposed of (and replaced with
-      // server IDs);
-      // when this is the case, we can reset the client ids array
-      var cos = this.__clientObjects;
-      if (cos && cos.length > 1) {
-        var isEmpty = true;
-        for ( var i = 1; i < cos.length; i++)
-          if (cos[i] !== null) {
-            isEmpty = false;
-            break;
-          }
-        if (isEmpty)
-          this.__clientObjects = null;
-      }
+      return result;
+    },
 
+    /**
+     * Returns the serverid of the opbject currently being created; this is used by the
+     * MProxy.initialiseProxy method, and resets after use
+     */
+    getCurrentNewServerId: function() {
+      var result = this.__currentNewServerId;
+      this.__currentNewServerId = null;
       return result;
     },
 
@@ -507,6 +518,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         result = t.getServerObject(serverId);
         if (!result) {
           var clazz = t.getClassOrCreate(data.clazz);
+          t.__currentNewServerId = serverId;
           if (data.constructorArgs) {
             function construct(constructor, args) {
               function F() {
@@ -519,7 +531,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             result = construct(clazz, constructorArgs);
           } else
             result = new clazz();
-          result.setServerId(serverId);
           t.__serverObjects[serverId] = result;
         }
         
@@ -579,7 +590,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       return result;
     },
-
+    
     /**
      * Reads a "clazz" and interprets it to return a class, creating new class
      * definitions as required
@@ -615,7 +626,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             "var args = qx.lang.Array.fromArguments(arguments);\n" +
             "args.unshift(arguments);\n" +
             "this.base.apply(this, args);\n" +
-            "this.$$proxy = {};\n"
+            "this.initialiseProxy();\n";
           def = {
             members : {},
             statics: {}
@@ -871,7 +882,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
         var id = value.getServerId();
         if (id < 0)
-          this._queueClientObject(id);
+          this._queueClientObject(0 - id);
         return value.getServerId();
       }
 
@@ -1293,7 +1304,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     removeServerListener : function(serverObject, eventName) {
       var className = serverObject.classname;
       var def = this.__classInfo[className];
-      var event = def.events[eventName];
+      var event = def.events && def.events[eventName];
 
       // If the event is not a server event or it's for a property then skip
       // (property change
@@ -1423,20 +1434,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * pendingClientObject's).
      */
     _queueClientObjects : function() {
-      var pco = this.__clientObjects;
-      if (!pco || pco.length < 2)
+      if (!this.__clientObjects)
         return;
       var queue = this.__queue;
       if (!queue)
         this.__queue = queue = [];
-      for ( var i = 1; i < pco.length; i++) {
-        var clientObject = pco[i];
+      for (var id in this.__clientObjects) {
+        var clientObject = this.__clientObjects[id];
 
         // Array index is set to null when received back from the server
         if (!clientObject || clientObject.getSentToServer())
           continue;
         
-        this._queueClientObject(0 - i);
+        this._queueClientObject(id);
       }
     },
     
@@ -1445,15 +1455,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param clientId {Integer}
      */
     _queueClientObject: function(clientId) {
-      var pco = this.__clientObjects;
-      if (!pco || pco.length < 2)
-        return;
-      var index = 0 - clientId;
-      if (index < 1 || index >= pco.length)
+      var clientObject = this.__clientObjects && this.__clientObjects[clientId];
+      if (!clientObject)
         throw new Error("Invalid client ID " + clientId);
-      var clientObject = pco[index];
       if (clientObject.getSentToServer())
         return;
+      this.debug("Queuing client object " + clientObject.toHashCode() + " client id " + clientId);
       
       var queue = this.__queue;
       if (!queue)

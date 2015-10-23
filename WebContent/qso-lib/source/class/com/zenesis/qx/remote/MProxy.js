@@ -37,10 +37,24 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 		PM.disposeServerObject(this);
 	},
 	
+	events: {
+	  "changeServerId": "qx.event.type.Data"
+	},
+	
 	members: {
 		__serverId: null,
 		__serverClass: null,
 		//__isPending: undefined,
+		
+		/**
+		 * Called by the constructor to initialise the instance
+		 */
+		initialiseProxy: function() {
+		  if (this.$$proxy === undefined) {
+        this.$$proxy = {};
+        this.setServerId(com.zenesis.qx.remote.ProxyManager.getInstance().getCurrentNewServerId());
+		  }
+		},
 
 		/**
 		 * Returns the server ID for this object
@@ -59,9 +73,15 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 		 * has returned a new server ID for it; to be called by ProxyManager only
 		 */
 		setServerId: function(serverId) {
+		  qx.core.Assert.assertTrue(this.__serverId === null || (serverId > 0 && this.__serverId < 0));
 	    var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
 	    delete this.__isPending;
+	    if (serverId > 0 && this.__serverId < 0)
+	      PM.unregisterClientObject(this);
+	    var oldValue = this.__serverId;
 	    this.__serverId = serverId;
+	    if (this.hasListener("changeServerId"))
+	      this.fireDataEvent("changeServerId", serverId, oldValue);
 		},
 		
 		/**
