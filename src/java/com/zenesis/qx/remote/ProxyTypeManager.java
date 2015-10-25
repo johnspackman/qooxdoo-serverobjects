@@ -94,43 +94,49 @@ public class ProxyTypeManager {
 		if (type != null)
 			return type;
 		
-		HashSet<ProxyType> interfaces = new HashSet<ProxyType>();
-		if (clazz != Proxied.class) {
-			// Get a list of ProxyTypes for interfaces that this class/interface implement directly;
-			//	this will recursively discover other interfaces
-			for (Class ifc : clazz.getInterfaces())
-				if (ifc != Proxied.class && ifc != DynamicTypeProvider.class && Proxied.class.isAssignableFrom(ifc)) {
-					ProxyType newType = getProxyType(ifc, factory);
-					if (newType != null)
-						interfaces.add(newType);
-				}
-		}
-		
-		// If it's an interface then there is nothing more to do except create and store the ProxyType
-		if (clazz.isInterface()) {
-			// Poor inheritance structure may mean we've already created the ProxyType for this
-			//	interface
+		synchronized (this) {
 			type = proxyTypes.get(clazz);
-			if (type == null) {
-				type = new ProxyTypeImpl(null, clazz, interfaces);
+			if (type != null)
+				return type;
+			
+			HashSet<ProxyType> interfaces = new HashSet<ProxyType>();
+			if (clazz != Proxied.class) {
+				// Get a list of ProxyTypes for interfaces that this class/interface implement directly;
+				//	this will recursively discover other interfaces
+				for (Class ifc : clazz.getInterfaces())
+					if (ifc != Proxied.class && ifc != DynamicTypeProvider.class && Proxied.class.isAssignableFrom(ifc)) {
+						ProxyType newType = getProxyType(ifc, factory);
+						if (newType != null)
+							interfaces.add(newType);
+					}
+			}
+			
+			// If it's an interface then there is nothing more to do except create and store the ProxyType
+			if (clazz.isInterface()) {
+				// Poor inheritance structure may mean we've already created the ProxyType for this
+				//	interface
+				type = proxyTypes.get(clazz);
+				if (type == null) {
+					type = new ProxyTypeImpl(null, clazz, interfaces);
+					proxyTypes.put(clazz, type);
+					type.resolve(this);
+				}
+				return type;
+			}
+			
+			// For a class, we need to get the supertype
+			ProxyType superType = null;
+			if (clazz.getSuperclass() != Object.class)
+				superType = getProxyType(clazz.getSuperclass(), factory);
+			
+			// Create the type
+			type = newProxyType(factory, superType, clazz, interfaces);
+			if (type != null) {
 				proxyTypes.put(clazz, type);
 				type.resolve(this);
 			}
 			return type;
 		}
-		
-		// For a class, we need to get the supertype
-		ProxyType superType = null;
-		if (clazz.getSuperclass() != Object.class)
-			superType = getProxyType(clazz.getSuperclass(), factory);
-		
-		// Create the type
-		type = newProxyType(factory, superType, clazz, interfaces);
-		if (type != null) {
-			proxyTypes.put(clazz, type);
-			type.resolve(this);
-		}
-		return type;
 	}
 	
 	/**

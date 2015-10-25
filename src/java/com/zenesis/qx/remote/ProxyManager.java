@@ -180,7 +180,8 @@ public class ProxyManager implements EventListener {
 				
 				if (enc != null)
 					response.addHeader("Content-Encoding", enc);
-				new RequestHandler(tracker).processRequest(request.getReader(), os);
+				String sessionId = request.getHeader(RequestHandler.HEADER_SESSION_ID);
+				new RequestHandler(tracker).processRequest(request.getReader(), os, sessionId);
 			}
 		}finally {
 			// Done

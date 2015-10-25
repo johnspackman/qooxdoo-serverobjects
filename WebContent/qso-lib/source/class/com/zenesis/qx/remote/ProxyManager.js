@@ -116,6 +116,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
     // Server object array and hash lookup
     __serverObjects : null,
+    __sessionId: null,
 
     // Current value returned by getCurrentNewServerId
     __currentNewServerId: null,
@@ -181,6 +182,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         throw ex;
       this.fireDataEvent("connected", this.__serverObjects[0]);
       return this.__serverObjects[0];
+    },
+    
+    /**
+     * Returns the unique session id for this client, null until first call to getBootstrap()
+     * @return {String}
+     */
+    getSessionId: function() {
+      return this.__sessionId;
     },
 
     /**
@@ -316,7 +325,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Init 
         if (type == "bootstrap") {
-          result = this.readProxyObject(elem.data);
+          this.__sessionId = elem.data.sessionId;
+          result = this.readProxyObject(elem.data.bootstrap);
           
         // Function return
         } else if (type == "return") {
@@ -392,16 +402,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               elem.data.forEach(function(data) {
                 if (data.removed)
                   data.removed.forEach(function(item) {
-                    serverObject.remove(item);
+                    var obj = t.readProxyObject(item);
+                    serverObject.remove(obj);
                   });
                 if (data.added) {
                   data.added.forEach(function(item) {
-                    serverObject.push(item);
+                    var obj = t.readProxyObject(item);
+                    serverObject.push(obj);
                   });
                 }
                 if (data.put) {
                   data.put.forEach(function(entry) {
-                    serverObject.put(entry.key, entry.value);
+                    var key = t.readProxyObject(entry.key);
+                    var value = t.readProxyObject(entry.value);
+                    serverObject.put(key, value);
                   });
                 }
               });
@@ -518,7 +532,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         result = t.getServerObject(serverId);
         if (!result) {
           var clazz = t.getClassOrCreate(data.clazz);
+          
+          // Collect constructor args now in case they refer to a Proxied object (which would cause recursion
+          //  and would conflict with __currentNewServerId being a single use global 
+          var constructorArgs = undefined;
+          if (data.constructorArgs)
+            constructorArgs = readArray(data.constructorArgs);
+          
           t.__currentNewServerId = serverId;
+          t.__inConstructor = true;
           if (data.constructorArgs) {
             function construct(constructor, args) {
               function F() {
@@ -527,10 +549,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               F.prototype = constructor.prototype;
               return new F();
             }
-            var constructorArgs = readArray(data.constructorArgs);
             result = construct(clazz, constructorArgs);
           } else
             result = new clazz();
+          t.__inConstructor = false;
+          qx.core.Assert.assertEquals(serverId, result.getServerId());
           t.__serverObjects[serverId] = result;
         }
         
@@ -1124,6 +1147,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Object?} the value to set the property to
      */
     setPropertyValue : function(serverObject, propertyName, value, oldValue) {
+      if (this.__inConstructor)
+        return;
       var pd = serverObject.getPropertyDef(propertyName);
       
       if (!this.isSettingProperty(serverObject, propertyName)) {
@@ -1394,6 +1419,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var text = qx.lang.Json.stringify(obj);
       var req = new qx.io.remote.Request(this.getProxyUrl(), "POST", "text/plain");
       req.setAsynchronous(!!async);
+      if (this.__sessionId)
+        req.setRequestHeader("X-ProxyManager-SessionId", this.__sessionId);
       req.setData(text);
       if (typeof async == "function")
         req.setUserData("asyncOnCompleteCallback", async);
@@ -1549,7 +1576,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Callback for polling the server
      */
     __onPollTimeout : function() {
-      this.debug("poll");
+      //this.debug("poll");
       this.__pollTimerId = null;
       this.flushQueue(true, true);
     },

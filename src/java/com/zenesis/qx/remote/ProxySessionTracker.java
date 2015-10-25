@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.UUID;
 
 import org.apache.logging.log4j.Logger;
 
@@ -311,6 +312,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 	// Bootstrap object
 	private final Class<? extends Proxied> bootstrapClass;
 	private Proxied bootstrap;
+	private final String sessionId;
+	protected static int s_serialNo;
 
 	/**
 	 * Creates a tracker for a session; if bootstrapClass is null you must override
@@ -321,6 +324,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 		super();
 		this.bootstrapClass = bootstrapClass;
 		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled());
+		sessionId = UUID.randomUUID() + ":" + (++s_serialNo); 
 	}
 	
 	/**
@@ -332,6 +336,21 @@ public class ProxySessionTracker implements UploadInterceptor {
 		super();
 		this.bootstrapClass = bootstrapClass;
 		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
+		sessionId = UUID.randomUUID() + ":" + (++s_serialNo); 
+	}
+	
+	/**
+	 * Creates a tracker for a session; if bootstrapClass is null you must override
+	 * createBootstrap() 
+	 * @param bootstrapClass
+	 */
+	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir, String sessionId) {
+		super();
+		this.bootstrapClass = bootstrapClass;
+		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
+		if (sessionId == null)
+			sessionId = UUID.randomUUID() + ":" + (++s_serialNo);
+		this.sessionId = sessionId;
 	}
 	
 	/**
@@ -391,6 +410,22 @@ public class ProxySessionTracker implements UploadInterceptor {
 		return bootstrap;
 	}
 	
+	/**
+	 * Detects whether the bootstrap has been created yet
+	 * @return
+	 */
+	public boolean hasBootstrap() {
+		return bootstrap != null;
+	}
+	
+	/**
+	 * Returns the unique session id
+	 * @return
+	 */
+	public String getSessionId() {
+		return sessionId;
+	}
+
 	@Override
 	public File interceptUpload(File file) {
 		if (bootstrap != null && bootstrap instanceof UploadInterceptor) {

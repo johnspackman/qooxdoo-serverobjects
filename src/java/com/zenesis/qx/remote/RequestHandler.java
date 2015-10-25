@@ -83,7 +83,22 @@ public class RequestHandler {
 	private static final String CMD_POLL = "poll";				// Poll for changes (ie do nothing) 
 	private static final String CMD_SET = "set";				// Set a property value 
 	private static final String CMD_UNLISTEN = "unlisten";		// Remove an event listener
+	
+	// The request header sent by the client to validate the session
+	public static final String HEADER_SESSION_ID = "X-ProxyManager-SessionId";
 
+	// This class is sent as data by cmdBootstrap
+	public static final class Bootstrap {
+		public final Proxied bootstrap;
+		public final String sessionId;
+		
+		public Bootstrap(Proxied bootstrap, String sessionId) {
+			super();
+			this.bootstrap = bootstrap;
+			this.sessionId = sessionId;
+		}
+	}
+	
 	// This class is sent as data by cmdNewObject to change a client ID into a server ID
 	public static final class MapClientId {
 		public final int serverId;
@@ -161,25 +176,26 @@ public class RequestHandler {
 	 * Handles the callback from the client; expects either an object or an array of objects
 	 * @param request
 	 * @param response
+	 * @param sessionId session id passed from the client for validation, ignored if null
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public void processRequest(Reader request, OutputStream response) throws ServletException, IOException {
-		processRequest(request, new OutputStreamWriter(response));
-	}
-
-	/**
-	 * Handles the callback from the client; expects either an object or an array of objects
-	 * @param request
-	 * @param response
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public void processRequest(Reader request, Writer response) throws ServletException, IOException {
+	public void processRequest(Reader request, Writer response, String sessionId) throws ServletException, IOException {
+		if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
+			if (log.isDebugEnabled()) {
+				StringWriter sw = new StringWriter();
+				char[] buffer = new char[32 * 1024];
+				int len;
+				while ((len = request.read(buffer)) > -1)
+					sw.write(buffer, 0, len);
+				log.debug("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + sw.toString());
+			}
+			throw new IllegalArgumentException("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId);
+		}
 		s_currentHandler.set(this);
 		ObjectMapper objectMapper = tracker.getObjectMapper();
 		try {
-			if (log.isDebugEnabled()) {
+			if (log.isTraceEnabled()) {
 				StringWriter sw = new StringWriter();
 				char[] buffer = new char[32 * 1024];
 				int length;
@@ -219,6 +235,8 @@ public class RequestHandler {
 					};
 				}
 				objectMapper.writeValue(actualResponse, tracker.getQueue());
+				if (log.isTraceEnabled())
+					System.out.println();
 			}
 			
 		} catch(ProxyTypeSerialisationException e) {
@@ -237,6 +255,40 @@ public class RequestHandler {
 		}
 	}
 	
+	/**
+	 * Handles the callback from the client; expects either an object or an array of objects
+	 * @param request
+	 * @param response
+	 * @param sessionId session id passed from the client for validation, ignored if null
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public void processRequest(Reader request, OutputStream response, String sessionId) throws ServletException, IOException {
+		processRequest(request, new OutputStreamWriter(response), sessionId);
+	}
+	
+	/**
+	 * Handles the callback from the client; expects either an object or an array of objects
+	 * @param request
+	 * @param response
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public void processRequest(Reader request, OutputStream response) throws ServletException, IOException {
+		processRequest(request, new OutputStreamWriter(response), null);
+	}
+	
+	/**
+	 * Handles the callback from the client; expects either an object or an array of objects
+	 * @param request
+	 * @param response
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public void processRequest(Reader request, Writer response) throws ServletException, IOException {
+		processRequest(request, response, null);
+	}
+
 	/**
 	 * Called to handle exceptions during processRequest
 	 * @param response
@@ -307,7 +359,7 @@ public class RequestHandler {
 	 */
 	protected void cmdBootstrap(JsonParser jp) throws ServletException, IOException {
 		tracker.resetSession();
-		tracker.getQueue().queueCommand(CommandId.CommandType.BOOTSTRAP, null, null, tracker.getBootstrap());
+		tracker.getQueue().queueCommand(CommandId.CommandType.BOOTSTRAP, null, null, new Bootstrap(tracker.getBootstrap(), tracker.getSessionId()));
 		jp.nextToken();
 	}
 	

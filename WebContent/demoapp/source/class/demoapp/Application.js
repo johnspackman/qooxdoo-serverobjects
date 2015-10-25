@@ -393,6 +393,23 @@ qx.Class.define("demoapp.Application", {
       var multiUser = boot.getMultiUser();
       var root = this.getRoot();
 
+      var btnThrash = new qx.ui.form.Button("Start Thrash Test");
+      root.add(btnThrash, {
+        left: 100,
+        top: 125
+      });
+      btnThrash.addListener("execute", function() {
+        var count = 0;
+        function test() {
+          multiUser.thrashTest(count++);
+          if ((count % 100) == 0)
+            t.log(count + "...");
+          if (count < 2000)
+            setTimeout(test, parseInt(Math.random()*100));
+        }
+        test();
+      }, this);
+      
       var btnReset = new qx.ui.form.Button("Reset Users");
       root.add(btnReset, {
         left: 100,

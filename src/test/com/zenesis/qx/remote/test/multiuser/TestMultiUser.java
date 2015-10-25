@@ -45,6 +45,14 @@ public class TestMultiUser implements Proxied {
 		return trackers.get(tracker);
 	}
 	
+	@Method 
+	public void thrashTest(int count) {
+		if ((count % 100) == 0) {
+			ProxySessionTracker tracker = ProxyManager.getTracker();
+			System.out.println(tracker.getSessionId() + " count=" + count);
+		}
+	}
+	
 	@Method
 	public void syncUsers() {
 		/*
