@@ -32,11 +32,10 @@
  * @ignore(com.zenesis.qx.remote.LogEntrySink)
  */
 /*
- * @require(qx.core.Aspect) 
- * @ignore(auto-require)
+ * @require(qx.core.Aspect) @ignore(auto-require)
  */
 qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
-  extend : qx.core.Object,
+  extend: qx.core.Object,
 
   /**
    * Constructor
@@ -45,7 +44,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
    *          {String} the URL for communicating with the server
    * @ignore(qx.util.Json)
    */
-  construct : function(proxyUrl) {
+  construct: function(proxyUrl) {
     this.base(arguments);
     if (!com.zenesis.qx.remote.ProxyManager.__initialised) {
       com.zenesis.qx.remote.ProxyManager.__initialised = true;
@@ -61,106 +60,118 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     this.setProxyUrl(proxyUrl);
   },
 
-  properties : {
+  properties: {
     /** URL to connect to */
-    proxyUrl : {
-      init : null,
-      nullable : false,
-      check : "String"
+    proxyUrl: {
+      init: null,
+      nullable: false,
+      check: "String"
     },
 
     /**
      * Whether to poll the server periodically for updates, even if there is
      * nothing to send
      */
-    pollServer : {
-      init : false,
-      check : "Boolean",
-      nullable : false,
-      event : "changePollServer",
-      apply : "_applyPollServer"
+    pollServer: {
+      init: false,
+      check: "Boolean",
+      nullable: false,
+      event: "changePollServer",
+      apply: "_applyPollServer"
     },
 
     /**
      * How often to poll the server in milliseconds if pollServer is true
      */
-    pollFrequency : {
-      init : 5000,
-      check : "Integer",
-      nullable : false,
-      event : "changePollFrequency",
-      apply : "_applyPollFrequency"
+    pollFrequency: {
+      init: 5000,
+      check: "Integer",
+      nullable: false,
+      event: "changePollFrequency",
+      apply: "_applyPollFrequency"
+    },
+
+    /** Timeout */
+    timeout: {
+      init: null,
+      check: "Integer",
+      nullable: true
     }
   },
 
-  events : {
+  events: {
     /** Fired when an exception is raised on the server; data is the exception */
-    "exception" : "qx.event.type.Data",
-    
-    /** Fired when there is an I/O error communicating to the server; if this event is not preventDefault()'d, an
-     * exception is thrown.  Data is the event that was returned by qx.io.Request
+    "exception": "qx.event.type.Data",
+
+    /**
+     * Fired when there is an I/O error communicating to the server; if this
+     * event is not preventDefault()'d, an exception is thrown. Data is the
+     * event that was returned by qx.io.Request
      */
     "ioError": "qx.event.type.Data",
-    
-    /** Fired when a file upload is completed, data is the FileInfo form the server */
+
+    /**
+     * Fired when a file upload is completed, data is the FileInfo form the
+     * server
+     */
     "uploadComplete": "qx.event.type.Data",
-    
+
     /** Fired to queue any pending requests */
     "queuePending": "qx.event.type.Event",
-    
+
     /** Fired when connected, data is the bootstrap object */
     "connected": "qx.event.type.Data"
   },
 
-  members : {
+  members: {
 
     // Server object array and hash lookup
-    __serverObjects : null,
+    __serverObjects: null,
     __sessionId: null,
 
     // Current value returned by getCurrentNewServerId
     __currentNewServerId: null,
-    
+
     // Client-created server objects and hash lookup
-    __clientObjects : null,
+    __clientObjects: null,
     __clientObjectsLastId: 0,
 
     // Dirty arrays
-    __dirtyArrays : null,
+    __dirtyArrays: null,
 
     // Objects disposed on the client that need to be removed from the server
-    __disposedServerObjects : null,
+    __disposedServerObjects: null,
 
     // Extra class information
-    __classInfo : {},
+    __classInfo: {},
 
     // Classes currently being defined
-    __classesBeingDefined : {},
+    __classesBeingDefined: {},
 
     // Queue of commands to send to the server at the next flush
-    __queue : null,
+    __queue: null,
 
-    // Callbacks for asynchronous methods 
+    // Callbacks for asynchronous methods
     __asyncId: 0,
     __asyncCallback: {},
 
     // Polling timer
-    __onPollTimeoutBinding : null,
-    __pollTimerId : null,
+    __onPollTimeoutBinding: null,
+    __pollTimerId: null,
 
     // The property currently being set, if any (used to prevent recursive sets)
-    __setPropertyObject : null,
-    __setPropertyName : null,
+    __setPropertyObject: null,
+    __setPropertyName: null,
 
     // The number of call backs to the server
-    __numberOfCalls : 0,
+    __numberOfCalls: 0,
 
     // Exception returned from the server, to be thrown at end of current
     // function call
-    __exception : null,
-    
+    __exception: null,
+
     __preRequestCallback: null,
-    
+
     /**
      * The Servlet at the other end is configured to return an initial object
      * for this session; it can be any arbitrary object because QSO will
@@ -169,12 +180,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * 
      * Can be called multiple times, the first object is always returned.
      */
-    getBootstrapObject : function() {
+    getBootstrapObject: function() {
       if (this.__serverObjects.length)
         return this.__serverObjects[0];
       var result = null;
       var msg = {
-        cmd : "bootstrap"
+        cmd: "bootstrap"
       };
       this._sendCommandToServer(msg);
       var ex = this.clearException();
@@ -183,9 +194,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       this.fireDataEvent("connected", this.__serverObjects[0]);
       return this.__serverObjects[0];
     },
-    
+
     /**
-     * Returns the unique session id for this client, null until first call to getBootstrap()
+     * Returns the unique session id for this client, null until first call to
+     * getBootstrap()
+     * 
      * @return {String}
      */
     getSessionId: function() {
@@ -198,7 +211,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * 
      * @return {Boolean} true if connected
      */
-    hasConnected : function() {
+    hasConnected: function() {
       return this.__serverObjects.length > 0;
     },
 
@@ -207,19 +220,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * 
      * @return {Integer} the new ID for this object
      */
-    registerClientObject : function(obj) {
+    registerClientObject: function(obj) {
       qx.core.Assert.assertTrue(obj.__serverId === null);
       if (!this.__clientObjects)
         this.__clientObjects = {};
       var index = ++this.__clientObjectsLastId;
       this.__clientObjects[index] = obj;
-      this.debug("Registering client object " + obj.toHashCode() + " client id=" + index);
+      this.debug("Registering client object " + obj.toHashCode() + " " + obj.classname + " client id=" + index);
       obj.addListenerOnce("changeServerId", function(evt) {
         this.debug("Changing ServerId for " + evt.getTarget().toHashCode() + " from " + evt.getOldData() + " to " + evt.getData());
       });
       return 0 - index;
     },
-    
+
     /**
      * Unregisters a client object
      */
@@ -238,32 +251,34 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Response} the response event
      * @lint ignoreDeprecated(eval)
      */
-    _processResponse : function(evt) {
+    _processResponse: function(evt) {
       var txt = evt.getContent();
       var statusCode = evt.getStatusCode();
       var req = evt.getTarget();
-      var asyncOnCompleteCallback = req.getUserData("asyncOnCompleteCallback");
+      var proxyData = req.getUserData("proxyData");
+      proxyData.receivedTime = new Date().getTime();
+      var result = null;
 
       if (statusCode == 200) {
         txt = txt.trim();
         try {
           if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-            console.log("received: txt=" + txt); // Use console.log because LogAppender would cause recursive logging
-          var result = null;
+            console.log("received: txt=" + txt); // Use console.log because
+                                                  // LogAppender would cause
+                                                  // recursive logging
           if (txt.length) {
             var data = eval("(" + txt + ")");
             result = this._processData(data);
           }
-          if (asyncOnCompleteCallback)
-            asyncOnCompleteCallback(evt);
-          return result;
-          
+          if (typeof proxyData.async == "function")
+            proxyData.async(evt);
+
         } catch (e) {
           this.error("Exception during receive: " + this.__describeException(e));
           this._setException(e);
-          if (asyncOnCompleteCallback)
-            asyncOnCompleteCallback(evt, e);
-          
+          if (typeof proxyData.async == "function")
+            proxyData.async(evt);
+
         } finally {
           if (this.getPollServer()) {
             this._killPollTimer();
@@ -273,11 +288,36 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       } else {
         this._handleIoError(evt);
-        if (asyncOnCompleteCallback)
-          asyncOnCompleteCallback(evt);
+        if (typeof proxyData.async == "function")
+          proxyData.async(evt);
+      }
+      
+      proxyData.endTime = new Date().getTime();
+      var stats = req.getAsynchronous() ? this.__stats.async : this.__stats.sync;
+      stats.count++;
+      var time = proxyData.endTime - proxyData.startTime;
+      stats.totalTime += time;
+      stats.peakTime = Math.max(stats.peakTime, time);
+      return result;
+    },
+    
+    __stats: {
+      async: {
+        count: 0,
+        totalTime: 0,
+        peakTime: 0
+      },
+      sync: {
+        count: 0,
+        totalTime: 0,
+        peakTime: 0
       }
     },
     
+    getStats: function() {
+      return this.__stats;
+    },
+
     /**
      * Called when there is an error in the IO to the server
      */
@@ -294,11 +334,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * 
      * @lint ignoreDeprecated(eval)
      */
-    uploadResponse : function(txt) {
+    uploadResponse: function(txt) {
       txt = txt.trim();
       try {
         if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-          console.log("received: txt=" + txt); // Use console.log because LogAppender would cause recursive logging
+          console.log("received: txt=" + txt); // Use console.log because
+                                                // LogAppender would cause
+                                                // recursive logging
         if (!txt.length)
           return null;
         var data = eval("(" + txt + ")");
@@ -308,7 +350,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         throw e;
       }
     },
-    
+
     /**
      * Called to interpret the text returned by the server and perform any
      * commands
@@ -316,19 +358,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param data
      *          {Object} the response compiled from JSON
      */
-    _processData : function(data) {
+    _processData: function(data) {
       var t = this;
       var result = null;
-      for ( var i = 0, l = data.length; i < l; i++) {
+      for (var i = 0, l = data.length; i < l; i++) {
         var elem = data[i];
         var type = elem.type;
 
-        // Init 
+        // Init
         if (type == "bootstrap") {
           this.__sessionId = elem.data.sessionId;
           result = this.readProxyObject(elem.data.bootstrap);
-          
-        // Function return
+
+          // Function return
         } else if (type == "return") {
           var asyncId = elem.data.asyncId;
           result = this.readProxyObject(elem.data.result);
@@ -338,7 +380,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             cb(result);
           }
 
-        // Upload
+          // Upload
         } else if (type == "upload") {
           var fileInfos = this.readProxyObject(elem.data);
           if (!result)
@@ -348,12 +390,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             this.fireDataEvent("uploadComplete", fileInfos[j]);
           }
 
-        // An exception was thrown
+          // An exception was thrown
         } else if (type == "exception") {
           this._handleServerException(elem.data, "function");
 
-        // A client-created object has been registered on the server, update
-        // the IDs to server IDs
+          // A client-created object has been registered on the server, update
+          // the IDs to server IDs
         } else if (type == "mapClientId") {
           var index = 0 - elem.data.clientId;
           var clientObject = this.__clientObjects[index];
@@ -361,12 +403,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
           clientObject.setServerId(elem.data.serverId);
           this.__serverObjects[elem.data.serverId] = clientObject;
-          
+
           // Now read in new/changed properties
           this.readProxyObject(elem.object);
 
-        // Setting a property failed with an exception - change the value back
-        // and handle the exception
+          // Setting a property failed with an exception - change the value back
+          // and handle the exception
         } else if (type == "restore") {
           var obj = this.readProxyObject(elem.object);
           try {
@@ -448,8 +490,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     },
 
     /**
-     * Returns the serverid of the opbject currently being created; this is used by the
-     * MProxy.initialiseProxy method, and resets after use
+     * Returns the serverid of the opbject currently being created; this is used
+     * by the MProxy.initialiseProxy method, and resets after use
      */
     getCurrentNewServerId: function() {
       var result = this.__currentNewServerId;
@@ -461,18 +503,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Reads a proxy object from the server and either creates a new object
      * (creating classes as required) or returns an existing one
      */
-    readProxyObject : function(data) {
+    readProxyObject: function(data) {
       if (typeof data == "undefined" || data === null)
         return null;
       var result = null;
       var t = this;
-      
+
       function readArray(data) {
         var result;
-        
+
         // Do we really have to process each element?
         var ok = true;
-        for ( var i = 0; ok && i < data.length; i++)
+        for (var i = 0; ok && i < data.length; i++)
           if (typeof data[i] == "object")
             ok = false;
 
@@ -483,16 +525,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         // Copy values by hand
         else {
           result = [];
-          for ( var i = 0; i < data.length; i++)
+          for (var i = 0; i < data.length; i++)
             result[i] = t.readProxyObject(data[i]);
         }
-        
+
         return result;
       }
-      
+
       function readMap(data) {
         var result;
-        
+
         // Do we really have to process every value?
         var ok = true;
         for ( var propName in data)
@@ -520,10 +562,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             result[propName] = propValue;
           }
         }
-        
+
         return result;
       }
-      
+
       function readServerObject(data) {
         var result;
         var serverId = data.serverId;
@@ -532,19 +574,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         result = t.getServerObject(serverId);
         if (!result) {
           var clazz = t.getClassOrCreate(data.clazz);
-          
-          // Collect constructor args now in case they refer to a Proxied object (which would cause recursion
-          //  and would conflict with __currentNewServerId being a single use global 
+
+          // Collect constructor args now in case they refer to a Proxied object
+          // (which would cause recursion
+          // and would conflict with __currentNewServerId being a single use
+          // global
           var constructorArgs = undefined;
           if (data.constructorArgs)
             constructorArgs = readArray(data.constructorArgs);
-          
+
           t.__currentNewServerId = serverId;
           t.__inConstructor = true;
           if (data.constructorArgs) {
             function construct(constructor, args) {
               function F() {
-                  return constructor.apply(this, args);
+                return constructor.apply(this, args);
               }
               F.prototype = constructor.prototype;
               return new F();
@@ -556,10 +600,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           qx.core.Assert.assertEquals(serverId, result.getServerId());
           t.__serverObjects[serverId] = result;
         }
-        
+
         // Assign any values
         if (data.order) {
-          for ( var i = 0; i < data.order.length; i++) {
+          for (var i = 0; i < data.order.length; i++) {
             var propName = data.order[i];
             var propValue = data.values[propName];
             if (propValue)
@@ -572,11 +616,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
          * Cannot cycle through the names in "values" because the order is not
          * guaranteed, and ordering is important if we're going to be able to
          * recreate the objects because only the first reference contains the
-         * class and object definition - thereafter, just a serverId is sent
-         * if (data.values) { for (var propName in data.values) { var
-         * propValue = data.values[propName]; if (propValue) propValue =
-         * t.readProxyObject(propValue);
-         * t.setPropertyValueFromServer(result, propName, propValue); } }
+         * class and object definition - thereafter, just a serverId is sent if
+         * (data.values) { for (var propName in data.values) { var propValue =
+         * data.values[propName]; if (propValue) propValue =
+         * t.readProxyObject(propValue); t.setPropertyValueFromServer(result,
+         * propName, propValue); } }
          */
 
         // Prefetched method return values
@@ -590,7 +634,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             result.$$proxy.cachedResults[methodName] = value;
           }
         }
-        
+
         return result;
       }
 
@@ -613,14 +657,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       return result;
     },
-    
+
     /**
      * Reads a "clazz" and interprets it to return a class, creating new class
      * definitions as required
      * 
      * @lint ignoreDeprecated(eval)
      */
-    getClassOrCreate : function(data) {
+    getClassOrCreate: function(data) {
       // If it's a string, then it's an existing class we need to create
       if (typeof data == "string") {
         if (this.__classesBeingDefined[data])
@@ -641,17 +685,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var strConstructorCode = null;
         if (data.isInterface)
           def = {
-            members : {},
+            members: {},
             statics: {}
           };
         else {
-          strConstructorCode = 
-            "var args = qx.lang.Array.fromArguments(arguments);\n" +
-            "args.unshift(arguments);\n" +
-            "this.base.apply(this, args);\n" +
-            "this.initialiseProxy();\n";
+          strConstructorCode = "var args = qx.lang.Array.fromArguments(arguments);\n" + "args.unshift(arguments);\n"
+              + "this.base.apply(this, args);\n" + "this.initialiseProxy();\n";
           def = {
-            members : {},
+            members: {},
             statics: {}
           };
           if (data.extend) {
@@ -665,23 +706,23 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             mis.forEach(function(mixin) {
               if (mixin.patch) {
                 if (def.patch === undefined)
-                  def.patch = [mixin.mixin];
+                  def.patch = [ mixin.mixin ];
                 else
                   def.patch.push(mixin.mixin);
               } else {
                 if (def.include === undefined)
-                  def.include = [mixin.mixin];
+                  def.include = [ mixin.mixin ];
                 else
                   def.include.push(mixin.mixin);
               }
             });
           }
         }
-        
+
         // Add interfaces
         if (data.interfaces) {
           var interfaces = data.interfaces;
-          for ( var i = 0; i < data.interfaces.length; i++)
+          for (var i = 0; i < data.interfaces.length; i++)
             interfaces[i] = this.getClassOrCreate(interfaces[i]);
           if (interfaces.length) {
             if (data.isInterface)
@@ -699,8 +740,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (data.isInterface)
               def.members[methodName] = new Function('');
             else if (method.staticMethod)
-              def.statics[methodName] = new Function('return com.zenesis.qx.remote.ProxyManager._callServer(' + data.className + 
-                  ', "' + methodName + '", qx.lang.Array.fromArguments(arguments));');
+              def.statics[methodName] = new Function('return com.zenesis.qx.remote.ProxyManager._callServer(' + data.className
+                  + ', "' + methodName + '", qx.lang.Array.fromArguments(arguments));');
             else
               def.members[methodName] = new Function('return this._callServer("' + methodName
                   + '", qx.lang.Array.fromArguments(arguments));');
@@ -710,7 +751,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
             var params = method.parameters;
             if (params)
-              for ( var i = 0; i < params.length; i++)
+              for (var i = 0; i < params.length; i++)
                 if (params[i] && typeof params[i] == "object")
                   deferredTypes.push(params[i]);
           }
@@ -723,6 +764,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             var upname = qx.lang.String.firstUp(propName);
             var fromDef = data.properties[propName];
             fromDef.name = propName;
+            
+            if (propName == "approvedBy")
+              propName = propName;
 
             if (fromDef.clazz && typeof fromDef.clazz == "object")
               deferredTypes.push(fromDef.clazz);
@@ -742,7 +786,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
             if (fromDef.event)
               toDef.event = fromDef.event;
-            
+
             var arrayClassName = null;
             if ((fromDef.map || fromDef.array) && fromDef.arrayClass) {
               arrayClassName = fromDef.arrayClass.className;
@@ -751,7 +795,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
             if (fromDef.map) {
               if (fromDef.array && fromDef.array == "wrap")
-                toDef.check = arrayClassName||"com.zenesis.qx.remote.Map";
+                toDef.check = arrayClassName || "com.zenesis.qx.remote.Map";
 
               // Checks
             } else if (fromDef.check) {
@@ -761,11 +805,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             } else if (fromDef.array) {
               if (fromDef.array == "wrap") {
                 toDef.transform = "_transformToDataArray";
-                toDef.check = arrayClassName||"qx.data.Array";
+                toDef.check = arrayClassName || "qx.data.Array";
               } else
                 toDef.check = "Array";
             }
-            
+
             if ((fromDef.map || fromDef.array) && fromDef.create)
               strConstructorCode += "this.set" + upname + "(new " + toDef.check + "());\n";
 
@@ -812,7 +856,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         this.__classInfo[data.className] = data;
 
         // Patch on demand properties
-        for ( var i = 0; i < onDemandProperties.length; i++) {
+        for (var i = 0; i < onDemandProperties.length; i++) {
           var propDef = onDemandProperties[i];
           this.__addOnDemandProperty(clazz, propDef.name, propDef.readOnly || false);
         }
@@ -823,7 +867,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       // Create dependent classes
-      for ( var i = 0; i < deferredTypes.length; i++)
+      for (var i = 0; i < deferredTypes.length; i++)
         this.getClassOrCreate(deferredTypes[i]);
 
       // Done
@@ -833,7 +877,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Adds an on-demand property
      */
-    __addOnDemandProperty : function(clazz, propName, readOnly) {
+    __addOnDemandProperty: function(clazz, propName, readOnly) {
       var upname = qx.lang.String.firstUp(propName);
       clazz.prototype["get" + upname] = function() {
         return this._getPropertyOnDemand(propName);
@@ -849,7 +893,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Returns the class definition received from the server for a named class
      */
-    getClassInfo : function(className) {
+    getClassInfo: function(className) {
       var info = this.__classInfo[className];
       qx.core.Assert.assertNotNull(info);
       return info;
@@ -858,18 +902,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Serialises a value for sending to the server
      */
-    serializeValue : function(value) {
+    serializeValue: function(value) {
       if (!value)
         return value;
       var to = typeof value;
-      if (["boolean", "number", "string"].indexOf(to) > -1)
+      if ([ "boolean", "number", "string" ].indexOf(to) > -1)
         return value;
-      if (["function", "symbol"].indexOf(to) > -1) {
+      if ([ "function", "symbol" ].indexOf(to) > -1) {
         this.error("Cannot serialize an object of type " + to + " to the server");
         return null;
       }
-      
-      // If serialising an entire array or map, then it will no longer be dirty; this is important
+
+      // If serialising an entire array or map, then it will no longer be dirty;
+      // this is important
       // otherwise the subsequent change records will cause duplicate entries
       if (value && this.__queuingCommandsForServer && this.__dirtyArrays && typeof value.toHashCode == "function") {
         delete this.__dirtyArrays[value.toHashCode()];
@@ -877,7 +922,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       if (value instanceof com.zenesis.qx.remote.Map) {
         var result = {};
-        for ( var keys = value.getKeys(), i = 0; i < keys.getLength(); i++) {
+        for (var keys = value.getKeys(), i = 0; i < keys.getLength(); i++) {
           var key = keys.getItem(i);
           result[key] = this.serializeValue(value.get(key));
         }
@@ -889,7 +934,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       if (qx.lang.Type.isArray(value)) {
         var send = [];
-        for ( var j = 0; j < value.length; j++) {
+        for (var j = 0; j < value.length; j++) {
           if (typeof value[j] === "undefined" || value[j] === null)
             send[j] = null;
           else
@@ -914,9 +959,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return null;
       }
 
-      // Assume it's an ordinary map object; deliberately not using hasOwnProperty()
+      // Assume it's an ordinary map object; deliberately not using
+      // hasOwnProperty()
       var result = {};
-      for (var name in value) {
+      for ( var name in value) {
         result[name] = this.serializeValue(value[name]);
       }
       return result;
@@ -933,7 +979,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param args
      *          {Array} the arguments passed to the method
      */
-    callServerMethod : function(serverObject, methodName, args) {
+    callServerMethod: function(serverObject, methodName, args) {
       var isClass = serverObject && serverObject.$$type !== undefined && serverObject.$$type === "Class";
       var methodDef;
       if (isClass) {
@@ -950,27 +996,27 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // Serialise the request
       var parameters = [];
       var notify = [];
-      for ( var i = 0; i < args.length; i++) {
+      for (var i = 0; i < args.length; i++) {
         if (typeof args[i] == "function")
           notify.push(args[i]);
         else
           parameters.push(this.serializeValue(args[i]));
       }
       var data = {
-        cmd : "call",
-        serverId : isClass ? serverObject.classname : serverObject.getServerId(), 
-        methodName : methodName,
+        cmd: "call",
+        serverId: isClass ? serverObject.classname : serverObject.getServerId(),
+        methodName: methodName,
         asyncId: ++this.__asyncId,
-        parameters : parameters
+        parameters: parameters
       };
 
       var methodResult = undefined;
-      
+
       // Add index for tracking multiple, asynchronous callbacks
       this.__asyncCallback[data.asyncId] = function(result) {
         if (!this.getException()) {
           if (methodDef) {// On-Demand property accessors don't have a method
-                          // definition
+            // definition
             if (methodDef.returnArray == "wrap") {
               if (!!methodDef.map)
                 result = new com.zenesis.qx.remote.Map(result);
@@ -979,8 +1025,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
           }
         }
-        
-        for ( var i = 0; i < notify.length; i++)
+
+        for (var i = 0; i < notify.length; i++)
           notify[i].call(serverObject, result);
 
         // Store in the cache and return (not available for static methods)
@@ -992,14 +1038,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         methodResult = result;
       }.bind(this);
-      
+
       // Call the server
       this._sendCommandToServer(data, notify.length != 0);
 
       return methodResult;
     },
-    
-    
+
     /**
      * Handler for "change" event on properties with arrays wrapped by
      * qx.data.Array. For use only by Proxy.
@@ -1011,7 +1056,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param propDef
      *          {Map} the property definition
      */
-    onWrappedArrayChange : function(evt, serverObject, propDef) {
+    onWrappedArrayChange: function(evt, serverObject, propDef) {
       if (propDef.readOnly)
         return;
       // Changing a property from the server
@@ -1034,9 +1079,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var info = this.__dirtyArrays[array.toHashCode()];
       if (!info)
         info = this.__dirtyArrays[array.toHashCode()] = {
-          array : array,
-          serverObject : serverObject,
-          propertyName : propDef.name
+          array: array,
+          serverObject: serverObject,
+          propertyName: propDef.name
         };
       if (array instanceof qx.data.Array) {
         if (!info.added)
@@ -1078,23 +1123,23 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Queues all the dirty arrays ready to flush them to the server
      */
-    _queueDirtyArrays : function() {
+    _queueDirtyArrays: function() {
       if (!this.__dirtyArrays)
         return;
-      for (var arrHash in this.__dirtyArrays) {
+      for ( var arrHash in this.__dirtyArrays) {
         var info = this.__dirtyArrays[arrHash];
         var queue = {
-          cmd : "edit-array",
-          serverId : info.serverObject.getServerId(),
-          propertyName : info.propertyName,
+          cmd: "edit-array",
+          serverId: info.serverObject.getServerId(),
+          propertyName: info.propertyName,
           type: "update"
         };
         if (info.array instanceof qx.data.Array) {
           queue.removed = this.serializeValue(info.removed);
           queue.added = this.serializeValue(info.added);
           queue.array = this.serializeValue(info.array);
-          
-        // Must be a Map
+
+          // Must be a Map
         } else {
           queue.removed = this.serializeValue(info.removed);
           queue.put = this.serializeValue(info.put);
@@ -1108,9 +1153,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Mark an object as disposed on the client and needing to have the
      * corresponding server object remove from the session tracker
      * 
-     * @param obj {Object}
+     * @param obj
+     *          {Object}
      */
-    disposeServerObject : function(obj) {
+    disposeServerObject: function(obj) {
       if (!this.__disposedServerObjects)
         this.__disposedServerObjects = {};
       var serverId = obj.getServerId();
@@ -1120,7 +1166,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Queues all disposed client objects to notify the server
      */
-    _queueDisposedServerObjects : function() {
+    _queueDisposedServerObjects: function() {
       var objects = this.__disposedServerObjects;
       if (!objects)
         return;
@@ -1129,8 +1175,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         arr.push(serverId);
       if (arr.length) {
         this._queueCommandToServer({
-          cmd : "dispose",
-          serverIds : arr
+          cmd: "dispose",
+          serverIds: arr
         });
       }
       this.__disposedServerObjects = null;
@@ -1146,28 +1192,28 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param value
      *          {Object?} the value to set the property to
      */
-    setPropertyValue : function(serverObject, propertyName, value, oldValue) {
+    setPropertyValue: function(serverObject, propertyName, value, oldValue) {
       if (this.__inConstructor)
         return;
       var pd = serverObject.getPropertyDef(propertyName);
-      
+
       if (!this.isSettingProperty(serverObject, propertyName)) {
         // Skip changing date instances if they are equivalent
         if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime())
           return;
-  
+
         var data = {
-          cmd : "set",
-          serverId : serverObject.getServerId(),
-          propertyName : propertyName,
-          value : this.serializeValue(value)
+          cmd: "set",
+          serverId: serverObject.getServerId(),
+          propertyName: propertyName,
+          value: this.serializeValue(value)
         };
         var def = this.__classInfo[serverObject.classname];
-        
+
         if (pd.sync == "queue") {
           var queue = this.__queue;
           if (queue)
-            for ( var i = 0; i < queue.length; i++) {
+            for (var i = 0; i < queue.length; i++) {
               var qd = queue[i];
               if (qd.cmd == "set" && qd.serverId == serverObject.getServerId() && qd.propertyName == propertyName) {
                 queue.splice(i, 1);
@@ -1188,11 +1234,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Called by Proxy when cached property value is expired; causes the expire
      * method to be queued to the server
      */
-    expireProperty : function(serverObject, propertyName) {
+    expireProperty: function(serverObject, propertyName) {
       var data = {
-        cmd : "expire",
-        serverId : serverObject.getServerId(),
-        propertyName : propertyName
+        cmd: "expire",
+        serverId: serverObject.getServerId(),
+        propertyName: propertyName
       };
       this._queueCommandToServer(data);
     },
@@ -1201,7 +1247,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Called internally to set a property value that has been received from the
      * server; this must suppress property-set events being triggered
      */
-    setPropertyValueFromServer : function(serverObject, propertyName, value) {
+    setPropertyValueFromServer: function(serverObject, propertyName, value) {
       var savePropertyObject = this.__setPropertyObject;
       var savePropertyName = this.__setPropertyName;
       this.__setPropertyObject = serverObject;
@@ -1209,10 +1255,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       try {
         var def = serverObject.getPropertyDef(propertyName);
         var upname = qx.lang.String.firstUp(propertyName);
-        
-        // If there is a property definition, and the value is not a Proxied instance, then
-        //  we coerce the value; EG dates are converted from strings, scalar arrays are merged
-        //  into qx.data.Array, etc
+
+        // If there is a property definition, and the value is not a Proxied
+        // instance, then
+        // we coerce the value; EG dates are converted from strings, scalar
+        // arrays are merged
+        // into qx.data.Array, etc
         if (def && (!value || value.$$proxy === undefined)) {
           if (def.check && def.check == "Date") {
             value = value !== null ? new Date(value) : null;
@@ -1221,9 +1269,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (value == null) {
               serverObject["set" + upname](null);
             } else {
-              
-              // For arrays and maps we try to not replace the object, instead preferring to
-              //  edit the existing object if there is one.
+
+              // For arrays and maps we try to not replace the object, instead
+              // preferring to
+              // edit the existing object if there is one.
               var current = undefined;
               if (def.onDemand === true) {
                 if (serverObject.$$proxyUser)
@@ -1231,29 +1280,29 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               } else {
                 try {
                   current = serverObject["get" + upname]();
-                }catch(ex) {
+                } catch (ex) {
                   // Nothing - property not be ready yet
                 }
               }
-              
+
               var arrayClass;
               if ((def.map || def.array) && def.arrayClass)
                 arrayClass = qx.Class.getByName(def.arrayClass.className);
-              
+
               // Maps
               if (!!def.map) {
                 if (current === null) {
-                  value = new (arrayClass||com.zenesis.qx.remote.Map)(value);
+                  value = new (arrayClass || com.zenesis.qx.remote.Map)(value);
                   serverObject["set" + upname](value);
                 } else {
                   current.replaceAll(value);
                 }
 
-              // Arrays
+                // Arrays
               } else {
                 value = qx.lang.Array.cast(value, Array);
                 if (current === null || current === undefined) {
-                  var arr = new (arrayClass||qx.data.Array)();
+                  var arr = new (arrayClass || qx.data.Array)();
                   arr.append(value);
                   serverObject["set" + upname](arr);
                 } else {
@@ -1265,9 +1314,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             return;
           }
         }
-        
+
         serverObject["set" + upname](value);
-        
+
       } catch (e) {
         this.error(e);
         throw e;
@@ -1281,7 +1330,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Detects whether the property is currently being set (i.e. from the
      * server)
      */
-    isSettingProperty : function(serverObject, propertyName) {
+    isSettingProperty: function(serverObject, propertyName) {
       return this.__setPropertyObject == serverObject && this.__setPropertyName == propertyName;
     },
 
@@ -1294,7 +1343,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param eventName
      *          {Object} event name
      */
-    addServerListener : function(serverObject, eventName) {
+    addServerListener: function(serverObject, eventName) {
       var className = serverObject.classname;
       var def = this.__classInfo[className];
       var event = serverObject.getEventDef(eventName);
@@ -1310,9 +1359,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // Queue the addListener to the server
       event.numListeners = (event.numListeners || 0) + 1;
       var data = {
-        cmd : "listen",
-        serverId : serverObject.getServerId(),
-        eventName : eventName
+        cmd: "listen",
+        serverId: serverObject.getServerId(),
+        eventName: eventName
       };
       this._queueCommandToServer(data);
     },
@@ -1326,7 +1375,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param eventName
      *          {Object} event name
      */
-    removeServerListener : function(serverObject, eventName) {
+    removeServerListener: function(serverObject, eventName) {
       var className = serverObject.classname;
       var def = this.__classInfo[className];
       var event = def.events && def.events[eventName];
@@ -1342,9 +1391,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       event.numListeners--;
       qx.core.Assert.assertTrue(event.numListeners >= 0);
       var data = {
-        cmd : "unlisten",
-        serverId : serverObject.getServerId(),
-        eventName : eventName
+        cmd: "unlisten",
+        serverId: serverObject.getServerId(),
+        eventName: eventName
       };
       this._queueCommandToServer(data);
     },
@@ -1361,8 +1410,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Boolean?} if true, connection is async, default is false
      * @returns
      */
-    flushQueue : function(force, async) {
-      this._sendCommandToServer(!!force ? { cmd : "poll" } : null, async);
+    flushQueue: function(force, async) {
+      this._sendCommandToServer(!!force ? {
+        cmd: "poll"
+      } : null, async);
     },
 
     /**
@@ -1377,9 +1428,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          synchronous)
      * @return {String} the server response
      */
-    _sendCommandToServer : function(obj, async) {
-      // We must not allow recursive commands, otherwise a partially formed request can be sent to the server
-      //  so we just queue it instead.
+    _sendCommandToServer: function(obj, async) {
+      var startTime = new Date().getTime();
+      
+      // We must not allow recursive commands, otherwise a partially formed
+      // request can be sent to the server
+      // so we just queue it instead.
       if (this.__queuingCommandsForServer) {
         if (!this.__queue)
           this.__queue = [];
@@ -1387,18 +1441,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return;
       }
       this.__queuingCommandsForServer = true;
-      
+
       try {
         // Queue any client-created object which need to be sent to the server
         this._queueClientObjects();
-  
+
         // Queue any dirty arrays
         this._queueDirtyArrays();
-  
+
         // Queue any objects which can be removed from the server
         this._queueDisposedServerObjects();
-        
-        // Allow listeners to 
+
+        // Allow listeners to
         this.fireEvent("queuePending");
       } finally {
         this.__queuingCommandsForServer = false;
@@ -1419,35 +1473,44 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var text = qx.lang.Json.stringify(obj);
       var req = new qx.io.remote.Request(this.getProxyUrl(), "POST", "text/plain");
       req.setAsynchronous(!!async);
+      req.setTimeout(this.getTimeout());
       if (this.__sessionId)
         req.setRequestHeader("X-ProxyManager-SessionId", this.__sessionId);
+      req.setRequestHeader("X-ProxyManager-SHA1", com.zenesis.qx.remote.Sha1.digest(text));
       req.setData(text);
-      if (typeof async == "function")
-        req.setUserData("asyncOnCompleteCallback", async);
-      
-      // You must set the character encoding explicitly; even if the page is served as UTF8 and everything else is
-      //  UTF8, not specifying will lead to the server screwing up decoding (presumably the default charset for the 
-      //  JVM).
+
+      // You must set the character encoding explicitly; even if the page is
+      // served as UTF8 and everything else is
+      // UTF8, not specifying will lead to the server screwing up decoding
+      // (presumably the default charset for the
+      // JVM).
       var charset = document.characterSet || document.charset || "UTF-8";
       req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=" + charset);
 
       // Send it
       if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-        console.log("Sending to server: " + text); // Use console.log because LogAppender would cause recursive logging
+        console.log("Sending to server: " + text); // Use console.log because
+                                                    // LogAppender would cause
+                                                    // recursive logging
 
       req.addListener("completed", this._processResponse, this);
       req.addListener("failed", this._processResponse, this);
       req.addListener("timeout", this._processResponse, this);
+      req.setUserData("proxyData", { 
+        async: async,
+        startTime: startTime,
+        postTime: new Date().getTime()
+      });
       if (this.__preRequestCallback)
         this.__preRequestCallback.call(this, req);
       req.send();
       this.__numberOfCalls++;
     },
-    
+
     /**
      * Queues a command to the server
      */
-    _queueCommandToServer : function(obj) {
+    _queueCommandToServer: function(obj) {
       var queue = this.__queue;
       if (!queue)
         this.__queue = queue = [];
@@ -1460,26 +1523,28 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * to the server and adds them to the queue (i.e. processes all
      * pendingClientObject's).
      */
-    _queueClientObjects : function() {
+    _queueClientObjects: function() {
       if (!this.__clientObjects)
         return;
       var queue = this.__queue;
       if (!queue)
         this.__queue = queue = [];
-      for (var id in this.__clientObjects) {
+      for ( var id in this.__clientObjects) {
         var clientObject = this.__clientObjects[id];
 
         // Array index is set to null when received back from the server
         if (!clientObject || clientObject.getSentToServer())
           continue;
-        
+
         this._queueClientObject(id);
       }
     },
-    
+
     /**
      * Queues an individual client object
-     * @param clientId {Integer}
+     * 
+     * @param clientId
+     *          {Integer}
      */
     _queueClientObject: function(clientId) {
       var clientObject = this.__clientObjects && this.__clientObjects[clientId];
@@ -1488,20 +1553,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (clientObject.getSentToServer())
         return;
       this.debug("Queuing client object " + clientObject.toHashCode() + " client id " + clientId);
-      
+
       var queue = this.__queue;
       if (!queue)
         this.__queue = queue = [];
-      
+
       // Send it
       clientObject.setSentToServer();
       var className = clientObject.classname;
       var def = this.__classInfo[className];
       var data = {
-        cmd : "new",
-        className : className,
-        clientId : clientObject.getServerId(),
-        properties : {}
+        cmd: "new",
+        className: className,
+        clientId: clientObject.getServerId(),
+        properties: {}
       };
       for (; def; def = def.extend) {
         if (def.properties)
@@ -1509,15 +1574,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             var pd = def.properties[propName];
             if (!pd.readOnly && !pd.onDemand) {
               var value = undefined;
-              
-              // If the get method is a standard Qooxdoo get method, then we access the property
-              //  value directly so that we can detect uninitialised property values; this allows
-              //  to not send property values to the server unless necessary, so that server 
-              //  defaults are not overridden
+
+              // If the get method is a standard Qooxdoo get method, then we
+              // access the property
+              // value directly so that we can detect uninitialised property
+              // values; this allows
+              // to not send property values to the server unless necessary, so
+              // that server
+              // defaults are not overridden
               var value = clientObject["$$runtime_" + propName];
               if (value === undefined)
                 value = clientObject["$$user_" + propName];
-              
+
               if (value !== undefined)
                 data.properties[propName] = this.serializeValue(value);
             }
@@ -1529,10 +1597,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Apply callback for pollServer property
      * 
-     * @param value {Boolean}
-     * @param oldValue {Boolean}
+     * @param value
+     *          {Boolean}
+     * @param oldValue
+     *          {Boolean}
      */
-    _applyPollServer : function(value, oldValue) {
+    _applyPollServer: function(value, oldValue) {
       this._killPollTimer();
       if (value)
         this._startPollTimer();
@@ -1541,10 +1611,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Apply callback for pollFrqeuency property
      * 
-     * @param value {Integer}
-     * @param oldValue {Integer}
+     * @param value
+     *          {Integer}
+     * @param oldValue
+     *          {Integer}
      */
-    _applyPollFrequency : function(value, oldValue) {
+    _applyPollFrequency: function(value, oldValue) {
       this._killPollTimer();
       this._startPollTimer();
     },
@@ -1552,7 +1624,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Kills the timer that polls the server
      */
-    _killPollTimer : function() {
+    _killPollTimer: function() {
       if (this.__pollTimerId) {
         clearTimeout(this.__pollTimerId);
         this.__pollTimerId = null;
@@ -1563,7 +1635,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Starts the timer that will poll the server; has no effect if pollServer
      * property is false
      */
-    _startPollTimer : function() {
+    _startPollTimer: function() {
       if (this.__pollTimerId) {
         this.debug("ProxyManager poll timer already exists");
         this._killPollTimer();
@@ -1575,8 +1647,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Callback for polling the server
      */
-    __onPollTimeout : function() {
-      //this.debug("poll");
+    __onPollTimeout: function() {
+      // this.debug("poll");
       this.__pollTimerId = null;
       this.flushQueue(true, true);
     },
@@ -1584,14 +1656,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Returns the number of calls to the server
      */
-    getNumberOfCalls : function() {
+    getNumberOfCalls: function() {
       return this.__numberOfCalls;
     },
 
     /**
      * Returns the server object with a given ID
      */
-    getServerObject : function(serverId) {
+    getServerObject: function(serverId) {
       if (serverId < 0)
         return this.__clientObjects[0 - serverId];
 
@@ -1601,13 +1673,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Returns the proxy definition for a named method
      * 
-     * @param serverObject {Object}
-     *          the object to get the method from
+     * @param serverObject
+     *          {Object} the object to get the method from
      * @param methodName
      *          {String} the name of the method
      */
-    _getMethodDef : function(serverObject, methodName) {
-      for ( var def = serverObject.$$proxyDef; def; def = def.extend) {
+    _getMethodDef: function(serverObject, methodName) {
+      for (var def = serverObject.$$proxyDef; def; def = def.extend) {
         if (def.methods) {
           var methodDef = def.methods[methodName];
           if (methodDef)
@@ -1627,13 +1699,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param cause
      *          {String} the cause: "property" or "function"
      */
-    _handleServerException : function(data, cause) {
+    _handleServerException: function(data, cause) {
       // this.error("Exception from server: " + data.exceptionClass + ": " +
       // data.message);
       this._setException(new Error("Exception at server: " + cause + " " + data));
     },
 
-    _setException : function(e) {
+    _setException: function(e) {
       this.__exception = e;
       this.fireDataEvent("exception", e);
     },
@@ -1643,7 +1715,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * 
      * @return {Error?} null if there is no exception to return
      */
-    clearException : function() {
+    clearException: function() {
       var ex = this.__exception;
       this.__exception = null;
       return ex;
@@ -1654,17 +1726,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * 
      * @return {Error?} null if there is no exception to return
      */
-    getException : function() {
+    getException: function() {
       return this.__exception;
     },
-    
+
     /**
      * Sets a method to be called before the request is sent
      */
     setPreRequestCallback: function(callback) {
       this.__preRequestCallback = callback;
     },
-    
+
     /**
      * Returns the callback
      */
@@ -1675,7 +1747,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Utility method to describe an exception
      */
-    __describeException : function(e) {
+    __describeException: function(e) {
       var desc = "";
       if (typeof e == "string")
         return e;
@@ -1698,16 +1770,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     }
   },
 
-  statics : {
-    __initialised : false,
-    __instance : null,
+  statics: {
+    __initialised: false,
+    __instance: null,
 
-    __NON_NULLABLE_DEFAULTS : {
-      "Boolean" : false,
-      "Number" : 0,
-      "Integer" : 0,
-      "String" : "",
-      "Date" : function() {
+    __NON_NULLABLE_DEFAULTS: {
+      "Boolean": false,
+      "Number": 0,
+      "Integer": 0,
+      "String": "",
+      "Date": function() {
         return new Date();
       }
     },
@@ -1716,7 +1788,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Called to set the singleton global instance that will be used to send
      * data
      */
-    setInstance : function(instance) {
+    setInstance: function(instance) {
       if (this.__instance && instance)
         this.warn("Overwriting existing instance " + this.__instance + " with " + instance);
       this.__instance = instance;
@@ -1725,18 +1797,23 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Returns the current instance
      */
-    getInstance : function() {
+    getInstance: function() {
       return this.__instance;
     },
-    
+
     // Client mixins to add to server classes
     __mixins: {},
-    
+
     /**
      * Adds a mixin for a server class
-     * @param className {String} the name of the server class
-     * @param mixin {Mixin} the mixin to add
-     * @param patch {Boolean?} if true patch is used instead of include, default false
+     * 
+     * @param className
+     *          {String} the name of the server class
+     * @param mixin
+     *          {Mixin} the mixin to add
+     * @param patch
+     *          {Boolean?} if true patch is used instead of include, default
+     *          false
      */
     addMixin: function(className, mixin, patch) {
       if (qx.Class.getByName(className) != null)
@@ -1744,9 +1821,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var mis = this.__mixins[className];
       if (mis === undefined)
         mis = this.__mixins[className] = [];
-      mis.push({ mixin: mixin, patch: patch });
+      mis.push({
+        mixin: mixin,
+        patch: patch
+      });
     },
-    
+
     /**
      * Calls a static method on the server
      */
@@ -1760,7 +1840,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     }
 
   },
-  
+
   environment: {
     "com.zenesis.qx.remote.trace": false
   }

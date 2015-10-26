@@ -111,7 +111,8 @@ qx.Class.define("demoapp.Application", {
 
       var cont = new com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer();
       cont.set({
-        list: new qx.data.Array()
+        list: new qx.data.Array(),
+        map: new com.zenesis.qx.remote.Map()
       });
       cont.getList().push(new com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer$Child().set({
         name: "alpha"
@@ -122,6 +123,9 @@ qx.Class.define("demoapp.Application", {
       cont.getList().push(new com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer$Child().set({
         name: "charlie"
       }));
+      cont.getMap().put("alpha", "one");
+      cont.getMap().put("bravo", "two");
+      cont.getMap().put("charlie", "three");
       cont.test();
 
       var pippo1 = new com.zenesis.qx.remote.test.simple.Pippo();

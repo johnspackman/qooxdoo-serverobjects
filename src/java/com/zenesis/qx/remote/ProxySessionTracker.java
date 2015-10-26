@@ -313,7 +313,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 	private final Class<? extends Proxied> bootstrapClass;
 	private Proxied bootstrap;
 	private final String sessionId;
-	protected static int s_serialNo;
+	private final int serialNo;
+	private static int s_serialNo;
 
 	/**
 	 * Creates a tracker for a session; if bootstrapClass is null you must override
@@ -324,7 +325,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 		super();
 		this.bootstrapClass = bootstrapClass;
 		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled());
-		sessionId = UUID.randomUUID() + ":" + (++s_serialNo); 
+		serialNo = ++s_serialNo;
+		sessionId = UUID.randomUUID() + ":" + serialNo; 
 	}
 	
 	/**
@@ -336,7 +338,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 		super();
 		this.bootstrapClass = bootstrapClass;
 		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
-		sessionId = UUID.randomUUID() + ":" + (++s_serialNo); 
+		serialNo = ++s_serialNo;
+		sessionId = UUID.randomUUID() + ":" + serialNo; 
 	}
 	
 	/**
@@ -344,12 +347,14 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 * createBootstrap() 
 	 * @param bootstrapClass
 	 */
-	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir, String sessionId) {
+	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir, String sessionPrefix) {
 		super();
 		this.bootstrapClass = bootstrapClass;
 		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
-		if (sessionId == null)
-			sessionId = UUID.randomUUID() + ":" + (++s_serialNo);
+		serialNo = ++s_serialNo;
+		String sessionId = UUID.randomUUID() + ":" + serialNo;
+		if (sessionPrefix != null)
+			sessionId = sessionPrefix + sessionId;
 		this.sessionId = sessionId;
 	}
 	
@@ -424,6 +429,13 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 */
 	public String getSessionId() {
 		return sessionId;
+	}
+
+	/**
+	 * @return the serialNo
+	 */
+	public int getSerialNo() {
+		return serialNo;
 	}
 
 	@Override

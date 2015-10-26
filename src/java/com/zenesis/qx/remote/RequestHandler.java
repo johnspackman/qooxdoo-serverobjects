@@ -544,10 +544,10 @@ public class RequestHandler {
 		if (propClass.isSubclassOf(Proxied.class)) {
 			
 			if (propClass.isArray() || propClass.isCollection()) {
-				value = readArray(jp, propClass.getJavaType());
+				value = readArray(jp, propClass.getCollectionClass(), propClass.getJavaType());
 				
 			} else if (propClass.isMap()) {
-				value = readMap(jp, propClass.getKeyClass(), propClass.getJavaType());
+				value = readMap(jp, propClass.getCollectionClass(), propClass.getKeyClass(), propClass.getJavaType());
 				
 			} else {
 				Integer id = jp.readValueAs(Integer.class);
@@ -556,10 +556,10 @@ public class RequestHandler {
 			}
 		} else {
 			if (propClass.isArray() || propClass.isCollection()) {
-				value = readArray(jp, propClass.getJavaType());
+				value = readArray(jp, propClass.getCollectionClass(), propClass.getJavaType());
 				
 			} else if (propClass.isMap()) {
-				value = readMap(jp, propClass.getKeyClass(), propClass.getJavaType());
+				value = readMap(jp, propClass.getCollectionClass(), propClass.getKeyClass(), propClass.getJavaType());
 				
 			} else {
 				value = jp.readValueAs(Object.class);
@@ -626,8 +626,8 @@ public class RequestHandler {
 		ProxyProperty prop = getProperty(type, propertyName);
 		
 		if (prop.getPropertyClass().isMap()) {
-			Object removed = readOptionalArray(jp, "removed", prop.getPropertyClass().getKeyClass());
-			Map put = readOptionalMap(jp, "put", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
+			Object removed = readOptionalArray(jp, ArrayList.class, "removed", prop.getPropertyClass().getKeyClass());
+			Map put = readOptionalMap(jp, prop.getPropertyClass().getCollectionClass(), "put", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
 			
 			// Quick logging
 			if (log.isInfoEnabled())
@@ -652,9 +652,9 @@ public class RequestHandler {
 			jp.nextToken();
 		} else {
 			Class clazz = prop.getPropertyClass().getJavaType();
-			Object removed = readOptionalArray(jp, "removed", clazz);
-			Object added = readOptionalArray(jp, "added", clazz);
-			Object array = readOptionalArray(jp, "array", clazz);
+			Object removed = readOptionalArray(jp, ArrayList.class, "removed", clazz);
+			Object added = readOptionalArray(jp, ArrayList.class, "added", clazz);
+			Object array = readOptionalArray(jp, ArrayList.class, "array", clazz);
 			if (log.isInfoEnabled())
 				log.info("edit-array: update array: property=" + prop + 
 						", removed=" + DiagUtils.arrayToString(removed) + 
@@ -701,7 +701,7 @@ public class RequestHandler {
 		ProxyProperty prop = getProperty(type, propertyName);
 		
 		if (prop.getPropertyClass().isMap()) {
-			Map items = readOptionalMap(jp, "items", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
+			Map items = readOptionalMap(jp, HashMap.class, "items", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
 			if (log.isInfoEnabled())
 				log.info("edit-array: replaceAll map: property=" + prop + ", items=" + DiagUtils.mapToString(items));
 			
@@ -719,7 +719,7 @@ public class RequestHandler {
 			// NOTE: items is an Array!!  But because it may be an array of primitive types, we have
 			//	to use java.lang.reflect.Array to access members because we cannot cast arrays of
 			//	primitives to Object[]
-			Object items = readOptionalArray(jp, "items", prop.getPropertyClass().getJavaType());
+			Object items = readOptionalArray(jp, ArrayList.class, "items", prop.getPropertyClass().getJavaType());
 			if (log.isInfoEnabled())
 				log.info("edit-array: replaceAll array: property=" + prop + ", items=" + DiagUtils.arrayToString(items));
 			
@@ -797,19 +797,18 @@ public class RequestHandler {
 				ProxyProperty prop = getProperty(type, propertyName);
 				MetaClass propClass = prop.getPropertyClass();
 				Object value = null;
-				if (propClass.isSubclassOf(Proxied.class)) {
+				
+				if (propClass.isArray() || propClass.isCollection()) {
+					value = readArray(jp, propClass.getCollectionClass(), propClass.getJavaType());
 					
-					if (propClass.isArray() || propClass.isCollection()) {
-						value = readArray(jp, propClass.getJavaType());
-						
-					} else if (propClass.isMap()) {
-						value = readMap(jp, propClass.getKeyClass(), propClass.getJavaType());
-						
-					} else {
-						Integer id = jp.readValueAs(Integer.class);
-						if (id != null)
-							value = getProxied(id);
-					}
+				} else if (propClass.isMap()) {
+					value = readMap(jp, propClass.getCollectionClass(), propClass.getKeyClass(), propClass.getJavaType());
+					
+				} else if (propClass.isSubclassOf(Proxied.class)) {
+					Integer id = jp.readValueAs(Integer.class);
+					if (id != null)
+						value = getProxied(id);
+					
 				} else {
 					value = jp.readValueAs(Object.class);
 					if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
@@ -983,7 +982,7 @@ public class RequestHandler {
 				if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
 					result.add(null);
 				else if (jp.getCurrentToken() == JsonToken.START_ARRAY) {
-					Object obj = readArray(jp, type.getComponentType());
+					Object obj = readArray(jp, ArrayList.class, type.getComponentType());
 					result.add(obj);
 				} else
 					throw new IllegalStateException("Expected array but found " + jp.getCurrentToken());
@@ -1020,14 +1019,21 @@ public class RequestHandler {
 	 * @return
 	 * @throws IOException
 	 */
-	private Object readArray(JsonParser jp, Class clazz) throws IOException {
+	private Object readArray(JsonParser jp, Class arrayClass, Class clazz) throws IOException {
 		if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
 			return null;
 		
 		if (clazz == null)
 			clazz = Object.class;
 		boolean isProxyClass = Proxied.class.isAssignableFrom(clazz);
-		ArrayList result = new ArrayList();
+		ArrayList result;
+		try {
+			result = (ArrayList)arrayClass.newInstance();
+		}catch(InstantiationException e) {
+			throw new IOException("Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
+		}catch(IllegalAccessException e) {
+			throw new IOException("Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
+		}
 		for (; jp.nextToken() != JsonToken.END_ARRAY;) {
 			if (isProxyClass) {
 				Integer id = jp.readValueAs(Integer.class);
@@ -1063,11 +1069,11 @@ public class RequestHandler {
 	 * @return
 	 * @throws IOException
 	 */
-	private Object readOptionalArray(JsonParser jp, String name, Class clazz) throws IOException {
+	private Object readOptionalArray(JsonParser jp, Class arrayClass, String name, Class clazz) throws IOException {
 		if (jp.nextToken() == JsonToken.FIELD_NAME &&
 				jp.getCurrentName().equals(name) &&
 				jp.nextToken() == JsonToken.START_ARRAY) {
-			return readArray(jp, clazz);
+			return readArray(jp, arrayClass, clazz);
 		}
 		return null;
 	}
@@ -1081,7 +1087,7 @@ public class RequestHandler {
 	 * @return
 	 * @throws IOException
 	 */
-	private Map readMap(JsonParser jp, Class keyClazz, Class clazz) throws IOException {
+	private Map readMap(JsonParser jp, Class mapClass, Class keyClazz, Class clazz) throws IOException {
 		if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
 			return null;
 		
@@ -1090,7 +1096,14 @@ public class RequestHandler {
 		boolean isProxyClass = Proxied.class.isAssignableFrom(clazz);
 		if (keyClazz == null)
 			keyClazz = String.class;
-		HashMap result = new HashMap();
+		Map result;
+		try {
+			result = (Map)mapClass.newInstance();
+		}catch(IllegalAccessException e) {
+			throw new IOException("Cannot create instance of " + mapClass + ": " + e.getMessage(), e);
+		}catch(InstantiationException e) {
+			throw new IOException("Cannot create instance of " + mapClass + ": " + e.getMessage(), e);
+		}
 		for (; jp.nextToken() != JsonToken.END_OBJECT;) {
 			Object key = readSimpleValue(jp, keyClazz);
 			
@@ -1123,11 +1136,11 @@ public class RequestHandler {
 	 * @return
 	 * @throws IOException
 	 */
-	private Map readOptionalMap(JsonParser jp, String name, Class keyClazz, Class valueClazz) throws IOException {
+	private Map readOptionalMap(JsonParser jp, Class mapClass, String name, Class keyClazz, Class valueClazz) throws IOException {
 		if (jp.nextToken() == JsonToken.FIELD_NAME &&
 				jp.getCurrentName().equals(name) &&
 				jp.nextToken() == JsonToken.START_OBJECT) {
-			return readMap(jp, keyClazz, valueClazz);
+			return readMap(jp, mapClass, keyClazz, valueClazz);
 		}
 		return null;
 	}
