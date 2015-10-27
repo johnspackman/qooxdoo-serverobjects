@@ -12,7 +12,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
-import com.zenesis.qx.remote.annotations.ExplicitProxyOnly;
+
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote.Array;
@@ -25,7 +25,7 @@ import com.zenesis.qx.remote.annotations.Remote.Array;
  * @author john
  *
  */
-@ExplicitProxyOnly
+
 public class FileApi implements Proxied {
 	
 	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(FileApi.FileType.class); 

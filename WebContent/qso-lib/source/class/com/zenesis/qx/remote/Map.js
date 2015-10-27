@@ -39,7 +39,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       this.replaceAll(values);
     }
   },
-
+  
   events: {
     /**
      * Fired when the map changes, data is a map containing: type {String} one

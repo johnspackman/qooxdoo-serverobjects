@@ -47,7 +47,6 @@ import com.zenesis.qx.remote.annotations.AlwaysProxy;
 import com.zenesis.qx.remote.annotations.DoNotProxy;
 import com.zenesis.qx.remote.annotations.Event;
 import com.zenesis.qx.remote.annotations.Events;
-import com.zenesis.qx.remote.annotations.ExplicitProxyOnly;
 import com.zenesis.qx.remote.annotations.FactoryMethod;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
@@ -105,7 +104,6 @@ public class ProxyTypeImpl extends AbstractProxyType {
 		 * @param defaultProxy
 		 */
 		public void addMethods(Class fromClass, boolean defaultProxy) {
-			boolean explicitOnly = fromClass.isAnnotationPresent(ExplicitProxyOnly.class);
 			Method[] ifcMethods = fromClass.getDeclaredMethods();
 			for (Method method : ifcMethods) {
 				int mods = method.getModifiers();
@@ -115,7 +113,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 					continue;
 				
 				method.setAccessible(true);// Short cut access controls validation
-				if (explicitOnly && !method.isAnnotationPresent(AlwaysProxy.class) && !method.isAnnotationPresent(com.zenesis.qx.remote.annotations.Method.class))
+				if (!method.isAnnotationPresent(AlwaysProxy.class) && !method.isAnnotationPresent(com.zenesis.qx.remote.annotations.Method.class))
 					continue;
 
 				if (method.isAnnotationPresent(DoNotProxy.class)) {
@@ -273,7 +271,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 				if (tmp.isAnnotationPresent(AlwaysProxy.class)) {
 					defaultProxy = true;
 					break;
-				} else if (tmp.isAnnotationPresent(ExplicitProxyOnly.class)) {
+				} else {
 					break;
 				}
 			}

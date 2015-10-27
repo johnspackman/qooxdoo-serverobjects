@@ -3,7 +3,7 @@ package com.zenesis.qx.remote;
 import java.io.File;
 import java.util.Map;
 
-import com.zenesis.qx.remote.annotations.ExplicitProxyOnly;
+
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 
@@ -20,7 +20,7 @@ import com.zenesis.qx.remote.annotations.Property;
 	@Property(value="bytesUploaded", onDemand=true),
 	@Property("uploadId")
 })
-@ExplicitProxyOnly
+
 public class UploadingFile implements Proxied {
 
 	// Upload ID

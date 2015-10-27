@@ -683,6 +683,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         // Create the JSON definition for qx.Class
         var def;
         var strConstructorCode = null;
+        strDestructorCode = "";
         if (data.isInterface)
           def = {
             members: {},
@@ -810,8 +811,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                 toDef.check = "Array";
             }
 
-            if ((fromDef.map || fromDef.array) && fromDef.create)
+            if ((fromDef.map || fromDef.array) && fromDef.create) {
               strConstructorCode += "this.set" + upname + "(new " + toDef.check + "());\n";
+              strDestructorCode += "var arr = this.get" + upname + "();\n" +
+              		"if (arr && !arr.isDisposed()) {\n" +
+              		"  arr.dispose();\n" +
+              		"  this.set" + upname + "(null);\n" +
+              		"}";
+            }
 
             // Create an apply method
             var applyName = "_apply" + upname;
@@ -844,6 +851,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           var patch = def.patch;
           delete def.patch;
           def.construct = new Function(strConstructorCode);
+          if (strDestructorCode)
+            def.destruct = new Function(strDestructorCode);
           clazz = qx.Class.define(data.className, def);
           if (patch)
             patch.forEach(function(mixin) {
@@ -1255,13 +1264,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       try {
         var def = serverObject.getPropertyDef(propertyName);
         var upname = qx.lang.String.firstUp(propertyName);
-
+        
         // If there is a property definition, and the value is not a Proxied
         // instance, then
         // we coerce the value; EG dates are converted from strings, scalar
         // arrays are merged
         // into qx.data.Array, etc
-        if (def && (!value || value.$$proxy === undefined)) {
+        if (def) {
           if (def.check && def.check == "Date") {
             value = value !== null ? new Date(value) : null;
 
@@ -1292,22 +1301,32 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               // Maps
               if (!!def.map) {
                 if (current === null) {
+                  this.debug("creating Map for " + serverObject.classname + "." + propertyName + " [" + serverObject.toHashCode() + "]");
                   value = new (arrayClass || com.zenesis.qx.remote.Map)(value);
                   serverObject["set" + upname](value);
                 } else {
                   current.replaceAll(value);
+                  value.dispose();
                 }
 
                 // Arrays
               } else {
-                value = qx.lang.Array.cast(value, Array);
                 if (current === null || current === undefined) {
-                  var arr = new (arrayClass || qx.data.Array)();
-                  arr.append(value);
-                  serverObject["set" + upname](arr);
+                  if (value instanceof qx.data.Array)
+                    serverObject["set" + upname](value);
+                  else {
+                    var arr = new (arrayClass || qx.data.Array)();
+                    arr.append(arr);
+                    serverObject["set" + upname](arr);
+                  }
                 } else {
-                  value.unshift(0, current.getLength());
-                  current.splice.apply(current, value);
+                  var arr = value;
+                  if (value instanceof qx.data.Array)
+                    arr = value.toArray();
+                  arr.unshift(0, current.getLength());
+                  current.splice.apply(current, arr).dispose();
+                  if (value instanceof qx.data.Array)
+                    value.dispose();
                 }
               }
             }

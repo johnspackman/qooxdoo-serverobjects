@@ -32,7 +32,7 @@ import java.io.StringWriter;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyTypeManager;
 import com.zenesis.qx.remote.annotations.AlwaysProxy;
-import com.zenesis.qx.remote.annotations.ExplicitProxyOnly;
+
 import com.zenesis.qx.remote.test.AbstractRemoteTestCase;
 
 /**
@@ -66,7 +66,7 @@ public class SerialisationTests5 extends AbstractRemoteTestCase {
 /*
  * Tests that classes can be manually exported
  */
-@ExplicitProxyOnly
+
 class TestManualExport1 implements Proxied {
 
 	@AlwaysProxy
