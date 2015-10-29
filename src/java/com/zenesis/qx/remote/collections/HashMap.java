@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -50,7 +51,17 @@ public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied {
 	@SerializeConstructorArgs
 	public void serializeConstructorArgs(JsonGenerator jgen) throws IOException {
 		jgen.writeStartArray();
-		for (Entry<K,V> entry : superEntrySet()) {
+		Object[] arr;
+		while (true) {
+			try {
+				arr = superEntrySet().toArray();
+				break;
+			} catch(ConcurrentModificationException e) {
+				// Nothing
+			}
+		}
+		for (Object obj : arr) {
+			Entry<K,V> entry = (Entry)obj;
 			jgen.writeStartObject();
 			jgen.writeObjectField("key", entry.getKey());
 			jgen.writeObjectField("value", entry.getValue());

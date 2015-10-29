@@ -28,6 +28,7 @@
 package com.zenesis.qx.remote.test.simple;
 
 import com.zenesis.qx.remote.Proxied;
+import com.zenesis.qx.remote.annotations.Method;
 
 /**
  * Basic tests for scalar values
@@ -40,24 +41,28 @@ public interface ITestScalars extends Proxied {
 	 * Returns 43
 	 * @return
 	 */
+	@Method
 	public int getFourtyThree();
 	
 	/**
 	 * Returns 6.7
 	 * @return
 	 */
+	@Method
 	public float getSixPointSeven();
 	
 	/**
 	 * Returns "Hello World"
 	 * @return
 	 */
+	@Method
 	public String getHelloWorld(); 
 	
 	/**
 	 * Returns [ "Jack", "Jill", "Bill", "Ben" ]
 	 * @return
 	 */
+	@Method
 	public String[] getNames();
 	
 	/**
@@ -65,5 +70,6 @@ public interface ITestScalars extends Proxied {
 	 * @param values
 	 * @return
 	 */
+	@Method
 	public int addUp(int[] values);
 }

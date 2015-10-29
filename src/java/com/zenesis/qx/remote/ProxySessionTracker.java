@@ -197,9 +197,9 @@ public class ProxySessionTracker implements UploadInterceptor {
 					proxyType.serializeConstructorArgs().invoke(proxied, new Object[] { jgen });
 					jgen.writeEndArray();
 				} catch(InvocationTargetException e) {
-					throw new IllegalStateException("Cannot serialize constructor for " + proxied + ": " + e.getMessage(), e);
+					throw new IllegalStateException("Cannot serialize constructor for " + proxied.getClass() + ": " + e.getMessage(), e);
 				} catch(IllegalAccessException e) {
-					throw new IllegalStateException("Cannot serialize constructor for " + proxied + ": " + e.getMessage());
+					throw new IllegalStateException("Cannot serialize constructor for " + proxied.getClass() + ": " + e.getMessage());
 				}
 			}
 		}
@@ -296,6 +296,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	// Mapping all objects that the client knows about against the ID we assigned to them
 	private final HashMap<Integer, Proxied> objectsById = new HashMap<Integer, Proxied>();
 	private final HashMap<Proxied, Integer> objectIds = new HashMap<Proxied, Integer>();
+	private HashSet<Integer> disposedObjectIds;
 	private final HashSet<Proxied> invalidObjects = new HashSet<Proxied>();
 	private final HashSet<PropertyId> knownOnDemandProperties = new HashSet<ProxySessionTracker.PropertyId>();
 	private final HashSet<PropertyId> mutatingProperties = new HashSet<ProxySessionTracker.PropertyId>();
@@ -514,6 +515,11 @@ public class ProxySessionTracker implements UploadInterceptor {
 			objectIds.remove(proxied);
 			objectsById.remove(id);
 			invalidObjects.remove(proxied);
+			if (log.isDebugEnabled()) {
+				if (disposedObjectIds == null)
+					disposedObjectIds = new HashSet();
+				disposedObjectIds.add(id);
+			}
 		}
 	}
 	
@@ -527,6 +533,11 @@ public class ProxySessionTracker implements UploadInterceptor {
 			objectIds.remove(proxied);
 			objectsById.remove(serverId);
 			invalidObjects.remove(proxied);
+			if (log.isDebugEnabled()) {
+				if (disposedObjectIds == null)
+					disposedObjectIds = new HashSet();
+				disposedObjectIds.add(serverId);
+			}
 		}
 	}
 	
@@ -558,8 +569,12 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 */
 	public synchronized Proxied getProxied(int serverId) {
 		Proxied proxied = objectsById.get(serverId);
-		if (proxied == null)
+		if (proxied == null) {
+			if (log.isDebugEnabled() && disposedObjectIds != null)
+				if (disposedObjectIds.contains(serverId))
+					throw new IllegalArgumentException("Cannot find Proxied instance for invalid serverId " + serverId + " - object already disposed");
 			throw new IllegalArgumentException("Cannot find Proxied instance for invalid serverId " + serverId);
+		}
 		return proxied;
 	}
 	

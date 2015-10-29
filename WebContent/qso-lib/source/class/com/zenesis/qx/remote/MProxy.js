@@ -131,9 +131,6 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       var propDef = this.getPropertyDef(propertyName);
       
       if (oldValue && oldValue instanceof qx.core.Object) {
-        if (value)
-          this.warn("Replacing server object " + this.classname + "." + propertyName);
-        
         oldValue.$$proxyOwnerDetached = this;
         delete oldValue.$$proxyOwner;
       }

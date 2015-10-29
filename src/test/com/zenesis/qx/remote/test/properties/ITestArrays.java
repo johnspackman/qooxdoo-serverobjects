@@ -30,6 +30,7 @@ package com.zenesis.qx.remote.test.properties;
 import java.util.ArrayList;
 
 import com.zenesis.qx.remote.Proxied;
+import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote;
@@ -49,16 +50,20 @@ public interface ITestArrays extends Proxied {
 
 	public String[] getScalarArray();
 	public void setScalarArray(String[] values); 
+	@Method
 	public boolean testScalarArray(String[] values);
 	
 	public ArrayList<String> getScalarArrayList(); 
+	@Method
 	public boolean testScalarArrayList(String[] values);
 	
 	public ITestValue[] getObjectArray();
 	public void setObjectArray(ITestValue[] values); 
+	@Method
 	public boolean testObjectArray(ITestValue[] values);
 	
 	public ArrayList<ITestValue> getObjectArrayList(); 
+	@Method
 	public boolean testObjectArrayList(ITestValue[] values);
 	
 }

@@ -30,6 +30,7 @@ package com.zenesis.qx.remote.test.properties;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.annotations.Event;
 import com.zenesis.qx.remote.annotations.Events;
+import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote;
@@ -90,6 +91,7 @@ public interface ITestProperties extends Proxied {
 	 * Log of changes to properties
 	 * @return
 	 */
+	@Method
 	public String getChangeLog();
 	
 	/**
@@ -103,6 +105,7 @@ public interface ITestProperties extends Proxied {
 	/**
 	 * Triggers an event not connected with a property
 	 */
+	@Method
 	public void triggerSomeEvent();
 }
 

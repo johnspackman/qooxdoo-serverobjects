@@ -80,6 +80,7 @@ public class MainTests implements IMainTests {
 	}
 
 	@Override
+	@Method
 	public boolean checkClientTestProperties() {
 		if (clientTestProperties == null || clientTestProperties == testProperties)
 			return false;
@@ -98,6 +99,7 @@ public class MainTests implements IMainTests {
 	}
 
 	@Override
+	@Method
 	public boolean checkNewTestProperties(ITestProperties props) {
 		if (props == null || props == testProperties)
 			return false;

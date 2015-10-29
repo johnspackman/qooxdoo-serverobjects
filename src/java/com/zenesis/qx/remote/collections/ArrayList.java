@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 
 import org.apache.logging.log4j.Logger;
@@ -45,7 +46,16 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied {
 	@SerializeConstructorArgs
 	public void serializeConstructorArgs(JsonGenerator jgen) throws IOException {
 		jgen.writeStartArray();
-		for (Object value : this)
+		Object[] arr;
+		while (true) {
+			try {
+				arr = toArray();
+				break;
+			} catch(ConcurrentModificationException e) {
+				// Nothing
+			}
+		}
+		for (Object value : arr)
 			jgen.writeObject(value);
 		jgen.writeEndArray();
 	}

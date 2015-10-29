@@ -29,6 +29,7 @@ package com.zenesis.qx.remote.test.properties;
 
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.ProxyManager;
+import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
 
 public class TestProperties implements ITestProperties {
@@ -111,6 +112,7 @@ public class TestProperties implements ITestProperties {
 	}
 
 	@Override
+	@Method
 	public void triggerChangeWatchedString() {
 		setWatchedString("Watched=" + (++triggers));
 	}

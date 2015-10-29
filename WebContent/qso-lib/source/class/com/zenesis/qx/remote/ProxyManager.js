@@ -683,7 +683,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         // Create the JSON definition for qx.Class
         var def;
         var strConstructorCode = null;
-        strDestructorCode = "";
+        var strDestructorCode = "";
         if (data.isInterface)
           def = {
             members: {},
@@ -921,6 +921,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         this.error("Cannot serialize an object of type " + to + " to the server");
         return null;
       }
+      
+      if (value instanceof qx.core.Object && value.isDisposed()) {
+        if (!value.$$proxy || !this.__disposedServerObjects[value.getServerId()])
+          throw new Error("Cannot serialise " + value.classname + " [" + value.toHashCode() + "] because it is disposed, object=" + value);
+      }
 
       // If serialising an entire array or map, then it will no longer be dirty;
       // this is important
@@ -995,6 +1000,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var cinfo = this.getClassInfo(serverObject.classname);
         methodDef = cinfo.methods[methodName];
       } else {
+        if (serverObject.isDisposed())
+            throw new Error("Cannot call method " + serverObject.classname + "." + methodName + " on [" + serverObject.toHashCode() + "] because it is disposed, object=" + serverObject);
+        
         methodDef = this._getMethodDef(serverObject, methodName);
         // Can we get it from the cache?
         if (methodDef && methodDef.cacheResult && serverObject.$$proxy.cachedResults
@@ -1265,12 +1273,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var def = serverObject.getPropertyDef(propertyName);
         var upname = qx.lang.String.firstUp(propertyName);
         
-        // If there is a property definition, and the value is not a Proxied
-        // instance, then
-        // we coerce the value; EG dates are converted from strings, scalar
-        // arrays are merged
-        // into qx.data.Array, etc
-        if (def) {
+        // If there is a property definition, and the value is not a Proxied instance, 
+        // then we coerce the value; EG dates are converted from strings, scalar
+        // arrays are merged into qx.data.Array, etc
+        //
+        // However, if it is a proxied object then we cannot merge, we must replace it;
+        // this is true of arrays and maps too (those that implement Proxied) because 
+        // otherwise the server instance changes an object that the client is not using 
+        if (def && (!value || value.$$proxy === undefined)) {
           if (def.check && def.check == "Date") {
             value = value !== null ? new Date(value) : null;
 
@@ -1294,9 +1304,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                 }
               }
 
-              var arrayClass;
-              if ((def.map || def.array) && def.arrayClass)
-                arrayClass = qx.Class.getByName(def.arrayClass.className);
+              var arrayClass = def.arrayClass ? qx.Class.getByName(def.arrayClass.className) : null;
 
               // Maps
               if (!!def.map) {
@@ -1315,16 +1323,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                   if (value instanceof qx.data.Array)
                     serverObject["set" + upname](value);
                   else {
-                    var arr = new (arrayClass || qx.data.Array)();
-                    arr.append(arr);
-                    serverObject["set" + upname](arr);
+                    var dataArray = new (arrayClass || qx.data.Array)();
+                    dataArray.append(value);
+                    serverObject["set" + upname](dataArray);
                   }
                 } else {
-                  var arr = value;
+                  var nativeArray = value;
                   if (value instanceof qx.data.Array)
-                    arr = value.toArray();
-                  arr.unshift(0, current.getLength());
-                  current.splice.apply(current, arr).dispose();
+                    nativeArray = value.toArray();
+                  nativeArray.unshift(0, current.getLength());
+                  current.splice.apply(current, nativeArray).dispose();
                   if (value instanceof qx.data.Array)
                     value.dispose();
                 }
