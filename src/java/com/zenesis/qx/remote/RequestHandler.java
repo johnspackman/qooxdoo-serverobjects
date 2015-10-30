@@ -195,16 +195,18 @@ public class RequestHandler {
 		s_currentHandler.set(this);
 		ObjectMapper objectMapper = tracker.getObjectMapper();
 		try {
-			if (log.isTraceEnabled()) {
-				StringWriter sw = new StringWriter();
+			StringWriter sw = null;
+			if (log.isDebugEnabled()) {
+				sw = new StringWriter();
 				char[] buffer = new char[32 * 1024];
 				int length;
 				while ((length = request.read(buffer)) > 0) {
 					sw.write(buffer, 0, length);
 				}
-				log.trace("Received: " + sw.toString());
 				request = new StringReader(sw.toString());
 			}
+			if (log.isTraceEnabled())
+				log.trace("Received: " + sw.toString());
 			JsonParser jp = objectMapper.getJsonFactory().createJsonParser(request);
 			if (jp.nextToken() == JsonToken.START_ARRAY) {
 				while(jp.nextToken() != JsonToken.END_ARRAY)
