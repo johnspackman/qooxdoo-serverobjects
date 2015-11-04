@@ -194,8 +194,8 @@ public class RequestHandler {
 		}
 		s_currentHandler.set(this);
 		ObjectMapper objectMapper = tracker.getObjectMapper();
+		StringWriter sw = null;
 		try {
-			StringWriter sw = null;
 			if (log.isDebugEnabled()) {
 				sw = new StringWriter();
 				char[] buffer = new char[32 * 1024];
@@ -249,6 +249,8 @@ public class RequestHandler {
 			
 		} catch(Exception e) {
 			log.error("Exception during callback: " + e.getMessage(), e);
+			if (sw != null)
+				log.error("Exception in RequestHandler for data=" + sw.toString());
 			tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
 			objectMapper.writeValue(response, tracker.getQueue());
 			
@@ -873,11 +875,14 @@ public class RequestHandler {
 	 * @return
 	 */
 	protected Proxied getProxied(int id) {
-		Proxied proxied;
-		if (id < 0)
-			proxied = clientObjects.get(id);
-		else
+		Proxied proxied = null;
+		if (id < 0) {
+			if (clientObjects != null)
+				proxied = clientObjects.get(id);
+		} else
 			proxied = tracker.getProxied(id);
+		if (proxied == null)
+			throw new NullPointerException("Cannot find server object with id=" + id);
 		return proxied;
 	}
 	
