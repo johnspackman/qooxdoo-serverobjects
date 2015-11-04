@@ -1314,7 +1314,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                   serverObject["set" + upname](value);
                 } else {
                   current.replaceAll(value);
-                  value.dispose();
+                  if (value instanceof qx.core.Object)
+                    value.dispose();
                 }
 
                 // Arrays
