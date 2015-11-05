@@ -171,16 +171,24 @@ public class RequestHandler {
 		super();
 		this.tracker = tracker;
 	}
-
+	
 	/**
 	 * Handles the callback from the client; expects either an object or an array of objects
+	 * 
+	 * This method needs to be synchronized because if there are multiple requests (where one or more are 
+	 * probably asynchronous) then we could serialise serverObjects in a slow response and the the faster
+	 * response only gets a server object ID ... except that the slow response has not completed yet and
+	 * therefore the fast response has not told the client about the server object. 
+	 * 
+	 * The same is true for client IDs
+	 * 
 	 * @param request
 	 * @param response
 	 * @param sessionId session id passed from the client for validation, ignored if null
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public void processRequest(Reader request, Writer response, String sessionId) throws ServletException, IOException {
+	public synchronized void processRequest(Reader request, Writer response, String sessionId) throws ServletException, IOException {
 		if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
 			if (log.isDebugEnabled()) {
 				StringWriter sw = new StringWriter();
@@ -214,31 +222,34 @@ public class RequestHandler {
 			} else if (jp.getCurrentToken() == JsonToken.START_OBJECT)
 				processCommand(jp);
 	
-			if (tracker.hasDataToFlush()) {
-				Writer actualResponse = response;
-				if (log.isTraceEnabled()) {
-					final Writer tmp = response;
-					actualResponse = new Writer() {
-						@Override
-						public void close() throws IOException {
-							tmp.close();
-						}
-	
-						@Override
-						public void flush() throws IOException {
-							tmp.flush();
-						}
-	
-						@Override
-						public void write(char[] arg0, int arg1, int arg2) throws IOException {
-							System.out.print(new String(arg0, arg1, arg2));
-							tmp.write(arg0, arg1, arg2);
-						}
-					};
+			CommandQueue queue = tracker.getQueue();
+			synchronized(queue) {
+				if (tracker.hasDataToFlush()) {
+					Writer actualResponse = response;
+					if (log.isTraceEnabled()) {
+						final Writer tmp = response;
+						actualResponse = new Writer() {
+							@Override
+							public void close() throws IOException {
+								tmp.close();
+							}
+		
+							@Override
+							public void flush() throws IOException {
+								tmp.flush();
+							}
+		
+							@Override
+							public void write(char[] arg0, int arg1, int arg2) throws IOException {
+								System.out.print(new String(arg0, arg1, arg2));
+								tmp.write(arg0, arg1, arg2);
+							}
+						};
+					}
+					objectMapper.writeValue(actualResponse, queue);
+					if (log.isTraceEnabled())
+						System.out.println();
 				}
-				objectMapper.writeValue(actualResponse, tracker.getQueue());
-				if (log.isTraceEnabled())
-					System.out.println();
 			}
 			
 		} catch(ProxyTypeSerialisationException e) {
