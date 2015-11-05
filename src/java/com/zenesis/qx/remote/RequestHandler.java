@@ -188,85 +188,87 @@ public class RequestHandler {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public synchronized void processRequest(Reader request, Writer response, String sessionId) throws ServletException, IOException {
-		if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
-			if (log.isDebugEnabled()) {
-				StringWriter sw = new StringWriter();
-				char[] buffer = new char[32 * 1024];
-				int len;
-				while ((len = request.read(buffer)) > -1)
-					sw.write(buffer, 0, len);
-				log.debug("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + sw.toString());
-			}
-			throw new IllegalArgumentException("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId);
-		}
-		s_currentHandler.set(this);
-		ObjectMapper objectMapper = tracker.getObjectMapper();
-		StringWriter sw = null;
-		try {
-			if (log.isDebugEnabled()) {
-				sw = new StringWriter();
-				char[] buffer = new char[32 * 1024];
-				int length;
-				while ((length = request.read(buffer)) > 0) {
-					sw.write(buffer, 0, length);
+	public void processRequest(Reader request, Writer response, String sessionId) throws ServletException, IOException {
+		synchronized(tracker) {
+			if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
+				if (log.isDebugEnabled()) {
+					StringWriter sw = new StringWriter();
+					char[] buffer = new char[32 * 1024];
+					int len;
+					while ((len = request.read(buffer)) > -1)
+						sw.write(buffer, 0, len);
+					log.debug("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + sw.toString());
 				}
-				request = new StringReader(sw.toString());
+				throw new IllegalArgumentException("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId);
 			}
-			if (log.isTraceEnabled())
-				log.trace("Received: " + sw.toString());
-			JsonParser jp = objectMapper.getJsonFactory().createJsonParser(request);
-			if (jp.nextToken() == JsonToken.START_ARRAY) {
-				while(jp.nextToken() != JsonToken.END_ARRAY)
-					processCommand(jp);
-			} else if (jp.getCurrentToken() == JsonToken.START_OBJECT)
-				processCommand(jp);
-	
-			CommandQueue queue = tracker.getQueue();
-			synchronized(queue) {
-				if (tracker.hasDataToFlush()) {
-					Writer actualResponse = response;
-					if (log.isTraceEnabled()) {
-						final Writer tmp = response;
-						actualResponse = new Writer() {
-							@Override
-							public void close() throws IOException {
-								tmp.close();
-							}
-		
-							@Override
-							public void flush() throws IOException {
-								tmp.flush();
-							}
-		
-							@Override
-							public void write(char[] arg0, int arg1, int arg2) throws IOException {
-								System.out.print(new String(arg0, arg1, arg2));
-								tmp.write(arg0, arg1, arg2);
-							}
-						};
+			s_currentHandler.set(this);
+			ObjectMapper objectMapper = tracker.getObjectMapper();
+			StringWriter sw = null;
+			try {
+				if (log.isDebugEnabled()) {
+					sw = new StringWriter();
+					char[] buffer = new char[32 * 1024];
+					int length;
+					while ((length = request.read(buffer)) > 0) {
+						sw.write(buffer, 0, length);
 					}
-					objectMapper.writeValue(actualResponse, queue);
-					if (log.isTraceEnabled())
-						System.out.println();
+					request = new StringReader(sw.toString());
 				}
+				if (log.isTraceEnabled())
+					log.trace("Received: " + sw.toString());
+				JsonParser jp = objectMapper.getJsonFactory().createJsonParser(request);
+				if (jp.nextToken() == JsonToken.START_ARRAY) {
+					while(jp.nextToken() != JsonToken.END_ARRAY)
+						processCommand(jp);
+				} else if (jp.getCurrentToken() == JsonToken.START_OBJECT)
+					processCommand(jp);
+		
+				CommandQueue queue = tracker.getQueue();
+				synchronized(queue) {
+					if (tracker.hasDataToFlush()) {
+						Writer actualResponse = response;
+						if (log.isTraceEnabled()) {
+							final Writer tmp = response;
+							actualResponse = new Writer() {
+								@Override
+								public void close() throws IOException {
+									tmp.close();
+								}
+			
+								@Override
+								public void flush() throws IOException {
+									tmp.flush();
+								}
+			
+								@Override
+								public void write(char[] arg0, int arg1, int arg2) throws IOException {
+									System.out.print(new String(arg0, arg1, arg2));
+									tmp.write(arg0, arg1, arg2);
+								}
+							};
+						}
+						objectMapper.writeValue(actualResponse, queue);
+						if (log.isTraceEnabled())
+							System.out.println();
+					}
+				}
+				
+			} catch(ProxyTypeSerialisationException e) {
+				log.fatal("Unable to serialise type information to client: " + e.getMessage(), e);
+				
+			} catch(ProxyException e) {
+				handleException(response, objectMapper, e);
+				
+			} catch(Exception e) {
+				log.error("Exception during callback: " + e.getMessage(), e);
+				if (sw != null)
+					log.error("Exception in RequestHandler for data=" + sw.toString());
+				tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
+				objectMapper.writeValue(response, tracker.getQueue());
+				
+			} finally {
+				s_currentHandler.set(null);
 			}
-			
-		} catch(ProxyTypeSerialisationException e) {
-			log.fatal("Unable to serialise type information to client: " + e.getMessage(), e);
-			
-		} catch(ProxyException e) {
-			handleException(response, objectMapper, e);
-			
-		} catch(Exception e) {
-			log.error("Exception during callback: " + e.getMessage(), e);
-			if (sw != null)
-				log.error("Exception in RequestHandler for data=" + sw.toString());
-			tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
-			objectMapper.writeValue(response, tracker.getQueue());
-			
-		} finally {
-			s_currentHandler.set(null);
 		}
 	}
 	
