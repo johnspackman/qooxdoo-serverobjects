@@ -260,6 +260,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var result = null;
 
       if (statusCode == 200) {
+        if (qx.core.Environment.get("qx.debug")) {
+          var sha = evt.getResponseHeaders()["X-ProxyManager-SHA1"];
+          if (sha) {
+            var digest = com.zenesis.qx.remote.Sha1.digest(txt);
+            if (sha != digest) {
+              throw new Error("Invalid SHA received from server, expected=" + sha + ", found=" + digest);
+            }
+          }
+        }
         txt = txt.trim();
         try {
           if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
@@ -1504,7 +1513,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       req.setTimeout(this.getTimeout());
       if (this.__sessionId)
         req.setRequestHeader("X-ProxyManager-SessionId", this.__sessionId);
-      req.setRequestHeader("X-ProxyManager-SHA1", com.zenesis.qx.remote.Sha1.digest(text));
+      if (qx.core.Environment.get("qx.debug")) {
+        req.setRequestHeader("X-ProxyManager-SHA1", com.zenesis.qx.remote.Sha1.digest(text));
+      }
+      req.setRequestHeader("X-ProxyManager-RequestIndex", this.__numberOfCalls++);
       req.setData(text);
 
       // You must set the character encoding explicitly; even if the page is
@@ -1516,10 +1528,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=" + charset);
 
       // Send it
-      if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-        console.log("Sending to server: " + text); // Use console.log because
-                                                    // LogAppender would cause
-                                                    // recursive logging
+      if (qx.core.Environment.get("com.zenesis.qx.remote.trace")) {
+        // Use console.log because LogAppender would cause recursive logging
+        console.log("Sending to server: " + text); 
+      }
 
       req.addListener("completed", this._processResponse, this);
       req.addListener("failed", this._processResponse, this);
@@ -1532,7 +1544,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (this.__preRequestCallback)
         this.__preRequestCallback.call(this, req);
       req.send();
-      this.__numberOfCalls++;
     },
 
     /**

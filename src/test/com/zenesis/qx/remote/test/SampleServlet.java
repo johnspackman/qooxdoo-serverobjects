@@ -27,6 +27,7 @@
  */
 package com.zenesis.qx.remote.test;
 
+import java.io.File;
 import java.io.IOException;
 
 import javax.servlet.ServletException;
@@ -35,12 +36,24 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.zenesis.qx.remote.ProxyManager;
+import com.zenesis.qx.remote.RequestHandler;
 import com.zenesis.qx.remote.test.simple.MainTests;
 import com.zenesis.qx.remote.test.simple.TestBootstrap;
 
 @SuppressWarnings("serial")
 public class SampleServlet extends HttpServlet {
 	
+	@Override
+	public void init() throws ServletException {
+		super.init();
+		String str = getServletConfig().getInitParameter("logging-dir");
+		if (str != null) {
+			File dir = new File(str);
+			dir.mkdirs();
+			RequestHandler.s_traceLogDir = dir;
+		}
+	}
+
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		

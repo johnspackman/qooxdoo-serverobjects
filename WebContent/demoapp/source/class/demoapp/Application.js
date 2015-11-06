@@ -88,6 +88,7 @@ qx.Class.define("demoapp.Application", {
       
       this.log("All automated tests passed - now open other browsers to start multi user testing");
       this.testMultiUser();
+      this.testThreading();
     },
     
     log: function(msg) {
@@ -388,6 +389,46 @@ qx.Class.define("demoapp.Application", {
       qx.core.Assert.assertEquals(map.get("alpha"), "first again");
       qx.core.Assert.assertEquals(map.get("foxtrot"), "six");
       qx.core.Assert.assertEquals(map.get("george"), "seven");
+    },
+    
+    testThreading: function() {
+      var t = this;
+      var manager = com.zenesis.qx.remote.ProxyManager.getInstance();
+      var boot = manager.getBootstrapObject();
+      var threadTest = boot.getThreadTest();
+      
+      var btn = new qx.ui.form.Button("Test Threading");
+      btn.addListener("execute", function(evt) {
+        for (var i = 0; i < MAX; i++) {
+          stuff(i);
+        }
+      }, this);
+      var root = this.getRoot();
+      root.add(btn, { left: 100, top: 300 });
+      
+      var results = [];
+      var count = 0;
+      var MAX = 100;
+      
+      function stuff(index) {
+        var arr = new qx.data.Array();
+        for (var i = 0; i < 10; i++) {
+          var myTp = new com.zenesis.qx.remote.test.properties.TestProperties();
+          myTp.setWatchedString("setByClientProperty");
+          arr.push(myTp);
+        }
+        threadTest.tryThis(arr, function(result) {
+          complete(index);
+        });
+      }
+      
+      function complete(index, result) {
+        results[index] = result;
+        count++;
+        if (count == MAX)
+          t.log("Completed Thread test");
+      }
+      
     },
     
     testMultiUser: function() {

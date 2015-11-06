@@ -10,6 +10,10 @@
 		<servlet-name>sampleServlet</servlet-name>
 		<servlet-class>com.zenesis.qx.remote.test.SampleServlet</servlet-class>
 		<load-on-startup>0</load-on-startup> 
+		<init-param>
+			<param-name>logging-dir</param-name>
+			<param-value>/Users/john/dev/Grasshopper/smart/Grasshopper2/WebContent/public/grasshopper/contrib2/qx-serverobjects/logging</param-value>
+		</init-param>
 	</servlet>
 	
 	<servlet>

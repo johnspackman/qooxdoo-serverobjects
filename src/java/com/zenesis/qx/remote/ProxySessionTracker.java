@@ -309,6 +309,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	
 	// Queue for properties and events
 	private CommandQueue queue;
+	private int requestIndex;
 	
 	// Bootstrap object
 	private final Class<? extends Proxied> bootstrapClass;
@@ -911,4 +912,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 		return objectMapper;
 	}
 
+	public int getNextRequestIndex() {
+		return requestIndex++;
+	}
 }

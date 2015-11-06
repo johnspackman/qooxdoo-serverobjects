@@ -9,11 +9,15 @@ import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.test.collections.TestQsoArrayList;
 import com.zenesis.qx.remote.test.collections.TestQsoMap;
 import com.zenesis.qx.remote.test.multiuser.TestMultiUser;
+import com.zenesis.qx.remote.test.multiuser.TestThreading;
 
 public class TestBootstrap implements Proxied, LogEntrySink {
 	
 	@Property
 	private TestMultiUser multiUser = new TestMultiUser();
+
+	@Property
+	private TestThreading threadTest = new TestThreading();
 
 	@Override
 	public void addLogEntries(LogEntry[] entries) {
@@ -38,6 +42,10 @@ public class TestBootstrap implements Proxied, LogEntrySink {
 
 	public TestMultiUser getMultiUser() {
 		return multiUser;
+	}
+
+	public TestThreading getThreadTest() {
+		return threadTest;
 	}
 
 }

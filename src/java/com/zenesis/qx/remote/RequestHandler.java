@@ -27,6 +27,7 @@
  */
 package com.zenesis.qx.remote;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -37,12 +38,17 @@ import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.security.MessageDigest;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.Logger;
 
@@ -70,7 +76,7 @@ import com.zenesis.qx.utils.ArrayUtils;
  */
 public class RequestHandler {
 	
-	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(RequestHandler.class);
+	public static final Logger log = org.apache.logging.log4j.LogManager.getLogger(RequestHandler.class);
 	
 	// Command type strings received from the client
 	private static final String CMD_BOOTSTRAP = "bootstrap";	// Reset application session and get bootstrap
@@ -86,6 +92,8 @@ public class RequestHandler {
 	
 	// The request header sent by the client to validate the session
 	public static final String HEADER_SESSION_ID = "X-ProxyManager-SessionId";
+	public static final String HEADER_SHA1 = "X-ProxyManager-SHA1";
+	public static final String HEADER_INDEX = "X-ProxyManager-RequestIndex";
 
 	// This class is sent as data by cmdBootstrap
 	public static final class Bootstrap {
@@ -188,34 +196,64 @@ public class RequestHandler {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public void processRequest(Reader request, Writer response, String sessionId) throws ServletException, IOException {
+	public void processRequestDebug(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		if (!log.isDebugEnabled()) {
+			processRequest(request.getReader(), response.getWriter());
+			return;
+		}
+		
+		String sessionId = request.getHeader(RequestHandler.HEADER_SESSION_ID);
+		String expectedSha = request.getHeader(RequestHandler.HEADER_SHA1);
+		String strIndex = request.getHeader(RequestHandler.HEADER_INDEX);
+		int index = Integer.parseInt(strIndex);
+		int actualIndex = tracker.getNextRequestIndex();
+		String filename = tracker.getSessionId() + "/" + new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
+				DiagUtils.zeroPad(index) + "-" + DiagUtils.zeroPad(actualIndex);
+		filename = filename.replace(':', '_');
+		
+		StringWriter sw = null;
+		sw = new StringWriter();
+		Reader reader = request.getReader();
+		char[] buffer = new char[32 * 1024];
+		int length;
+		while ((length = reader.read(buffer)) > 0) {
+			sw.write(buffer, 0, length);
+		}
+		
+		if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
+			log.debug("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + sw.toString());
+			throw new IllegalArgumentException("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId);
+		}
+		
+		Writer writer = new StringWriter();
+		if (log.isTraceEnabled() && s_traceLogDir != null) {
+			Object obj = tracker.getObjectMapper().readValue(sw.toString(), Object.class);
+			String out = tracker.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+			DiagUtils.writeFile(new File(s_traceLogDir, filename + "-in.txt"), out);
+		}
+
+		if (expectedSha != null) {
+	        String hash = DiagUtils.getSha1(sw.toString());
+	        if (!hash.equals(expectedSha))
+	        	throw new IllegalArgumentException("SHA1 mismatch, found " + hash + " expected " + expectedSha);
+		}
+
+		processRequest(new StringReader(sw.toString()), writer);
+		
+		String out = writer.toString();
+		if (log.isTraceEnabled() && s_traceLogDir != null) {
+			DiagUtils.writeFile(new File(s_traceLogDir, filename + "-out.txt"), out);
+		}
+		String hash = DiagUtils.getSha1(out);
+		response.setHeader(HEADER_SHA1, hash);
+		response.getWriter().write(out);
+	}
+	
+	public void processRequest(Reader request, Writer response) throws ServletException, IOException {
 		synchronized(tracker) {
-			if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
-				if (log.isDebugEnabled()) {
-					StringWriter sw = new StringWriter();
-					char[] buffer = new char[32 * 1024];
-					int len;
-					while ((len = request.read(buffer)) > -1)
-						sw.write(buffer, 0, len);
-					log.debug("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + sw.toString());
-				}
-				throw new IllegalArgumentException("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId);
-			}
 			s_currentHandler.set(this);
 			ObjectMapper objectMapper = tracker.getObjectMapper();
-			StringWriter sw = null;
 			try {
-				if (log.isDebugEnabled()) {
-					sw = new StringWriter();
-					char[] buffer = new char[32 * 1024];
-					int length;
-					while ((length = request.read(buffer)) > 0) {
-						sw.write(buffer, 0, length);
-					}
-					request = new StringReader(sw.toString());
-				}
-				if (log.isTraceEnabled())
-					log.trace("Received: " + sw.toString());
 				JsonParser jp = objectMapper.getJsonFactory().createJsonParser(request);
 				if (jp.nextToken() == JsonToken.START_ARRAY) {
 					while(jp.nextToken() != JsonToken.END_ARRAY)
@@ -227,29 +265,7 @@ public class RequestHandler {
 				synchronized(queue) {
 					if (tracker.hasDataToFlush()) {
 						Writer actualResponse = response;
-						if (log.isTraceEnabled()) {
-							final Writer tmp = response;
-							actualResponse = new Writer() {
-								@Override
-								public void close() throws IOException {
-									tmp.close();
-								}
-			
-								@Override
-								public void flush() throws IOException {
-									tmp.flush();
-								}
-			
-								@Override
-								public void write(char[] arg0, int arg1, int arg2) throws IOException {
-									System.out.print(new String(arg0, arg1, arg2));
-									tmp.write(arg0, arg1, arg2);
-								}
-							};
-						}
 						objectMapper.writeValue(actualResponse, queue);
-						if (log.isTraceEnabled())
-							System.out.println();
 					}
 				}
 				
@@ -261,8 +277,6 @@ public class RequestHandler {
 				
 			} catch(Exception e) {
 				log.error("Exception during callback: " + e.getMessage(), e);
-				if (sw != null)
-					log.error("Exception in RequestHandler for data=" + sw.toString());
 				tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
 				objectMapper.writeValue(response, tracker.getQueue());
 				
@@ -276,34 +290,11 @@ public class RequestHandler {
 	 * Handles the callback from the client; expects either an object or an array of objects
 	 * @param request
 	 * @param response
-	 * @param sessionId session id passed from the client for validation, ignored if null
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public void processRequest(Reader request, OutputStream response, String sessionId) throws ServletException, IOException {
-		processRequest(request, new OutputStreamWriter(response), sessionId);
-	}
-	
-	/**
-	 * Handles the callback from the client; expects either an object or an array of objects
-	 * @param request
-	 * @param response
 	 * @throws ServletException
 	 * @throws IOException
 	 */
 	public void processRequest(Reader request, OutputStream response) throws ServletException, IOException {
-		processRequest(request, new OutputStreamWriter(response), null);
-	}
-	
-	/**
-	 * Handles the callback from the client; expects either an object or an array of objects
-	 * @param request
-	 * @param response
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public void processRequest(Reader request, Writer response) throws ServletException, IOException {
-		processRequest(request, response, null);
+		processRequest(request, new OutputStreamWriter(response));
 	}
 
 	/**
@@ -1228,5 +1219,7 @@ public class RequestHandler {
 			throw new ServletException("Cannot find field called " + fieldName + " found " + str);
 		jp.nextToken();
 	}
-	
+
+	public static File s_traceLogDir = null;
+	private static int s_serial = 0;
 }
