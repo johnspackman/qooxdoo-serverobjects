@@ -4,7 +4,7 @@ import java.util.Date;
 
 public class LogEntry {
 
-	public Date time;
+	public long time;
 	public int offset;
 	public String level;
 	public String loggerName;
@@ -12,7 +12,7 @@ public class LogEntry {
 	
 	@Override
 	public String toString() {
-		return offset + " [" + level + "] " + loggerName + " " + message;
+		return new Date(time) + " (+" + offset + ") [" + level + "] " + loggerName + " " + message;
 	}
 	
 	

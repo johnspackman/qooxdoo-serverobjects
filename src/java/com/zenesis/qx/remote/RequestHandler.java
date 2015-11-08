@@ -94,6 +94,7 @@ public class RequestHandler {
 	public static final String HEADER_SESSION_ID = "X-ProxyManager-SessionId";
 	public static final String HEADER_SHA1 = "X-ProxyManager-SHA1";
 	public static final String HEADER_INDEX = "X-ProxyManager-RequestIndex";
+	public static final String HEADER_CLIENT_TIME = "X-ProxyManager-ClientTime";
 
 	// This class is sent as data by cmdBootstrap
 	public static final class Bootstrap {
@@ -205,11 +206,16 @@ public class RequestHandler {
 		String sessionId = request.getHeader(RequestHandler.HEADER_SESSION_ID);
 		String expectedSha = request.getHeader(RequestHandler.HEADER_SHA1);
 		String strIndex = request.getHeader(RequestHandler.HEADER_INDEX);
+		String strClientTime = request.getHeader(RequestHandler.HEADER_CLIENT_TIME);
+		try {
+			tracker.setLastClientTime(new Date(Long.parseLong(strClientTime)));
+		} catch(NumberFormatException e) {
+			log.error("Cannot parse client time " + strClientTime);
+		}
 		int index = Integer.parseInt(strIndex);
 		int actualIndex = tracker.getNextRequestIndex();
-		String filename = tracker.getSessionId() + "/" + new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
+		String filename = tracker.getSessionId().replace(':', '_') + "/" + new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
 				DiagUtils.zeroPad(index) + "-" + DiagUtils.zeroPad(actualIndex);
-		filename = filename.replace(':', '_');
 		
 		StringWriter sw = null;
 		sw = new StringWriter();
@@ -305,7 +311,9 @@ public class RequestHandler {
 	 * @throws IOException
 	 */
 	protected void handleException(Writer response, ObjectMapper objectMapper, ProxyException e) throws IOException {
-		tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
+		Throwable cause = e.getCause();
+		tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, 
+				new ExceptionDetails(cause.getClass().getName(), cause.getMessage()));
 		objectMapper.writeValue(response, tracker.getQueue());
 	}
 	

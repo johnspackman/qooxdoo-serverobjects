@@ -36,6 +36,7 @@ import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
@@ -314,9 +315,12 @@ public class ProxySessionTracker implements UploadInterceptor {
 	// Bootstrap object
 	private final Class<? extends Proxied> bootstrapClass;
 	private Proxied bootstrap;
+	
+	// Session information
 	private final String sessionId;
 	private final int serialNo;
 	private static int s_serialNo;
+	private Date lastClientTime;
 
 	/**
 	 * Creates a tracker for a session; if bootstrapClass is null you must override
@@ -438,6 +442,20 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 */
 	public int getSerialNo() {
 		return serialNo;
+	}
+
+	/**
+	 * @return the lastClientTime
+	 */
+	public Date getLastClientTime() {
+		return lastClientTime;
+	}
+
+	/**
+	 * @param lastClientTime the lastClientTime to set
+	 */
+	/*package*/ void setLastClientTime(Date lastClientTime) {
+		this.lastClientTime = lastClientTime;
 	}
 
 	@Override

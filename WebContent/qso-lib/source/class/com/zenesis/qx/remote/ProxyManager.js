@@ -1516,6 +1516,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (qx.core.Environment.get("qx.debug")) {
         req.setRequestHeader("X-ProxyManager-SHA1", com.zenesis.qx.remote.Sha1.digest(text));
       }
+      req.setRequestHeader("X-ProxyManager-ClientTime", new Date().getTime());
       req.setRequestHeader("X-ProxyManager-RequestIndex", this.__numberOfCalls++);
       req.setData(text);
 
@@ -1741,7 +1742,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     _handleServerException: function(data, cause) {
       // this.error("Exception from server: " + data.exceptionClass + ": " +
       // data.message);
-      this._setException(new Error("Exception at server: " + cause + " " + data));
+      var ex = new Error("Exception at server: " + cause + " " + data);
+      ex.serverData = data;
+      ex.serverCause = cause;
+      this._setException(new Error("Exception at server: " + data.exceptionClass + ": " + data.message));
     },
 
     _setException: function(e) {

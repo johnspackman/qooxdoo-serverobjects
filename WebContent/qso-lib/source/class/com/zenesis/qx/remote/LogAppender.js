@@ -83,7 +83,7 @@ qx.Class.define("com.zenesis.qx.remote.LogAppender", {
         var arr = qx.log.appender.Util.toTextArray(entry);
         arr.shift();
         var le = {
-            time: entry.time,
+            time: entry.time.getTime(),
             offset: entry.offset,
             level: entry.level,
             loggerName: entry.loggerName,
