@@ -154,6 +154,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     // Callbacks for asynchronous methods
     __asyncId: 0,
     __asyncCallback: {},
+    __numActiveRequests: 0,
+    __queuedServerMethods: null,
 
     // Polling timer
     __onPollTimeoutBinding: null,
@@ -252,6 +254,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @lint ignoreDeprecated(eval)
      */
     _processResponse: function(evt) {
+      this.__numActiveRequests--;
       var txt = evt.getContent();
       var statusCode = evt.getStatusCode();
       var req = evt.getTarget();
@@ -494,6 +497,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         } else
           qx.core.Assert.assertTrue(false, "Unexpected type of command from server: " + type);
       }
+      
+      if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length)
+        this.flushQueue(false, true);
 
       return result;
     },
@@ -1066,7 +1072,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }.bind(this);
 
       // Call the server
-      this._sendCommandToServer(data, notify.length != 0);
+      if (notify.length && this.__numActiveRequests) {
+        if (!this.__queuedServerMethods)
+          this.__queuedServerMethods = [];
+        this.__queuedServerMethods.push(data);
+        
+      } else {
+        this._sendCommandToServer(data, notify.length != 0);
+      }
 
       return methodResult;
     },
@@ -1175,6 +1188,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       this.__dirtyArrays = null;
     },
 
+    /**
+     * Moves pending asynchronous method calls onto the queue
+     */
+    _queueServerMethodCalls: function() {
+      if (!this.__queuedServerMethods)
+        return;
+      var t = this;
+      this.__queuedServerMethods.forEach(function(data) {
+        t._queueCommandToServer(data);
+      });
+      this.__queuedServerMethods = null;
+    },
+    
     /**
      * Mark an object as disposed on the client and needing to have the
      * corresponding server object remove from the session tracker
@@ -1461,16 +1487,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Object} object to be turned into a JSON string and sent to the
      *          server
      * @param aync
-     *          {Boolean?} whether to make it an asynch call (default is
-     *          synchronous)
+     *          {Boolean?} whether to make it an async call (default is synchronous)
      * @return {String} the server response
      */
     _sendCommandToServer: function(obj, async) {
       var startTime = new Date().getTime();
       
       // We must not allow recursive commands, otherwise a partially formed
-      // request can be sent to the server
-      // so we just queue it instead.
+      // request can be sent to the server so we just queue it instead.
       if (this.__queuingCommandsForServer) {
         if (!this.__queue)
           this.__queue = [];
@@ -1485,6 +1509,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Queue any dirty arrays
         this._queueDirtyArrays();
+        
+        // Queue pending async server method calls
+        this._queueServerMethodCalls();
 
         // Queue any objects which can be removed from the server
         this._queueDisposedServerObjects();
@@ -1508,6 +1535,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       // Set the data
       var text = qx.lang.Json.stringify(obj);
+      this.__numActiveRequests++;
       var req = new qx.io.remote.Request(this.getProxyUrl(), "POST", "text/plain");
       req.setAsynchronous(!!async);
       req.setTimeout(this.getTimeout());
@@ -1555,7 +1583,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (!queue)
         this.__queue = queue = [];
       this._queueClientObjects();
-      queue[queue.length] = obj;
+      queue.push(obj);
     },
 
     /**

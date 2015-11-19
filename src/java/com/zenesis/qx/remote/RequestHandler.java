@@ -45,6 +45,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -95,6 +96,9 @@ public class RequestHandler {
 	public static final String HEADER_SHA1 = "X-ProxyManager-SHA1";
 	public static final String HEADER_INDEX = "X-ProxyManager-RequestIndex";
 	public static final String HEADER_CLIENT_TIME = "X-ProxyManager-ClientTime";
+	
+	// Maximum time to wait for a lock on the response
+	private static final int REQUEST_LOCK_TIMEOUT = 2 * 60 * 1000;
 
 	// This class is sent as data by cmdBootstrap
 	public static final class Bootstrap {
@@ -256,7 +260,13 @@ public class RequestHandler {
 	}
 	
 	public void processRequest(Reader request, Writer response) throws ServletException, IOException {
-		synchronized(tracker) {
+		try {
+			if (!tracker.getRequestLock().tryLock(REQUEST_LOCK_TIMEOUT, TimeUnit.MILLISECONDS))
+				throw new ServletException("Timeout while waiting for request lock");
+		}catch(InterruptedException e) {
+			throw new ServletException("Exception while waiting for request lock: " + e.getMessage());
+		}
+		try {
 			s_currentHandler.set(this);
 			ObjectMapper objectMapper = tracker.getObjectMapper();
 			try {
@@ -289,6 +299,8 @@ public class RequestHandler {
 			} finally {
 				s_currentHandler.set(null);
 			}
+		} finally {
+			tracker.getRequestLock().unlock();
 		}
 	}
 	
@@ -453,7 +465,13 @@ public class RequestHandler {
 				}
 				if (property.isOnDemand())
 					tracker.setClientHasValue(serverObject, property);
-				tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, serverObject, null, new FunctionReturn(asyncId, result));
+				CommandId id = new CommandId(CommandId.CommandType.FUNCTION_RETURN, serverObject, null) {
+					@Override
+					public boolean equals(Object obj) {
+						return false;
+					}
+				};
+				tracker.getQueue().queueCommand(id, new FunctionReturn(asyncId, result));
 			}
 		}
 
@@ -469,7 +487,13 @@ public class RequestHandler {
 						try {
 							values = readParameters(jp, method.getParameterTypes());
 							Object result = method.invoke(serverObject, values);
-							tracker.getQueue().queueCommand(CommandId.CommandType.FUNCTION_RETURN, serverObject, null, new FunctionReturn(asyncId, result));
+							CommandId id = new CommandId(CommandId.CommandType.FUNCTION_RETURN, serverObject, null) {
+								@Override
+								public boolean equals(Object obj) {
+									return false;
+								}
+							};
+							tracker.getQueue().queueCommand(id, new FunctionReturn(asyncId, result));
 						}catch(InvocationTargetException e) {
 							Throwable t = e.getCause();
 							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + t.getMessage(), t);

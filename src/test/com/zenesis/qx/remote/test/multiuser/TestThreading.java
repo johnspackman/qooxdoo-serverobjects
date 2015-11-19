@@ -1,10 +1,16 @@
 package com.zenesis.qx.remote.test.multiuser;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.test.properties.TestProperties;
 
 public class TestThreading implements Proxied {
+	
+	private static final Logger log = LogManager.getLogger();
+	private int serial = 0;
 
 	@Method
 	public TestProperties[] tryThis(TestProperties[] arr) {
@@ -14,5 +20,22 @@ public class TestThreading implements Proxied {
 			tp.setQueued(arr[i].getWatchedString() + ":i");
 		}
 		return result;
+	}
+	
+	@Method
+	public void resetSerial() {
+		serial = 0;
+	}
+	
+	@Method
+	public int waitFor(long millis) {
+		try {
+			log.info("Starting wait for #" + serial + ": " + millis);
+			Thread.sleep(millis);
+			log.info("Ended wait for #" + serial + ": " + millis);
+		} catch(InterruptedException e) {
+			// Nothing
+		}
+		return this.serial++;
 	}
 }

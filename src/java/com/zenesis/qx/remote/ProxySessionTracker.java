@@ -40,6 +40,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.Logger;
 
@@ -321,6 +323,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	private final int serialNo;
 	private static int s_serialNo;
 	private Date lastClientTime;
+	private final Lock requestLock = new ReentrantLock();
 
 	/**
 	 * Creates a tracker for a session; if bootstrapClass is null you must override
@@ -442,6 +445,13 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 */
 	public int getSerialNo() {
 		return serialNo;
+	}
+
+	/**
+	 * @return the requestLock
+	 */
+	public Lock getRequestLock() {
+		return requestLock;
 	}
 
 	/**

@@ -55,7 +55,15 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 	@Override
 	public synchronized void queueCommand(CommandType type, Object object, String propertyName, Object data) {
 		CommandId id = new CommandId(type, object, propertyName);
-		if (type == CommandType.BOOTSTRAP && !values.isEmpty()) {
+		queueCommand(id, data);
+	}
+	
+	/* (non-Javadoc)
+	 * @see com.zenesis.qx.remote.CommandQueue#queueCommand(com.zenesis.qx.remote.CommandId, java.lang.Object)
+	 */
+	@Override
+	public void queueCommand(CommandId id, Object data) {
+		if (id.type == CommandType.BOOTSTRAP && !values.isEmpty()) {
 			LinkedHashMap<CommandId, Object> tmp = new LinkedHashMap<CommandId, Object>();
 			tmp.put(id, data);
 			tmp.putAll(values);
@@ -63,7 +71,7 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 		} else
 			values.put(id, data);
 	}
-	
+
 	@Override
 	public synchronized Object getCommand(CommandType type, Object object, String propertyName) {
 		CommandId id = new CommandId(type, object, propertyName);

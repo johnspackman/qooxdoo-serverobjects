@@ -46,6 +46,7 @@ import com.zenesis.qx.remote.CommandId.CommandType;
 public interface CommandQueue {
 
 	public void queueCommand(CommandId.CommandType type, Object object, String propertyName, Object data);
+	public void queueCommand(CommandId id, Object data);
 
 	public Object getCommand(CommandType type, Object object, String propertyName);
 	
