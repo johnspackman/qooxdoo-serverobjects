@@ -35,13 +35,36 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
+import com.zenesis.qx.remote.ProxySessionTracker;
 import com.zenesis.qx.remote.RequestHandler;
 import com.zenesis.qx.remote.test.simple.MainTests;
 import com.zenesis.qx.remote.test.simple.TestBootstrap;
 
 @SuppressWarnings("serial")
 public class SampleServlet extends HttpServlet {
+	
+	/*
+	 * Demo class showing hwo to change the serialisation of enums
+	 */
+	public static class MyProxySessionTracker extends ProxySessionTracker {
+
+		public MyProxySessionTracker(Class<? extends Proxied> bootstrapClass) {
+			super(bootstrapClass);
+		}
+
+		@Override
+		public String serialiseEnum(Enum e) {
+			return e.toString();
+		}
+
+		@Override
+		public String deserialiseEnum(String str) {
+			return str;
+		}
+		
+	}
 	
 	@Override
 	public void init() throws ServletException {
@@ -52,6 +75,10 @@ public class SampleServlet extends HttpServlet {
 			dir.mkdirs();
 			RequestHandler.s_traceLogDir = dir;
 		}
+		
+		// This is how you switch on the custom tracker with custom enum serialisation; it's not enabled here
+		//	because the client test routines require the normal serialisation form
+		//ProxyManager.setSessionTrackerClass(MyProxySessionTracker.class);
 	}
 
 	@Override

@@ -16,64 +16,6 @@ public class Helpers {
 	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(Helpers.class); 
 	
 	/**
-	 * Converts an enum to camel case string, ie MY_ENUM_VALUE -> myEnumValue.
-	 * Inverse of camelCaseToEnum
-	 * @param e
-	 * @return
-	 */
-	public static String enumToCamelCase(Enum e) {
-		if (e == null)
-			return null;
-		StringBuilder sb = new StringBuilder(e.toString());
-		char lastC = 0;
-		for (int i = 0; i < sb.length(); i++) {
-			char c = sb.charAt(i);
-			if (c == '_') {
-				sb.deleteCharAt(i);
-				i--;
-			} else if ((Character.isDigit(c) || Character.isUpperCase(c)) && lastC != '_')
-				sb.setCharAt(i, Character.toLowerCase(c));
-			else if (Character.isLowerCase(c) && lastC == '_')
-				sb.setCharAt(i, Character.toUpperCase(c));
-			lastC = c;
-		}
-		return sb.toString();
-	}
-	
-	/**
-	 * Converts a camel case string into an enum-style string, ie myEnumValue -> MY_ENUM_VALUE.
-	 * Inverse of enumToCamelCase
-	 * @param str
-	 * @return
-	 */
-	public static String camelCaseToEnum(String str) {
-		if (str == null)
-			return null;
-		StringBuilder sb = new StringBuilder(str);
-		char lastC = 0;
-		for (int i = 0; i < sb.length(); i++) {
-			char c = sb.charAt(i);
-			boolean wordBreak = false;
-			if (Character.isLetter(c)) {
-				if (Character.isUpperCase(c)) {
-					wordBreak = true;
-				}
-			} else if (Character.isDigit(c)) {
-				if (Character.isLetter(lastC))
-					wordBreak = true;
-			}
-			if (wordBreak) {
-				sb.insert(i, '_');
-				i++; 
-			}
-			if (Character.isLowerCase(c))
-				sb.setCharAt(i, Character.toUpperCase(c));
-			lastC = c;
-		}
-		return sb.toString();
-	}
-
-	/**
 	 * Converts the object to a string, expanding arrays and collections
 	 * @param obj
 	 * @return

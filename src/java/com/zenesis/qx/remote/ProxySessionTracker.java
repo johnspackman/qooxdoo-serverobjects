@@ -333,7 +333,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass) {
 		super();
 		this.bootstrapClass = bootstrapClass;
-		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled());
+		objectMapper = createObjectMapper(null);
 		serialNo = ++s_serialNo;
 		sessionId = UUID.randomUUID() + ":" + serialNo; 
 	}
@@ -346,7 +346,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir) {
 		super();
 		this.bootstrapClass = bootstrapClass;
-		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
+		objectMapper = createObjectMapper(rootDir);
 		serialNo = ++s_serialNo;
 		sessionId = UUID.randomUUID() + ":" + serialNo; 
 	}
@@ -365,6 +365,14 @@ public class ProxySessionTracker implements UploadInterceptor {
 		if (sessionPrefix != null)
 			sessionId = sessionPrefix + sessionId;
 		this.sessionId = sessionId;
+	}
+	
+	/**
+	 * Creates an object mapper
+	 * @return
+	 */
+	protected ProxyObjectMapper createObjectMapper(File rootDir) {
+		return new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
 	}
 	
 	/**
@@ -930,6 +938,64 @@ public class ProxySessionTracker implements UploadInterceptor {
 		}catch(JsonParseException e) {
 			throw new IOException(e.getMessage(), e);
 		}
+	}
+
+	/**
+	 * Converts an enum to camel case string, ie MY_ENUM_VALUE -> myEnumValue.
+	 * Inverse of camelCaseToEnum
+	 * @param e
+	 * @return
+	 */
+	public String serialiseEnum(Enum e) {
+		if (e == null)
+			return null;
+		StringBuilder sb = new StringBuilder(e.toString());
+		char lastC = 0;
+		for (int i = 0; i < sb.length(); i++) {
+			char c = sb.charAt(i);
+			if (c == '_') {
+				sb.deleteCharAt(i);
+				i--;
+			} else if ((Character.isDigit(c) || Character.isUpperCase(c)) && lastC != '_')
+				sb.setCharAt(i, Character.toLowerCase(c));
+			else if (Character.isLowerCase(c) && lastC == '_')
+				sb.setCharAt(i, Character.toUpperCase(c));
+			lastC = c;
+		}
+		return sb.toString();
+	}
+	
+	/**
+	 * Converts a camel case string into an enum-style string, ie myEnumValue -> MY_ENUM_VALUE.
+	 * Inverse of enumToCamelCase
+	 * @param str
+	 * @return
+	 */
+	public String deserialiseEnum(String str) {
+		if (str == null)
+			return null;
+		StringBuilder sb = new StringBuilder(str);
+		char lastC = 0;
+		for (int i = 0; i < sb.length(); i++) {
+			char c = sb.charAt(i);
+			boolean wordBreak = false;
+			if (Character.isLetter(c)) {
+				if (Character.isUpperCase(c)) {
+					wordBreak = true;
+				}
+			} else if (Character.isDigit(c)) {
+				if (Character.isLetter(lastC))
+					wordBreak = true;
+			}
+			if (wordBreak) {
+				sb.insert(i, '_');
+				i++; 
+			}
+			if (Character.isLowerCase(c))
+				sb.setCharAt(i, Character.toUpperCase(c));
+			lastC = c;
+		}
+		return sb.toString();
 	}
 
 	/**

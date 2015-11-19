@@ -155,8 +155,10 @@ public class ProxyObjectMapper extends ObjectMapper {
 		public void serialize(Enum value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
 			if (value == null)
 				jgen.writeNull();
-			else
-				jgen.writeString(Helpers.enumToCamelCase(value));
+			else {
+				ProxySessionTracker tracker = ProxyManager.getTracker();
+				jgen.writeString(tracker.serialiseEnum(value));
+			}
 		}
 
 	};
@@ -189,11 +191,12 @@ public class ProxyObjectMapper extends ObjectMapper {
 				jgen.writeNull();
 			else {
 				jgen.writeStartObject();
+				ProxySessionTracker tracker = ProxyManager.getTracker();
 				for (Object key : map.keySet()) {
 					if (key == null)
 						continue;
 					if (key instanceof Enum)
-						jgen.writeFieldName(Helpers.enumToCamelCase((Enum)key));
+						jgen.writeFieldName(tracker.serialiseEnum((Enum)key));
 					else
 						jgen.writeFieldName(key.toString());
 					Object value = map.get(key);
@@ -291,7 +294,7 @@ public class ProxyObjectMapper extends ObjectMapper {
 	 * @param indent whether to indent JSON
 	 */
 	public ProxyObjectMapper(ProxySessionTracker tracker, boolean indent) {
-		this(tracker, indent, new File("."));
+		this(tracker, indent, null);
 	}
 		
 	/**
@@ -302,9 +305,21 @@ public class ProxyObjectMapper extends ObjectMapper {
 	 */
 	public ProxyObjectMapper(ProxySessionTracker tracker, boolean indent, File rootDir) {
 		super();
+		if (rootDir == null)
+			rootDir = new File(".");
 		if (indent)
 			this.enable(SerializationFeature.INDENT_OUTPUT);
 		this.tracker = tracker;
+		SimpleModule module = createModule(rootDir);
+		registerModule(module);
+	}
+	
+	/**
+	 * Creates the module for Jackson ObjectMapper
+	 * @param rootDir
+	 * @return
+	 */
+	protected SimpleModule createModule(File rootDir) {
 		SimpleModule module = new SimpleModule("ProxyObjectMapper", Version.unknownVersion());
 		module.addSerializer(Proxied.class, new ProxiedSerializer());
 		module.addDeserializer(Proxied.class, new ProxiedDeserializer());
@@ -314,7 +329,7 @@ public class ProxyObjectMapper extends ObjectMapper {
 		module.addSerializer(File.class, new FileSerializer(rootDir));
 		module.addDeserializer(File.class, new FileDeserializer(rootDir));
 		module.addSerializer(Map.class, new MapSerializer());
-		registerModule(module);
+		return module;
 	}
 
 	/**

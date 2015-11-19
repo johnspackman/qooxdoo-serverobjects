@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -76,6 +77,8 @@ public class ProxyManager implements EventListener {
 	
 	// MIME type mapper, null until first use
 	private static MimetypesFileTypeMap s_fileTypeMap;
+	
+	private static Class<? extends ProxySessionTracker> s_sessionTrackerClass = ProxySessionTracker.class;
 	
 	/**
 	 * Constructor; will set the singleton instance if it has not already been set 
@@ -146,7 +149,11 @@ public class ProxyManager implements EventListener {
 		
 		ProxySessionTracker tracker = (ProxySessionTracker)session.getAttribute(appName);
 		if (tracker == null) {
-			tracker = new ProxySessionTracker(bootstrapClass);
+			try {
+				tracker = s_sessionTrackerClass.getConstructor(new Class[] { Class.class }).newInstance(bootstrapClass);
+			}catch(Throwable t) {
+				throw new ServletException("Error creating tracker " + s_sessionTrackerClass + ": " + t.getMessage(), t);
+			}
 			session.setAttribute(appName, tracker);
 			if (syncTrackers)
 				addSyncTracker(tracker);
@@ -804,6 +811,22 @@ public class ProxyManager implements EventListener {
 		if (tracker == null)
 			return false;
 		return tracker.needsFlush();
+	}
+
+	/**
+	 * Returns the class used for tracking sessions
+	 * @return
+	 */
+	public static Class<? extends ProxySessionTracker> getSessionTrackerClass() {
+		return s_sessionTrackerClass;
+	}
+
+	/**
+	 * Sets the class used for tracking sessions
+	 * @return
+	 */
+	public static void setSessionTrackerClass(Class<? extends ProxySessionTracker> sessionTrackerClass) {
+		ProxyManager.s_sessionTrackerClass = sessionTrackerClass;
 	}
 
 	/**

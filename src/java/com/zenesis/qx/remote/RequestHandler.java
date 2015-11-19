@@ -604,7 +604,7 @@ public class RequestHandler {
 			} else {
 				value = jp.readValueAs(Object.class);
 				if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
-					String str = Helpers.camelCaseToEnum(value.toString());
+					String str = tracker.deserialiseEnum(value.toString());
 					value = Enum.valueOf(propClass.getJavaType(), str);
 				}
 			}
@@ -852,7 +852,7 @@ public class RequestHandler {
 				} else {
 					value = jp.readValueAs(Object.class);
 					if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
-						String str = Helpers.camelCaseToEnum(value.toString());
+						String str = tracker.deserialiseEnum(value.toString());
 						value = Enum.valueOf(propClass.getJavaType(), str);
 					}
 				}
@@ -1041,7 +1041,7 @@ public class RequestHandler {
 			} else if (type != null && Enum.class.isAssignableFrom(type)) {
 				Object obj = jp.readValueAs(Object.class);
 				if (obj != null) {
-					String str = Helpers.camelCaseToEnum(obj.toString());
+					String str = tracker.deserialiseEnum(obj.toString());
 					obj = Enum.valueOf(type, str);
 					result.add(obj);
 				}
@@ -1206,7 +1206,7 @@ public class RequestHandler {
 			else
 				obj = jp.readValueAs(Object.class);
 			if (obj != null) {
-				String str = Helpers.camelCaseToEnum(obj.toString());
+				String str = tracker.deserialiseEnum(obj.toString());
 				obj = Enum.valueOf(clazz, str);
 			}
 		} else {
