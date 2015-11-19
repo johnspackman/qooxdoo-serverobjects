@@ -1318,7 +1318,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               // Maps
               if (!!def.map) {
                 if (current === null) {
-                  this.debug("creating Map for " + serverObject.classname + "." + propertyName + " [" + serverObject.toHashCode() + "]");
+                  //this.debug("creating Map for " + serverObject.classname + "." + propertyName + " [" + serverObject.toHashCode() + "]");
                   value = new (arrayClass || com.zenesis.qx.remote.Map)(value);
                   serverObject["set" + upname](value);
                 } else {
