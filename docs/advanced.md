@@ -22,7 +22,7 @@ public class Media implements Proxied {
 
 In the example above, the property “file” is an instance of java.io.File and is converted to a literal string and back when going to and from the client.
 
-## Arrays
+## Arrays and Maps
 
 QSO recognised two types of array – native arrays (i.e. Object[]) and wrapped arrays (i.e. ArrayList on the server and qx.data.Array on the client) – and will transparently switch between either if required.
 
@@ -37,6 +37,13 @@ ArrayList<String> myArrayList;
 ```
 
 In the above example, myNativeArray will be created on the client by wrapping it with qx.data.Array, whereas the myArrayList will be implemented as a native Javascript array.
+
+Maps are similar, except that there is obviously no such thing as a native "map" in Java; by default, QSO will translate a Java Map into an instance of com.zenesis.qx.remote.Map on the client.  If you would prefer that the client see this as a normal javascript map (ie a native
+object), use @Property(array=Remote.Array.WRAP).
+
+### Synchronising changes to Arrays and Maps between Client and Server
+
+Changes to ArrayList and HashMap classes can be synchronised automatically if you use the implementations included with QSO on the server - the Java classes called com.zenesis.qx.remote.collections.ArrayList and com.zenesis.qx.remote.collections.HashMap are derived from java.util.ArrayList and java.util.HashMap and are one-for-one replacements.  
 
 ## Events and Detecting Changes on the Server
 
@@ -143,7 +150,7 @@ QSO automatically exposes classes and interfaces which extend the Proxied interf
 
 ## ProxySessionTracker
 
-There is exactly one ProxySessionTracker for each client using a Qooxdoo Application and the ProxyManager.handleRequest static method takes care of this provided you give it a unique name for your application.
+There is exactly one ProxySessionTracker for each session for each Qooxdoo Application and the ProxyManager.handleRequest static method takes care of this provided you give it a unique name for your application.
 
 ## ProxyManager
 

@@ -2,8 +2,8 @@
 
   * [Tutorial / Getting Started By Example](docs/tutorial.md)
   * [File Handling and Uploads](docs/uploads.md)
-  * [Installing / Setting Up Eclipse](docs/eclipse.md)
   * [Advanced Usage](docs/advanced.md)
+  * [Installing / Setting Up Eclipse](docs/eclipse.md)
   * [Issues, Roadmap, and Dependencies](docs/issues.md)
 
 The Qooxdoo ServerObjects contrib (aka QSO) is an alternative to the existing RPC mechanisms which are available as part of Qooxdoo and/or as other contribs; the main difference is that QSO is focused on mirroring objects and classes, including the class and interface hierarchy.  The goal is to allow a unified object model to exist on the client and the server, where property values are kept synchronized and events and method invocations are transparently transferred.  

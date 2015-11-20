@@ -60,7 +60,7 @@ public class MyBootstrap implements Proxied {
 }
 ```
 
-In the call to ProxyManager.handleRequest, the forth is the a string that uniquely identifies the servlet (typically this would just be the same as your servlet name but in practice any value is fine so long as its unique); it is used to store values in the HttpSession so just choose something you are not already using.
+In the call to ProxyManager.handleRequest, the fourth parameter is the a string that uniquely identifies the servlet (typically this would just be the same as your servlet name but in practice any value is fine so long as its unique); it is used to store values in the HttpSession so just choose something you are not already using.
 
 
 ## Writing the Client Application (Javascript)
@@ -192,7 +192,7 @@ When using a java.util.ArrayList you must manually tell QSO when the contents of
 	ProxyManager.changeProperty(this, "myArray", myArray, null);
 ```
 
-This is somewhat cumbersome and you must do this every time you modify the array otherwise the client will not know about the change; this actually causes the entire array to be resent to the client so it's not particularly efficient either.  To make this happen automatically, you can use com.zenesis.qx.remote.collections.ArrayList (a server class) and that will only send the minimum changes required between the client and server, and it is fully automatic. 
+This is somewhat cumbersome and you must do this every time you modify the array otherwise the client will not know about the change; this actually causes the entire array to be resent to the client so it's not particularly efficient either.  To make this happen automatically, you can use com.zenesis.qx.remote.collections.ArrayList (a server class) and that will only send the minimum changes required between the client and server, and it is fully automatic (ie you do _not_ need to call ProxyManager.changeProperty(...)). 
 
 ### Maps
 Maps are relayed to the client as an instance of com.zenesis.qx.remote.Map so that changes to the object to be detected and relayed back to the server (much in the same way that qx.data.Array wrap native arrays).  If you want to send the map as a native object, @Property.array should be set to Remote.Array.NATIVE.
@@ -218,7 +218,7 @@ When using a java.util.HashMap you must manually tell QSO when the contents of t
 	ProxyManager.changeProperty(this, "myMap", myMap, null);
 ```
 
-As with ArrayList, this is cumbersome and must be done every time you modify the map.  To make this happen automatically, you can use com.zenesis.qx.remote.collections.HashMap (a server class) and that will only send the minimum changes required between the client and server, and it is fully automatic. 
+As with ArrayList, this is cumbersome and must be done every time you modify the map.  To make this happen automatically, you can use com.zenesis.qx.remote.collections.HashMap (a server class) and that will only send the minimum changes required between the client and server, and it is fully automatic (ie you do _not_ need to call ProxyManager.changeProperty(...)). 
 
 
 ### Sending objects back to the server

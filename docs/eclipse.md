@@ -6,7 +6,7 @@ QSO includes an Eclipse project for a sample Tomcat 6 based webapp, and another 
 
 Before you get started with Eclipse and Qooxdoo it’s important to understand one major annoyance with Tomcat/Qooxdoo during development: you have to include the Qooxdoo installation directory within the root of your webapp.  Eclipse’s web development tools then publish your webapp to a private folder within the workspace, which means that it will copy 120Mb and 11,000+ Qooxdoo file and then keep that duplicate directory tree synchronized.  This can be really slow and annoying!
 
-Another problem is that because files are copied by Eclipse from your project’s webapp root into the separate webapp deployment, you’d better be sure that Eclipe sees you editing a file or it will not be synchronized.  For example, if you edit config.json and re-run “generate.py”, the changes by the generator will not be seen by Eclipse unless you refresh the project – and the project now includes 11,000+ that will also be checked for updates.
+Another problem is that because files are copied by Eclipse from your project’s webapp root into the separate webapp deployment, you’d better be sure that Eclipe sees you editing a file or it will not be synchronized.  For example, if you edit config.json and re-run “generate.py”, the changes by the generator will not be seen by Eclipse unless you refresh the project – and the project now includes 11,000+ files that will also be checked for updates.
 
 ## A Solution
 
