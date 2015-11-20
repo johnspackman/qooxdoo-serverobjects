@@ -8,6 +8,15 @@
 
 The Qooxdoo ServerObjects contrib (aka QSO) is an alternative to the existing RPC mechanisms which are available as part of Qooxdoo and/or as other contribs; the main difference is that QSO is focused on mirroring objects and classes, including the class and interface hierarchy.  The goal is to allow a unified object model to exist on the client and the server, where property values are kept synchronized and events and method invocations are transparently transferred.  
 
+## New Features
+* ArrayList and HashMap implementations on the server that automatically synchronise with the client
+* Mixins supported on the client to inject client-only code into server classes
+* Server classes can be made to inherit from a specified class on the client
+* Log appender that integrates with Qooxdoo logging to send log entries back to the server
+* Automatic queuing and batching of asynchronous calls
+* Extensive optional debugging and logging support 
+* Support for custom constructor initialisation on the client  
+
 ## Benefits
 
 * **Automatic (and configurable)**: Class/interface definitions are discovered automatically on the server via reflection, and fine tuned by the developer using annotations; QSO will transfer class definitions to the Qooxdoo client automatically and on demand.
