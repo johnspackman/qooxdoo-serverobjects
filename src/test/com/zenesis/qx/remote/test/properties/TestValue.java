@@ -31,6 +31,9 @@ public class TestValue implements ITestValue {
 	
 	private int value; 
 
+	public TestValue() {
+		
+	}
 	public TestValue(int value) {
 		super();
 		this.value = value;
@@ -43,5 +46,11 @@ public class TestValue implements ITestValue {
 	public int getValue() {
 		return value;
 	}
+
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + "#" + value;
+	}
+
 
 }

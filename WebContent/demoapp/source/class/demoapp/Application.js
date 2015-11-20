@@ -70,13 +70,6 @@ qx.Class.define("demoapp.Application", {
 
       var manager = new com.zenesis.qx.remote.ProxyManager("/sampleServlet/ajax", true);
       manager.setTimeout(120 * 60 * 1000);
-      /*
-       * This will screw up the testing that checks the number of calls, use a different test
-      com.zenesis.qx.remote.LogAppender.install();
-      qx.event.GlobalError.setErrorHandler(function(ex) {
-        this.error("Unhandled error: " + ex.stack);
-      }, this);
-      */
 
       var root = this.getRoot();
       var txtLog = this.__txtLog = new qx.ui.form.TextArea().set({ readOnly: true, minHeight: 400 });
@@ -84,6 +77,15 @@ qx.Class.define("demoapp.Application", {
       
       this.log("Testing queued async");
       this.testQueuedAsyncMethods(function() {
+        
+        // Using the LogAppender can cause extra server round trips which get in the way of testQueuedAsyncMethods
+        //   because it counts the number of server trips to check everything is working as expected, so we don't
+        //  initialise it until here
+        com.zenesis.qx.remote.LogAppender.install();
+        qx.event.GlobalError.setErrorHandler(function(ex) {
+          this.error("Unhandled error: " + ex.stack);
+        }, this);
+        
         t.log("Testing main");
         t.testMain();
         
@@ -370,6 +372,10 @@ qx.Class.define("demoapp.Application", {
       var manager = com.zenesis.qx.remote.ProxyManager.getInstance();
       var boot = manager.getBootstrapObject();
       var threadTest = boot.getThreadTest();
+      
+      function makeSimple(value) {
+        return new com.zenesis.qx.remote.test.properties.TestValue().set({ value: value });
+      }
 
       /*
        * Start an async call and then queue another 10 calls; this keeps the load on the client
@@ -379,7 +385,8 @@ qx.Class.define("demoapp.Application", {
       threadTest.resetSerial();
       var numCalls = manager.getNumberOfCalls();
       var initialComplete = false;
-      threadTest.waitFor(1500, function(result) { 
+      var simple1 = makeSimple(1);
+      threadTest.waitFor(1500, simple1, function(result) { 
         t.debug("1: initial waitFor complete");
         initialComplete = true;
         qx.core.Assert.assertEquals(result, 0);
@@ -387,7 +394,7 @@ qx.Class.define("demoapp.Application", {
       setTimeout(function() {
         var numComplete = 0;
         for (var i = 0; i < 10; i++) {
-          threadTest.waitFor(10, function(i, result) {
+          threadTest.waitFor(10, simple1, function(i, result) {
             t.debug("1: threadTest.waitFor #" + i + " complete");
             numComplete++;
             qx.core.Assert.assertEquals(result, i + 1);
@@ -408,7 +415,8 @@ qx.Class.define("demoapp.Application", {
         threadTest.resetSerial();
         var numCalls = manager.getNumberOfCalls();
         var initialComplete = false;
-        threadTest.waitFor(1500, function(result) { 
+        var simple2 = makeSimple(2);
+        threadTest.waitFor(1500, simple2, function(result) { 
           t.debug("2: initial waitFor complete, result=" + result);
           
           // This must stil be zero because the server will block other 
@@ -418,7 +426,7 @@ qx.Class.define("demoapp.Application", {
         setTimeout(function() {
           var numComplete = 0;
           for (var i = 0; i < 10; i++) {
-            threadTest.waitFor(10, function(i, result) {
+            threadTest.waitFor(10, simple2, function(i, result) {
               t.debug("2: threadTest.waitFor #" + i + " complete, result=" + result);
               numComplete++;
               if (numComplete == 10) {
@@ -431,7 +439,7 @@ qx.Class.define("demoapp.Application", {
           }
           
           // Do a synchronous call to force server connection
-          var result = threadTest.waitFor(1);
+          var result = threadTest.waitFor(1, simple2);
           t.debug("2: force sync waitFor=" + result);
           qx.core.Assert.assertEquals(result, 11);
           cb();

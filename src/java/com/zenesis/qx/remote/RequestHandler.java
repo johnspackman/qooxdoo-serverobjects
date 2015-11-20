@@ -174,8 +174,11 @@ public class RequestHandler {
 	// Tracker for the session
 	private final ProxySessionTracker tracker;
 	
-	// Client Objects, indexed by client ID (negative) 
-	private HashMap<Integer, Proxied> clientObjects;
+	// Unique request identifier (debug only)
+	private String requestId = "(unnamed request)";
+
+	// Where I/O log files go to, null means that they are disabled
+	public static File s_traceLogDir = null;
 	
 	/**
 	 * @param tracker
@@ -214,11 +217,11 @@ public class RequestHandler {
 		try {
 			tracker.setLastClientTime(new Date(Long.parseLong(strClientTime)));
 		} catch(NumberFormatException e) {
-			log.error("Cannot parse client time " + strClientTime);
+			log.error("Cannot parse client time " + strClientTime + " for " + requestId);
 		}
 		int index = Integer.parseInt(strIndex);
 		int actualIndex = tracker.getNextRequestIndex();
-		String filename = tracker.getSessionId().replace(':', '_') + "/" + new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
+		requestId = tracker.getSessionId().replace(':', '_') + "/" + new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
 				DiagUtils.zeroPad(index) + "-" + DiagUtils.zeroPad(actualIndex);
 		
 		StringWriter sw = null;
@@ -239,20 +242,20 @@ public class RequestHandler {
 		if (log.isTraceEnabled() && s_traceLogDir != null) {
 			Object obj = tracker.getObjectMapper().readValue(sw.toString(), Object.class);
 			String out = tracker.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(obj);
-			DiagUtils.writeFile(new File(s_traceLogDir, filename + "-in.txt"), out);
+			DiagUtils.writeFile(new File(s_traceLogDir, requestId + "-in.txt"), out);
 		}
 
 		if (expectedSha != null) {
 	        String hash = DiagUtils.getSha1(sw.toString());
 	        if (!hash.equals(expectedSha))
-	        	throw new IllegalArgumentException("SHA1 mismatch, found " + hash + " expected " + expectedSha);
+	        	throw new IllegalArgumentException("SHA1 mismatch for " + requestId + ", found " + hash + " expected " + expectedSha);
 		}
 
 		processRequest(new StringReader(sw.toString()), writer);
 		
 		String out = writer.toString();
 		if (log.isTraceEnabled() && s_traceLogDir != null) {
-			DiagUtils.writeFile(new File(s_traceLogDir, filename + "-out.txt"), out);
+			DiagUtils.writeFile(new File(s_traceLogDir, requestId + "-out.txt"), out);
 		}
 		String hash = DiagUtils.getSha1(out);
 		response.setHeader(HEADER_SHA1, hash);
@@ -262,9 +265,9 @@ public class RequestHandler {
 	public void processRequest(Reader request, Writer response) throws ServletException, IOException {
 		try {
 			if (!tracker.getRequestLock().tryLock(REQUEST_LOCK_TIMEOUT, TimeUnit.MILLISECONDS))
-				throw new ServletException("Timeout while waiting for request lock");
+				throw new ServletException("Timeout while waiting for request lock for " + requestId);
 		}catch(InterruptedException e) {
-			throw new ServletException("Exception while waiting for request lock: " + e.getMessage());
+			throw new ServletException("Exception while waiting for request lock for " + requestId + ": " + e.getMessage());
 		}
 		try {
 			s_currentHandler.set(this);
@@ -286,13 +289,13 @@ public class RequestHandler {
 				}
 				
 			} catch(ProxyTypeSerialisationException e) {
-				log.fatal("Unable to serialise type information to client: " + e.getMessage(), e);
+				log.fatal("Unable to serialise type information to client for " + requestId + ": " + e.getMessage(), e);
 				
 			} catch(ProxyException e) {
 				handleException(response, objectMapper, e);
 				
 			} catch(Exception e) {
-				log.error("Exception during callback: " + e.getMessage(), e);
+				log.error("Exception during callback for " + requestId + ": " + e.getMessage(), e);
 				tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
 				objectMapper.writeValue(response, tracker.getQueue());
 				
@@ -497,12 +500,12 @@ public class RequestHandler {
 						}catch(InvocationTargetException e) {
 							Throwable t = e.getCause();
 							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + t.getMessage(), t);
-							throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + ": " + t.getMessage(), t);
+							throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + " for " + requestId + ": " + t.getMessage(), t);
 						}catch(RuntimeException e) {
 							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + e.getMessage(), e);
-							throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + ": " + e.getMessage(), e);
+							throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + " for " + requestId + ": " + e.getMessage(), e);
 						}catch(IllegalAccessException e) {
-							throw new ServletException("Exception while running " + method + "(" + Helpers.toString(values) + "): " + e.getMessage(), e);
+							throw new ServletException("Exception while running " + method + "(" + Helpers.toString(values) + " for " + requestId + "): " + e.getMessage(), e);
 						}
 						found = true;
 						break;
@@ -817,9 +820,7 @@ public class RequestHandler {
 		int serverId = tracker.addClientObject(proxied);
 		
 		// Remember the client ID, in case there are subsequent commands which refer to it
-		if (clientObjects == null)
-			clientObjects = new HashMap<Integer, Proxied>();
-		clientObjects.put(clientId, proxied);
+		tracker.registerClientObject(clientId, proxied);
 		
 		// Tell the client about the new ID - do this before changing properties
 		tracker.invalidateCache(proxied);
@@ -911,12 +912,7 @@ public class RequestHandler {
 	 * @return
 	 */
 	protected Proxied getProxied(int id) {
-		Proxied proxied = null;
-		if (id < 0) {
-			if (clientObjects != null)
-				proxied = clientObjects.get(id);
-		} else
-			proxied = tracker.getProxied(id);
+		Proxied proxied = tracker.getProxied(id);
 		if (proxied == null)
 			throw new NullPointerException("Cannot find server object with id=" + id);
 		return proxied;
@@ -1252,6 +1248,4 @@ public class RequestHandler {
 		jp.nextToken();
 	}
 
-	public static File s_traceLogDir = null;
-	private static int s_serial = 0;
 }

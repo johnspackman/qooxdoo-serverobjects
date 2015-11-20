@@ -41,4 +41,9 @@ public class TestSimpleValue implements ITestSimpleValue {
 		return value;
 	}
 
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + "#" + value;
+	}
+
 }

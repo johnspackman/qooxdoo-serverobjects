@@ -6,6 +6,8 @@ import org.apache.logging.log4j.Logger;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.test.properties.TestProperties;
+import com.zenesis.qx.remote.test.properties.TestValue;
+import com.zenesis.qx.remote.test.simple.TestSimpleValue;
 
 public class TestThreading implements Proxied {
 	
@@ -28,14 +30,15 @@ public class TestThreading implements Proxied {
 	}
 	
 	@Method
-	public int waitFor(long millis) {
+	public int waitFor(long millis, TestValue value) {
 		try {
-			log.info("Starting wait for #" + serial + ": " + millis);
+			log.info("Starting wait for #" + serial + ", value=" + value + ": " + millis);
 			Thread.sleep(millis);
-			log.info("Ended wait for #" + serial + ": " + millis);
+			log.info("Ended wait for #" + serial + ", value=" + value + ": " + millis);
 		} catch(InterruptedException e) {
 			// Nothing
 		}
 		return this.serial++;
 	}
+	
 }

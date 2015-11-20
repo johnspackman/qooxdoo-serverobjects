@@ -33,6 +33,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -304,6 +305,9 @@ public class ProxySessionTracker implements UploadInterceptor {
 	private final HashSet<PropertyId> knownOnDemandProperties = new HashSet<ProxySessionTracker.PropertyId>();
 	private final HashSet<PropertyId> mutatingProperties = new HashSet<ProxySessionTracker.PropertyId>();
 
+	// Client Objects, indexed by client ID (negative) 
+	private HashMap<Integer, WeakReference<Proxied>> clientObjects;
+	
 	// The Object mapper
 	private ProxyObjectMapper objectMapper;
 
@@ -601,16 +605,27 @@ public class ProxySessionTracker implements UploadInterceptor {
 	/**
 	 * Returns the Proxied object that corresponds to a given value from the
 	 * client
-	 * @param serverId the ID that was originally passed to the client
-	 * @return
+	 * @param id the ID that was originally passed to the client
+	 * @return the object, or null
 	 */
-	public synchronized Proxied getProxied(int serverId) {
-		Proxied proxied = objectsById.get(serverId);
+	public synchronized Proxied getProxied(int id) {
+		Proxied proxied = null;
+		if (id < 0) {
+			if (clientObjects != null) {
+				WeakReference<Proxied> ref = clientObjects.get(id);
+				if (ref != null) {
+					proxied = ref.get();
+					if (proxied == null)
+						clientObjects.remove(id);
+				}
+			}
+		} else
+			proxied = objectsById.get(id);
 		if (proxied == null) {
 			if (log.isDebugEnabled() && disposedObjectIds != null)
-				if (disposedObjectIds.contains(serverId))
-					throw new IllegalArgumentException("Cannot find Proxied instance for invalid serverId " + serverId + " - object already disposed");
-			throw new IllegalArgumentException("Cannot find Proxied instance for invalid serverId " + serverId);
+				if (disposedObjectIds.contains(id))
+					throw new IllegalArgumentException("Cannot find Proxied instance for invalid proxied ID " + id + " - object already disposed");
+			throw new IllegalArgumentException("Cannot find Proxied instance for invalid proxied ID " + id);
 		}
 		return proxied;
 	}
@@ -623,6 +638,19 @@ public class ProxySessionTracker implements UploadInterceptor {
 	public synchronized boolean hasProxied(Proxied proxied) {
 		Integer serverId = objectIds.get(proxied);
 		return serverId != null;
+	}
+
+	/**
+	 * Registers a client object; the 
+	 * @param clientId
+	 * @param proxied
+	 */
+	public synchronized void registerClientObject(int clientId, Proxied proxied) {
+		if (clientId >= 0)
+			throw new IllegalArgumentException("Invalid client id " + clientId +" for " + proxied.getClass() + " " + proxied);
+		if (clientObjects == null)
+			clientObjects = new HashMap<Integer, WeakReference<Proxied>>();
+		clientObjects.put(clientId, new WeakReference<Proxied>(proxied));
 	}
 	
 	/**

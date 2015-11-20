@@ -12,7 +12,7 @@
 		<load-on-startup>0</load-on-startup> 
 		<init-param>
 			<param-name>logging-dir</param-name>
-			<param-value>/Users/john/dev/Grasshopper/smart/Grasshopper2/WebContent/public/grasshopper/contrib2/qx-serverobjects/logging</param-value>
+			<param-value>/Users/john/tmp/qx-serverobjects/logging</param-value>
 		</init-param>
 	</servlet>
 	
