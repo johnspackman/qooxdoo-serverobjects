@@ -147,7 +147,6 @@ public class ProxyObjectMapper extends ObjectMapper {
 	 * Serialises enums in camelCase
 	 */
 	private static final class EnumSerializer extends JsonSerializer<Enum> {
-		
 		/* (non-Javadoc)
 		 * @see org.codehaus.jackson.map.JsonSerializer#serialize(java.lang.Object, org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
 		 */
@@ -155,10 +154,8 @@ public class ProxyObjectMapper extends ObjectMapper {
 		public void serialize(Enum value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
 			if (value == null)
 				jgen.writeNull();
-			else {
-				ProxySessionTracker tracker = ProxyManager.getTracker();
-				jgen.writeString(tracker.serialiseEnum(value));
-			}
+			else
+				jgen.writeString(Helpers.serialiseEnum(value));
 		}
 
 	};
@@ -191,12 +188,11 @@ public class ProxyObjectMapper extends ObjectMapper {
 				jgen.writeNull();
 			else {
 				jgen.writeStartObject();
-				ProxySessionTracker tracker = ProxyManager.getTracker();
 				for (Object key : map.keySet()) {
 					if (key == null)
 						continue;
 					if (key instanceof Enum)
-						jgen.writeFieldName(tracker.serialiseEnum((Enum)key));
+						jgen.writeFieldName(Helpers.serialiseEnum((Enum)key));
 					else
 						jgen.writeFieldName(key.toString());
 					Object value = map.get(key);
@@ -321,8 +317,6 @@ public class ProxyObjectMapper extends ObjectMapper {
 	 */
 	protected SimpleModule createModule(File rootDir) {
 		SimpleModule module = new SimpleModule("ProxyObjectMapper", Version.unknownVersion());
-		module.addSerializer(Proxied.class, new ProxiedSerializer());
-		module.addDeserializer(Proxied.class, new ProxiedDeserializer());
 		module.addSerializer(Date.class, new DateSerializer());
 		module.addSerializer(String.class, new StringSerializer());
 		module.addSerializer(Enum.class, new EnumSerializer());
