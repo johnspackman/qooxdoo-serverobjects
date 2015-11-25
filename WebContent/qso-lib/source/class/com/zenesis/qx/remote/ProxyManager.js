@@ -95,7 +95,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     timeout: {
       init: null,
       check: "Integer",
-      nullable: true
+      nullable: true,
+      apply: "_applyTimeout"
     }
   },
 
@@ -1719,6 +1720,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // this.debug("poll");
       this.__pollTimerId = null;
       this.flushQueue(true, true);
+    },
+    
+    /**
+     * Called to apply the timeout
+     */
+    _applyTimeout: function(value) {
+      if (typeof qx.io.remote.transport.XmlHttp.setTimeout == "function") {
+        qx.io.remote.transport.XmlHttp.setTimeout(value);
+      } else {
+        this.warn("Cannot set the timeout of the underlying qx.io.remote.transport.XmlHttp transport because it does not support " +
+        		"setTimeout.  Please see pull request #???");
+      }
     },
 
     /**
