@@ -98,7 +98,7 @@ public class RequestHandler {
 	public static final String HEADER_CLIENT_TIME = "X-ProxyManager-ClientTime";
 	
 	// Maximum time to wait for a lock on the response
-	private static final int REQUEST_LOCK_TIMEOUT = 2 * 60 * 1000;
+	private static int s_requestLockTimeout = 2 * 60 * 1000;
 
 	// This class is sent as data by cmdBootstrap
 	public static final class Bootstrap {
@@ -189,6 +189,22 @@ public class RequestHandler {
 	}
 	
 	/**
+	 * Returns the time to wait for an exclusive lock on the request, in milliseconds
+	 * @return
+	 */
+	public static int getRequestLockTimeout() {
+		return s_requestLockTimeout;
+	}
+
+	/**
+	 * Sets the time to wait for an exclusive lock on the request, in milliseconds.  
+	 * @param requestLockTimeout
+	 */
+	public static void setRequestLockTimeout(int requestLockTimeout) {
+		RequestHandler.s_requestLockTimeout = requestLockTimeout;
+	}
+
+	/**
 	 * Handles the callback from the client; expects either an object or an array of objects
 	 * 
 	 * This method needs to be synchronized because if there are multiple requests (where one or more are 
@@ -264,7 +280,7 @@ public class RequestHandler {
 	
 	public void processRequest(Reader request, Writer response) throws ServletException, IOException {
 		try {
-			if (!tracker.getRequestLock().tryLock(REQUEST_LOCK_TIMEOUT, TimeUnit.MILLISECONDS))
+			if (!tracker.getRequestLock().tryLock(s_requestLockTimeout, TimeUnit.MILLISECONDS))
 				throw new ServletException("Timeout while waiting for request lock for " + requestId);
 		}catch(InterruptedException e) {
 			throw new ServletException("Exception while waiting for request lock for " + requestId + ": " + e.getMessage());

@@ -95,7 +95,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     timeout: {
       init: null,
       check: "Integer",
-      nullable: true
+      nullable: true,
+      apply: "_applyTimeout"
     }
   },
 
@@ -938,7 +939,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
       
       if (value instanceof qx.core.Object && value.isDisposed()) {
-        if (!value.$$proxy || !this.__disposedServerObjects[value.getServerId()])
+        if (!value.$$proxy || (this.__disposedServerObjects && !this.__disposedServerObjects[value.getServerId()]))
           throw new Error("Cannot serialise " + value.classname + " [" + value.toHashCode() + "] because it is disposed, object=" + value);
       }
 
@@ -1719,6 +1720,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // this.debug("poll");
       this.__pollTimerId = null;
       this.flushQueue(true, true);
+    },
+    
+    /**
+     * Called to apply the timeout
+     */
+    _applyTimeout: function(value) {
+      if (typeof qx.io.remote.transport.XmlHttp.setTimeout == "function") {
+        qx.io.remote.transport.XmlHttp.setTimeout(value);
+      } else {
+        this.warn("Cannot set the timeout of the underlying qx.io.remote.transport.XmlHttp transport because it does not support " +
+        		"setTimeout.  Please see pull request #???");
+      }
     },
 
     /**

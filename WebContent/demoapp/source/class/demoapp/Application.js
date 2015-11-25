@@ -83,8 +83,8 @@ qx.Class.define("demoapp.Application", {
         //  initialise it until here
         com.zenesis.qx.remote.LogAppender.install();
         qx.event.GlobalError.setErrorHandler(function(ex) {
-          this.error("Unhandled error: " + ex.stack);
-        }, this);
+          t.error("Unhandled error: " + ex.stack);
+        }, t);
         
         t.log("Testing main");
         t.testMain();
@@ -98,6 +98,8 @@ qx.Class.define("demoapp.Application", {
         t.log("All automated tests passed - now open other browsers to start multi user testing");
         t.testMultiUser();
         t.testThreading();
+        
+        t.testBrowserTimeouts();
       });
     },
     
@@ -586,6 +588,11 @@ qx.Class.define("demoapp.Application", {
       var numCalls = 0;
       
       function checkForReady() {
+        if (t.__inTimeouts) {
+          setTimeout(checkForReady, 500);
+          return;
+        }
+        
         status = multiUser.checkReady();
         //t.log("status=" + JSON.stringify(status));
         lblNumUsers.setValue(status.numReady + " Users Ready");
@@ -656,6 +663,35 @@ qx.Class.define("demoapp.Application", {
       
       checkForReady();
       
+    },
+    
+    __inTimeouts: false,
+    
+    testBrowserTimeouts: function() {
+      var t = this;
+      var manager = com.zenesis.qx.remote.ProxyManager.getInstance();
+      var boot = manager.getBootstrapObject();
+      var threadTest = boot.getThreadTest();
+      var root =this.getRoot();
+      
+      var btn = new qx.ui.form.Button("Start Long Timeout");
+      root.add(btn, {
+        left: 100,
+        top: 250
+      });
+      btn.addListener("execute", function() {
+        btn.setEnabled(false);
+        t.__inTimeouts = true;
+        var secs = 5 * 60;
+        t.log("Waiting for " + secs + " seconds synchronously ");
+        threadTest.waitFor(secs * 1000, null);
+        t.log("Waiting for " + secs + " seconds asynchronously ");
+        threadTest.waitFor(secs * 1000, null, function(result) {
+          btn.setEnabled(true);
+          t.__inTimeouts = false;
+          t.log("Wait finished");
+        });
+      }, this);
     }
   }
 });
