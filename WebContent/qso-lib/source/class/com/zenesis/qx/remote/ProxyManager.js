@@ -938,7 +938,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
       
       if (value instanceof qx.core.Object && value.isDisposed()) {
-        if (!value.$$proxy || !this.__disposedServerObjects[value.getServerId()])
+        if (!value.$$proxy || (this.__disposedServerObjects && !this.__disposedServerObjects[value.getServerId()]))
           throw new Error("Cannot serialise " + value.classname + " [" + value.toHashCode() + "] because it is disposed, object=" + value);
       }
 
