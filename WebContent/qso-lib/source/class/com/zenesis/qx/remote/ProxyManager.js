@@ -595,7 +595,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Get or create it
         result = t.getServerObject(serverId);
-        if (!result) {
+        if (!result && data.clazz) {
           var clazz = t.getClassOrCreate(data.clazz);
 
           // Collect constructor args now in case they refer to a Proxied object
@@ -622,6 +622,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           t.__inConstructor = false;
           qx.core.Assert.assertEquals(serverId, result.getServerId());
           t.__serverObjects[serverId] = result;
+        } else if (!result) {
+          throw new Error("Cannot find serverId " + serverId + ", probable recursion in loading");
         }
 
         // Assign any values
