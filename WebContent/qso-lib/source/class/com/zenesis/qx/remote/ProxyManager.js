@@ -168,6 +168,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
     // The number of call backs to the server
     __numberOfCalls: 0,
+    __inProcessData: 0,
 
     // Exception returned from the server, to be thrown at end of current
     // function call
@@ -327,6 +328,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
     },
     
+    /**
+     * Returns a basic usage and performance stats
+     */
     getStats: function() {
       return this.__stats;
     },
@@ -349,6 +353,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     uploadResponse: function(txt) {
       txt = txt.trim();
+      this.__inProcessData++;
       try {
         if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
           console.log("received: txt=" + txt); // Use console.log because
@@ -361,6 +366,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       } catch (e) {
         this.error("Exception during uploadResponse: " + this.__describeException(e));
         throw e;
+      } finally {
+        this.__inProcessData--;
       }
     },
 
@@ -904,14 +911,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     __addOnDemandProperty: function(clazz, propName, readOnly) {
       var upname = qx.lang.String.firstUp(propName);
-      clazz.prototype["get" + upname] = function() {
-        return this._getPropertyOnDemand(propName);
+      clazz.prototype["get" + upname] = function(async) {
+        return this._getPropertyOnDemand(propName, async);
       };
       clazz.prototype["expire" + upname] = function(sendToServer) {
         return this._expirePropertyOnDemand(propName, sendToServer);
       };
-      clazz.prototype["set" + upname] = function(value) {
-        return this._setPropertyOnDemand(propName, value);
+      clazz.prototype["set" + upname] = function(value, async) {
+        return this._setPropertyOnDemand(propName, value, async);
       };
     },
 
@@ -1573,6 +1580,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       });
       if (this.__preRequestCallback)
         this.__preRequestCallback.call(this, req);
+      if (qx.core.Environment.get("com.zenesis.qx.remote.traceRecursion")) {
+        if (this.__inProcessData) {
+          var trace = qx.dev.StackTrace.getStackTrace();
+          this.warn(["Recursive calls to ProxyManager may cause exceptions with object references, stack trace:"].concat(trace).join("\n"));
+        }
+      }
       req.send();
     },
 
@@ -1926,6 +1939,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   },
 
   environment: {
-    "com.zenesis.qx.remote.trace": false
+    "com.zenesis.qx.remote.trace": false,
+    "com.zenesis.qx.remote.traceRecursion": true,
+    "com.zenesis.qx.remote.traceOnDemandSync": false
   }
 });

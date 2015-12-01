@@ -165,21 +165,39 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 
     /**
      * Called when an on-demand property's get method is called
+     * @param propName {String} name of the property to get
+     * @param async {Boolean|Function} whether asynchronous or not
      */
-    _getPropertyOnDemand: function(propName) {
+    _getPropertyOnDemand: function(propName, async) {
       // Check the cache
       if (this.$$proxyUser) {
         var value = this.$$proxyUser[propName];
-        if (value !== undefined)
+        if (value !== undefined) {
+          if (typeof async == "function")
+            async.call(this, value);
           return value;
+        }
       } else
         this.$$proxyUser = {};
+      
+      if (qx.core.Environment.get("com.zenesis.qx.remote.traceOnDemandSync")) {
+        if (!async) {
+          var trace = qx.dev.StackTrace.getStackTrace();
+          this.warn(["Getting ondemand property " + propName + " of " + this.classname + " [" + this + "] synchronously, stack trace:"].concat(trace).join("\n"));
+        }
+      }
 
       // Call the server
       var upname = qx.lang.String.firstUp(propName);
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var propDef = this.getPropertyDef(propName);
-      var value = PM.callServerMethod(this, "get" + upname, []);
+      var args = [];
+      if (async === true)
+        args = [function(){}];
+      else if (typeof async == "function")
+        args = [async];
+      
+      var value = PM.callServerMethod(this, "get" + upname, args);
       var ex = PM.clearException();
       if (ex) {
         throw ex;
