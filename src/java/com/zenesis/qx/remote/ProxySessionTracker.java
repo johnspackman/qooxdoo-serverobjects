@@ -319,7 +319,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	private int requestIndex;
 	
 	// Bootstrap object
-	private final Class<? extends Proxied> bootstrapClass;
+	protected final Class<? extends Proxied> bootstrapClass;
 	private Proxied bootstrap;
 	
 	// Session information
