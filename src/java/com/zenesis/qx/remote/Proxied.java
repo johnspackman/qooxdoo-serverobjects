@@ -38,8 +38,10 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
  * @author John Spackman
  *
  */
+/*
 @JsonSerialize(using=ProxiedSerializer.class)
 @JsonDeserialize(using=ProxiedDeserializer.class)
+*/
 public interface Proxied {
 	
 }

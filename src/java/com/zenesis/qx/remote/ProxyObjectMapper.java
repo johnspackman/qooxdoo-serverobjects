@@ -317,6 +317,8 @@ public class ProxyObjectMapper extends ObjectMapper {
 	 */
 	protected SimpleModule createModule(File rootDir) {
 		SimpleModule module = new SimpleModule("ProxyObjectMapper", Version.unknownVersion());
+		module.addSerializer(Proxied.class, new ProxiedSerializer());
+		module.addDeserializer(Proxied.class, new ProxiedDeserializer());
 		module.addSerializer(Date.class, new DateSerializer());
 		module.addSerializer(String.class, new StringSerializer());
 		module.addSerializer(Enum.class, new EnumSerializer());
