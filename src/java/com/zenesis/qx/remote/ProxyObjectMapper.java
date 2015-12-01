@@ -306,28 +306,23 @@ public class ProxyObjectMapper extends ObjectMapper {
 		if (indent)
 			this.enable(SerializationFeature.INDENT_OUTPUT);
 		this.tracker = tracker;
-		SimpleModule module = createModule(rootDir);
+		SimpleModule module;
+		
+		module = new SimpleModule("ProxyObjectMapper1", Version.unknownVersion());
+		module.addSerializer(Enum.class, new EnumSerializer());
 		registerModule(module);
-	}
-	
-	/**
-	 * Creates the module for Jackson ObjectMapper
-	 * @param rootDir
-	 * @return
-	 */
-	protected SimpleModule createModule(File rootDir) {
-		SimpleModule module = new SimpleModule("ProxyObjectMapper", Version.unknownVersion());
-		module.addSerializer(Proxied.class, new ProxiedSerializer());
-		module.addDeserializer(Proxied.class, new ProxiedDeserializer());
+		
+		module = new SimpleModule("ProxyObjectMapper2", Version.unknownVersion());
 		module.addSerializer(Date.class, new DateSerializer());
 		module.addSerializer(String.class, new StringSerializer());
-		module.addSerializer(Enum.class, new EnumSerializer());
 		module.addSerializer(File.class, new FileSerializer(rootDir));
 		module.addDeserializer(File.class, new FileDeserializer(rootDir));
 		module.addSerializer(Map.class, new MapSerializer());
-		return module;
+		module.addSerializer(Proxied.class, new ProxiedSerializer());
+		module.addDeserializer(Proxied.class, new ProxiedDeserializer());
+		registerModule(module);
 	}
-
+	
 	/**
 	 * @return the tracker
 	 */
