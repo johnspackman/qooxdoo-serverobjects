@@ -2,13 +2,29 @@
 This example uses the “explorer” demo Qooxdoo app and the com.zenesis.qx.remote.explorer package.
 
 ## Defining a Java POJO
-There is only one basic requirement when defining a POJO on the server – the class or interface must implement com.zenesis.qx.remote.Proxied, after which your methods can be called (synchronously) from the client.  A more useful object will add properties to the class by using the Properties and Property annotations; for example:
+There is only one basic requirement when defining a POJO on the server – the class or interface must implement com.zenesis.qx.remote.Proxied, after which your methods can be called (synchronously or asynchronously) from the client.  A more useful object will add properties to the class by using the Properties and Property annotations; for example:
 
 ``` java
 package qsodemo;
+import com.zenesis.qx.remote.collections.ArrayList;
 public class Person implements Proxied {
+
 	@Property
 	private String name;
+	
+	@Property
+	private ArrayList<Person> children;
+	
+	public Person() {
+		this.children = new ArrayList<>();
+	}
+
+	@Method
+	public Person addChild(String name) {
+		Person child = new Person();
+		child.setName(name);
+		children.add(child);		
+	}
 
 	public String getName(){
 		return name;
@@ -20,7 +36,19 @@ public class Person implements Proxied {
 }
 ```
 
-The Property annotation tells the QSO library about the property “name”, that it fires a “changeName” event whenever it is modified, and when QSO copies a Person object from the server to the client, the property value must be delivered at the same time and then cached on the server.  If the server changes the value of the property, it will fire a “changeName” event and QSO will relay the new value to the client.
+The @Property annotation tells the QSO library about the property “name”, that it fires a “changeName” event whenever it is modified, and when QSO copies a Person object from the server to the client, the property value must be delivered at the same time and then cached on the server.  If the server changes the value of the property, it will fire a “changeName” event and QSO will relay the new value to the client.
+
+The @Method annotation describes a method which is available on the client; by default, method calls are synchronous but can be made asynchronous by adding a callback method.  For example, on the client you could write this javascript:
+
+``` javascript
+  var child = person.addChild("Peter", function(returnValue) {
+  	qx.core.Assert.assertEquals("Peter", returnValue.getName());
+  	qx.core.Assert.assertTrue(person.getChildren().contains(returnValue));
+  	qx.core.Assert.assertTrue(returnValue instanceof qsodemo.Person);
+  });
+``` 
+
+Notice how the "children" property was modified on the server and automatically updated on the client.  The returnValue is an instance    of qsodemo.Person which is a Qooxdoo class on the client which was defined automatically.
 
 ## Writing the Java Servlet
 
