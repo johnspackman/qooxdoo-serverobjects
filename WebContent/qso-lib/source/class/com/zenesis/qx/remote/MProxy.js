@@ -69,6 +69,13 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       }
       return this.__serverId;
     },
+    
+    /**
+     * Detects whether the object has a server id assigned
+     */
+    hasServerId: function() {
+      return this.__serverId !== null;
+    },
 
     /**
      * Sets the server ID - used when the object was created on the client and
@@ -109,6 +116,17 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     _callServer: function(name, args) {
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var result = PM.callServerMethod(this, name, args);
+      
+      if (qx.core.Environment.get("com.zenesis.qx.remote.traceMethodSync")) {
+        var async = args.some(function(arg) {
+          return typeof arg == "function";
+        });
+        if (!async) {
+          var trace = qx.dev.StackTrace.getStackTrace();
+          this.warn(["Calling method ", this.classname, ".", name, " [" + this + "] synchronously, stack trace:"].concat(trace).join("\n"));
+        }
+      }
+      
       var ex = PM.clearException();
       if (ex)
         throw ex;
@@ -181,7 +199,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
         this.$$proxyUser = {};
       
       if (qx.core.Environment.get("com.zenesis.qx.remote.traceOnDemandSync")) {
-        if (!async) {
+        if (async === undefined) {
           var trace = qx.dev.StackTrace.getStackTrace();
           this.warn(["Getting ondemand property " + propName + " of " + this.classname + " [" + this + "] synchronously, stack trace:"].concat(trace).join("\n"));
         }

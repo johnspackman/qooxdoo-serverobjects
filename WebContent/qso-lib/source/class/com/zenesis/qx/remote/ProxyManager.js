@@ -225,7 +225,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @return {Integer} the new ID for this object
      */
     registerClientObject: function(obj) {
-      qx.core.Assert.assertTrue(obj.__serverId === null);
+      qx.core.Assert.assertTrue(!obj.hasServerId());
       if (!this.__clientObjects)
         this.__clientObjects = {};
       var index = ++this.__clientObjectsLastId;
@@ -264,55 +264,60 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       proxyData.receivedTime = new Date().getTime();
       var result = null;
 
-      if (statusCode == 200) {
-        if (qx.core.Environment.get("qx.debug")) {
-          var sha = evt.getResponseHeaders()["X-ProxyManager-SHA1"];
-          if (sha) {
-            var digest = com.zenesis.qx.remote.Sha1.digest(txt);
-            if (sha != digest) {
-              throw new Error("Invalid SHA received from server, expected=" + sha + ", found=" + digest);
+      this.__inProcessData++;
+      try {
+        if (statusCode == 200) {
+          if (qx.core.Environment.get("qx.debug")) {
+            var sha = evt.getResponseHeaders()["X-ProxyManager-SHA1"];
+            if (sha) {
+              var digest = com.zenesis.qx.remote.Sha1.digest(txt);
+              if (sha != digest) {
+                throw new Error("Invalid SHA received from server, expected=" + sha + ", found=" + digest);
+              }
             }
           }
-        }
-        txt = txt.trim();
-        try {
-          if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-            console.log("received: txt=" + txt); // Use console.log because
-                                                  // LogAppender would cause
-                                                  // recursive logging
-          if (txt.length) {
-            var data = eval("(" + txt + ")");
-            result = this._processData(data);
+          txt = txt.trim();
+          try {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
+              console.log("received: txt=" + txt); // Use console.log because
+                                                    // LogAppender would cause
+                                                    // recursive logging
+            if (txt.length) {
+              var data = eval("(" + txt + ")");
+              result = this._processData(data);
+            }
+            if (typeof proxyData.async == "function")
+              proxyData.async(evt);
+  
+          } catch (e) {
+            this.error("Exception during receive: " + this.__describeException(e));
+            this._setException(e);
+            if (typeof proxyData.async == "function")
+              proxyData.async(evt);
+  
+          } finally {
+            if (this.getPollServer()) {
+              this._killPollTimer();
+              this._startPollTimer();
+            }
           }
+  
+        } else {
+          this._handleIoError(evt);
           if (typeof proxyData.async == "function")
             proxyData.async(evt);
-
-        } catch (e) {
-          this.error("Exception during receive: " + this.__describeException(e));
-          this._setException(e);
-          if (typeof proxyData.async == "function")
-            proxyData.async(evt);
-
-        } finally {
-          if (this.getPollServer()) {
-            this._killPollTimer();
-            this._startPollTimer();
-          }
         }
-
-      } else {
-        this._handleIoError(evt);
-        if (typeof proxyData.async == "function")
-          proxyData.async(evt);
+        
+        proxyData.endTime = new Date().getTime();
+        var stats = req.getAsynchronous() ? this.__stats.async : this.__stats.sync;
+        stats.count++;
+        var time = proxyData.endTime - proxyData.startTime;
+        stats.totalTime += time;
+        stats.peakTime = Math.max(stats.peakTime, time);
+        return result;
+      } finally {
+        this.__inProcessData--;
       }
-      
-      proxyData.endTime = new Date().getTime();
-      var stats = req.getAsynchronous() ? this.__stats.async : this.__stats.sync;
-      stats.count++;
-      var time = proxyData.endTime - proxyData.startTime;
-      stats.totalTime += time;
-      stats.peakTime = Math.max(stats.peakTime, time);
-      return result;
     },
     
     __stats: {
@@ -507,7 +512,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
       
       if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length)
-        this.flushQueue(false, true);
+        this._sendCommandToServer(null, true, true);
 
       return result;
     },
@@ -1082,7 +1087,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }.bind(this);
 
       // Call the server
-      if (notify.length && this.__numActiveRequests) {
+      if (notify.length && (this.__numActiveRequests || this.__inProcessData)) {
         if (!this.__queuedServerMethods)
           this.__queuedServerMethods = [];
         this.__queuedServerMethods.push(data);
@@ -1500,7 +1505,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Boolean?} whether to make it an async call (default is synchronous)
      * @return {String} the server response
      */
-    _sendCommandToServer: function(obj, async) {
+    _sendCommandToServer: function(obj, async, suppressWarnings) {
       var startTime = new Date().getTime();
       
       // We must not allow recursive commands, otherwise a partially formed
@@ -1582,7 +1587,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       });
       if (this.__preRequestCallback)
         this.__preRequestCallback.call(this, req);
-      if (qx.core.Environment.get("com.zenesis.qx.remote.traceRecursion")) {
+      if (!suppressWarnings && qx.core.Environment.get("com.zenesis.qx.remote.traceRecursion")) {
         if (this.__inProcessData) {
           var trace = qx.dev.StackTrace.getStackTrace();
           this.warn(["Recursive calls to ProxyManager may cause exceptions with object references, stack trace:"].concat(trace).join("\n"));
@@ -1943,6 +1948,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   environment: {
     "com.zenesis.qx.remote.trace": false,
     "com.zenesis.qx.remote.traceRecursion": true,
+    "com.zenesis.qx.remote.traceMethodSync": false,
     "com.zenesis.qx.remote.traceOnDemandSync": false
   }
 });
