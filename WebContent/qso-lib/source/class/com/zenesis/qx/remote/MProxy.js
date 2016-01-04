@@ -209,20 +209,27 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       var upname = qx.lang.String.firstUp(propName);
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var propDef = this.getPropertyDef(propName);
-      var args = [];
-      if (async === true)
-        args = [function(){}];
-      else if (typeof async == "function")
-        args = [async];
       
-      var value = PM.callServerMethod(this, "get" + upname, args);
-      var ex = PM.clearException();
-      if (ex) {
-        throw ex;
-      }
+      if (async) {
+        PM.callServerMethod(this, "get" + upname, [function(value){
+          var ex = PM.clearException();
+          if (!ex)
+            value = this.__storePropertyOnDemand(propDef, value);
+          else
+            value = undefined;
+          if (typeof async == "function")
+            async(value, ex);
 
-      // Update the cache and done
-      return this.__storePropertyOnDemand(propDef, value);
+        }]);
+      } else {
+        var value = PM.callServerMethod(this, "get" + upname, []);
+        var ex = PM.clearException();
+        if (ex)
+          throw ex;
+
+        // Update the cache and done
+        return this.__storePropertyOnDemand(propDef, value);
+      }
     },
 
     /**
