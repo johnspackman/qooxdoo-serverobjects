@@ -245,7 +245,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     __storePropertyOnDemand: function(propDef, value) {
       var oldValue;
       if (this.$$proxyUser && (oldValue = this.$$proxyUser[propDef.name])) {
-        if (propDef.array = "wrap" && propDef.changeListenerId) {
+        if (propDef.array == "wrap" && propDef.changeListenerId) {
           oldValue.removeListenerById(propDef.changeListenerId);
           propDef.changeListenerId = null;
         }
