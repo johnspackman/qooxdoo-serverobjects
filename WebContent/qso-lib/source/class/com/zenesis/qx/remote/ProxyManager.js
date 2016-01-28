@@ -1049,6 +1049,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         else
           parameters.push(this.serializeValue(args[i]));
       }
+      //if (methodName.match(/getApi/))
+      //  debugger;
       var data = {
         cmd: "call",
         serverId: isClass ? serverObject.classname : serverObject.getServerId(),

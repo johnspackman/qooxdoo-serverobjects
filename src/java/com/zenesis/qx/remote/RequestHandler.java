@@ -515,10 +515,10 @@ public class RequestHandler {
 							tracker.getQueue().queueCommand(id, new FunctionReturn(asyncId, result));
 						}catch(InvocationTargetException e) {
 							Throwable t = e.getCause();
-							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + t.getMessage(), t);
+							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + " (" + requestId + "): " + t.getMessage(), t);
 							throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + " for " + requestId + ": " + t.getMessage(), t);
 						}catch(RuntimeException e) {
-							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + e.getMessage(), e);
+							log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + " (" + requestId + "): " + e.getMessage(), e);
 							throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + " for " + requestId + ": " + e.getMessage(), e);
 						}catch(IllegalAccessException e) {
 							throw new ServletException("Exception while running " + method + "(" + Helpers.toString(values) + " for " + requestId + "): " + e.getMessage(), e);

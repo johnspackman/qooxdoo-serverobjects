@@ -114,18 +114,18 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      * Called by methods to invoke the server method call
      */
     _callServer: function(name, args) {
-      var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
-      var result = PM.callServerMethod(this, name, args);
-      
       if (qx.core.Environment.get("com.zenesis.qx.remote.traceMethodSync")) {
         var async = args.some(function(arg) {
           return typeof arg == "function";
         });
         if (!async) {
           var trace = qx.dev.StackTrace.getStackTrace();
-          this.warn(["Calling method ", this.classname, ".", name, " [" + this + "] synchronously, stack trace:"].concat(trace).join("\n"));
+          this.warn(["Calling method " + this.classname + "." + name + " [" + this + "] synchronously, stack trace:"].concat(trace).join("\n"));
         }
       }
+
+      var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
+      var result = PM.callServerMethod(this, name, args);
       
       var ex = PM.clearException();
       if (ex)
