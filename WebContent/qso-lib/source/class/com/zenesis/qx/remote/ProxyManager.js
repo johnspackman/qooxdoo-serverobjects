@@ -695,6 +695,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @lint ignoreDeprecated(eval)
      */
     getClassOrCreate: function(data) {
+      var t = this;
+      
       // If it's a string, then it's an existing class we need to create
       if (typeof data == "string") {
         if (this.__classesBeingDefined[data])
@@ -789,6 +791,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Add properties
         var onDemandProperties = [];
+        var normalProperties = [];
         if (data.properties) {
           def.properties = {};
           for ( var propName in data.properties) {
@@ -858,7 +861,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
             // onDemand properties - patch it later
             if (fromDef.onDemand)
-              onDemandProperties[onDemandProperties.length] = fromDef;
+              onDemandProperties.push(fromDef);
+            else
+              normalProperties.push(fromDef);
           }
         }
 
@@ -895,10 +900,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         this.__classInfo[data.className] = data;
 
         // Patch on demand properties
-        for (var i = 0; i < onDemandProperties.length; i++) {
-          var propDef = onDemandProperties[i];
-          this.__addOnDemandProperty(clazz, propDef.name, propDef.readOnly || false);
-        }
+        onDemandProperties.forEach(function(propDef) {
+          t.__addOnDemandProperty(clazz, propDef.name, propDef.readOnly || false);
+        });
+        normalProperties.forEach(function(propDef) {
+          t.__patchNormalProperty(clazz, propDef.name);
+        });
       } catch (e) {
         throw e;
       } finally {
@@ -926,6 +933,31 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       };
       clazz.prototype["set" + upname] = function(value, async) {
         return this._setPropertyOnDemand(propName, value, async);
+      };
+    },
+    
+    /**
+     * Patches a normal property so that it can take a callback as the parameter and have the
+     * value passed to the callback; this is important because it allows a uniform coding pattern
+     * which is the same for on demand and normal properties
+     */
+    __patchNormalProperty: function(clazz, name) {
+      var upname = qx.lang.String.firstUp(name);
+      var get = clazz.prototype["get" + upname];
+      clazz.prototype["get" + upname] = function(cb) {
+        // qx.core.Property.executeOptimisedSetter changes the implementation of the 
+        //  get method the first time it is called; we detect that and swap our overridden
+        //  method back in
+        var currentGet = clazz.prototype["get" + upname];
+        var value = get.call(this);
+        var newGet = clazz.prototype["get" + upname];
+        if (newGet != currentGet) {
+          get = newGet;
+          clazz.prototype["get" + upname] = currentGet;
+        }
+        if (typeof cb == "function")
+          cb(value);
+        return value;
       };
     },
 
