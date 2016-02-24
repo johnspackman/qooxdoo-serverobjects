@@ -846,11 +846,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
             if ((fromDef.map || fromDef.array) && fromDef.create) {
               strConstructorCode += "this.set" + upname + "(new " + toDef.check + "());\n";
-              strDestructorCode += "var arr = this.get" + upname + "();\n" +
-              		"if (arr && !arr.isDisposed()) {\n" +
-              		"  arr.dispose();\n" +
-              		"  this.set" + upname + "(null);\n" +
-              		"}";
+              strDestructorCode += "this.set" + upname + "(null);\n";
             }
 
             // Create an apply method
@@ -1400,8 +1396,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                   serverObject["set" + upname](value);
                 } else {
                   current.replaceAll(value);
-                  if (value instanceof qx.core.Object)
-                    value.dispose();
                 }
 
                 // Arrays
@@ -1419,9 +1413,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                   if (value instanceof qx.data.Array)
                     nativeArray = value.toArray();
                   nativeArray.unshift(0, current.getLength());
-                  current.splice.apply(current, nativeArray).dispose();
-                  if (value instanceof qx.data.Array)
-                    value.dispose();
+                  current.splice.apply(current, nativeArray);
                 }
               }
             }
