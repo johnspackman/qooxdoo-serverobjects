@@ -355,7 +355,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           
           for (var i = 0; i < t.__unprocessedResponses.length; i++) {
             if (t.__unprocessedResponses[i].reqIndex == t.__expectedRequestIndex) {
-              var next = qx.lang.Array.removeAt(t.__unprocessedResponses, i);
+              var next = qx.lang.Array.removeAt(t.__unprocessedResponses, i--);
               if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
                 console.log("process: shifting, next=" + next.reqIndex + ", next.processed=" + next.processed);
               if (!next.processed) {
