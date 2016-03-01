@@ -27,6 +27,7 @@
  */
 package com.zenesis.qx.remote;
 
+import com.fasterxml.jackson.databind.JsonSerializable;
 import com.zenesis.qx.remote.CommandId.CommandType;
 
 
@@ -55,6 +56,13 @@ public interface CommandQueue {
 	 * @return
 	 */
 	public boolean hasDataToFlush();
+	
+	/**
+	 * Returns the data in a thread safe instance (allows the queue to be unlocked immediately after calling,
+	 * and before serialisation)
+	 * @return
+	 */
+	public JsonSerializable getDataToFlush();
 	
 	/**
 	 * Detects whether any property or event should be flushed ASAP

@@ -55,6 +55,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.CommandId.CommandType;
@@ -275,6 +276,7 @@ public class RequestHandler {
 		}
 		String hash = DiagUtils.getSha1(out);
 		response.setHeader(HEADER_SHA1, hash);
+		response.setHeader(HEADER_INDEX, Integer.toString(index));
 		response.getWriter().write(out);
 	}
 	
@@ -285,6 +287,7 @@ public class RequestHandler {
 		}catch(InterruptedException e) {
 			throw new ServletException("Exception while waiting for request lock for " + requestId + ": " + e.getMessage());
 		}
+		System.out.println("Starting " + requestId);
 		try {
 			s_currentHandler.set(this);
 			ObjectMapper objectMapper = tracker.getObjectMapper();
@@ -297,11 +300,13 @@ public class RequestHandler {
 					processCommand(jp);
 		
 				CommandQueue queue = tracker.getQueue();
+				JsonSerializable data = null;
 				synchronized(queue) {
-					if (tracker.hasDataToFlush()) {
-						Writer actualResponse = response;
-						objectMapper.writeValue(actualResponse, queue);
-					}
+					data = queue.getDataToFlush();
+				}
+				if (data != null) {
+					Writer actualResponse = response;
+					objectMapper.writeValue(actualResponse, data);
 				}
 				
 			} catch(ProxyTypeSerialisationException e) {
@@ -319,6 +324,7 @@ public class RequestHandler {
 				s_currentHandler.set(null);
 			}
 		} finally {
+			System.out.println("Finished " + requestId);
 			tracker.getRequestLock().unlock();
 		}
 	}

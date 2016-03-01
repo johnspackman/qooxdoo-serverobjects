@@ -46,6 +46,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
    */
   construct: function(proxyUrl) {
     this.base(arguments);
+    this.__unprocessedResponses = [];
     if (!com.zenesis.qx.remote.ProxyManager.__initialised) {
       com.zenesis.qx.remote.ProxyManager.__initialised = true;
     }
@@ -255,18 +256,27 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Response} the response event
      * @lint ignoreDeprecated(eval)
      */
-    _processResponse: function(evt) {
+    __expectedRequestIndex: 0,
+    __unprocessedResponses: null,
+    __onResponseReceived: function(evt) {
       this.__numActiveRequests--;
       var txt = evt.getContent();
       var statusCode = evt.getStatusCode();
       var req = evt.getTarget();
+      
       var proxyData = req.getUserData("proxyData");
       proxyData.receivedTime = new Date().getTime();
+      proxyData.txt = txt;
+
       var result = null;
+      var reqIndex = null;
 
       this.__inProcessData++;
       try {
         if (statusCode == 200) {
+          reqIndex = parseInt(evt.getResponseHeaders()["X-ProxyManager-RequestIndex"], 10);
+          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
+            console.log && console.log("__onResponseReceived 1: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
           if (qx.core.Environment.get("qx.debug")) {
             var sha = evt.getResponseHeaders()["X-ProxyManager-SHA1"];
             if (sha) {
@@ -276,31 +286,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               }
             }
           }
-          txt = txt.trim();
-          try {
-            if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-              console.log("received: txt=" + txt); // Use console.log because
-                                                    // LogAppender would cause
-                                                    // recursive logging
-            if (txt.length) {
-              var data = eval("(" + txt + ")");
-              result = this._processData(data);
-            }
-            if (typeof proxyData.async == "function")
-              proxyData.async(evt);
-  
-          } catch (e) {
-            this.error("Exception during receive: " + this.__describeException(e));
-            this._setException(e);
-            if (typeof proxyData.async == "function")
-              proxyData.async(evt);
-  
-          } finally {
-            if (this.getPollServer()) {
-              this._killPollTimer();
-              this._startPollTimer();
-            }
-          }
+          
+          qx.core.Assert.assertTrue(reqIndex === proxyData.reqIndex);
+          result = this.__processResponse(proxyData);
   
         } else {
           this._handleIoError(evt);
@@ -308,16 +296,100 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             proxyData.async(evt);
         }
         
-        proxyData.endTime = new Date().getTime();
-        var stats = req.getAsynchronous() ? this.__stats.async : this.__stats.sync;
-        stats.count++;
-        var time = proxyData.endTime - proxyData.startTime;
-        stats.totalTime += time;
-        stats.peakTime = Math.max(stats.peakTime, time);
         return result;
       } finally {
+        if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
+          console.log && console.log("__onResponseReceived 2: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
         this.__inProcessData--;
       }
+    },
+    
+    __processResponse: function(proxyData) {
+      function process(proxyData, outOfSequence) {
+        if (!proxyData.processed) {
+          proxyData.processed = true;
+          
+          var txt = proxyData.txt.trim();
+          var result;
+          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
+            console.log("process: start: " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex + ", outOfSequence=" + outOfSequence);
+          try {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
+              console.log && console.log("received: txt=" + txt); // Use console.log because
+                                                    // LogAppender would cause
+                                                    // recursive logging
+            if (txt.length) {
+              var data = eval("(" + txt + ")");
+              result = t._processData(data);
+            }
+            if (typeof proxyData.async == "function")
+              proxyData.async(evt);
+  
+          } catch (e) {
+            t.error("Exception during receive: " + t.__describeException(e));
+            t._setException(e);
+            if (typeof proxyData.async == "function")
+              proxyData.async(evt);
+  
+          } finally {
+            if (t.getPollServer()) {
+              t._killPollTimer();
+              t._startPollTimer();
+            }
+          }
+        
+          proxyData.endTime = new Date().getTime();
+          var stats = proxyData.async ? t.__stats.async : t.__stats.sync;
+          stats.count++;
+          var time = proxyData.endTime - proxyData.startTime;
+          stats.totalTime += time;
+          stats.peakTime = Math.max(stats.peakTime, time);
+        }
+        
+        if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
+          console.log("process: loaded: " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex + ", outOfSequence=" + outOfSequence);
+        if (!outOfSequence) {
+          t.__expectedRequestIndex = proxyData.reqIndex + 1;
+          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
+            console.log("process: updated expected=" + t.__expectedRequestIndex);
+          
+          for (var i = 0; i < t.__unprocessedResponses.length; i++) {
+            if (t.__unprocessedResponses[i].reqIndex == t.__expectedRequestIndex) {
+              var next = qx.lang.Array.removeAt(t.__unprocessedResponses, i);
+              if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
+                console.log("process: shifting, next=" + next.reqIndex + ", next.processed=" + next.processed);
+              if (!next.processed) {
+                process(next);
+                break;
+              } else {
+                t.__expectedRequestIndex = next.reqIndex + 1;
+              }
+            }
+          }
+        }
+        
+        return result;
+      }
+      
+      var t = this;
+      
+      if (proxyData.reqIndex < t.__expectedRequestIndex) {
+        throw new Error("Unexpected request index " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex);
+      }
+      if (proxyData.reqIndex > t.__expectedRequestIndex) {
+        if (!proxyData.async) {
+          this.warn("Warning: This synchronous request arrived out of sequence, reqIndex=" + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex);
+          t.__unprocessedResponses.push(proxyData);
+          process(proxyData, true);
+        } else {
+          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
+            console.log("queuing " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex);
+          t.__unprocessedResponses.push(proxyData);
+        }
+        return;
+      }
+      
+      return process(proxyData);
     },
     
     __stats: {
@@ -361,7 +433,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       this.__inProcessData++;
       try {
         if (qx.core.Environment.get("com.zenesis.qx.remote.trace"))
-          console.log("received: txt=" + txt); // Use console.log because
+          console.log && console.log("received: txt=" + txt); // Use console.log because
                                                 // LogAppender would cause
                                                 // recursive logging
         if (!txt.length)
@@ -1077,8 +1149,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         else
           parameters.push(this.serializeValue(args[i]));
       }
-      //if (methodName.match(/getApi/))
-      //  debugger;
       var data = {
         cmd: "call",
         serverId: isClass ? serverObject.classname : serverObject.getServerId(),
@@ -1588,7 +1658,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         req.setRequestHeader("X-ProxyManager-SHA1", com.zenesis.qx.remote.Sha1.digest(text));
       }
       req.setRequestHeader("X-ProxyManager-ClientTime", new Date().getTime());
-      req.setRequestHeader("X-ProxyManager-RequestIndex", this.__numberOfCalls++);
+      var reqIndex = this.__numberOfCalls++;
+      req.setRequestHeader("X-ProxyManager-RequestIndex", reqIndex);
       req.setData(text);
 
       // You must set the character encoding explicitly; even if the page is
@@ -1602,17 +1673,25 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // Send it
       if (qx.core.Environment.get("com.zenesis.qx.remote.trace")) {
         // Use console.log because LogAppender would cause recursive logging
-        console.log("Sending to server: " + text); 
+        console.log && console.log("Sending to server: " + text); 
       }
 
-      req.addListener("completed", this._processResponse, this);
-      req.addListener("failed", this._processResponse, this);
-      req.addListener("timeout", this._processResponse, this);
+      req.addListener("completed", this.__onResponseReceived, this);
+      req.addListener("failed", this.__onResponseReceived, this);
+      req.addListener("timeout", this.__onResponseReceived, this);
       req.setUserData("proxyData", { 
         async: async,
         startTime: startTime,
-        postTime: new Date().getTime()
+        postTime: new Date().getTime(),
+        reqIndex: reqIndex
       });
+      if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) {
+        console.log && console.log("Sending request, reqIndex=" + reqIndex + ", async=" + (!!async));
+        if (!async) {
+          var trace = qx.dev.StackTrace.getStackTrace();
+          console.log(trace.join("\n"));
+        }
+      }
       if (this.__preRequestCallback)
         this.__preRequestCallback.call(this, req);
       if (!suppressWarnings && qx.core.Environment.get("com.zenesis.qx.remote.traceRecursion")) {
@@ -1977,6 +2056,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     "com.zenesis.qx.remote.trace": false,
     "com.zenesis.qx.remote.traceRecursion": true,
     "com.zenesis.qx.remote.traceMethodSync": false,
-    "com.zenesis.qx.remote.traceOnDemandSync": false
+    "com.zenesis.qx.remote.traceOnDemandSync": false,
+    "com.zenesis.qx.remote.traceOverlaps": false
   }
 });

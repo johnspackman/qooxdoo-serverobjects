@@ -44,7 +44,7 @@ import com.zenesis.qx.remote.CommandId.CommandType;
  * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
-public class SimpleQueue implements CommandQueue, JsonSerializable {
+public class SimpleQueue implements CommandQueue {
 
 	private boolean needsFlush;
 	private LinkedHashMap<CommandId, Object> values = new LinkedHashMap<CommandId, Object>();
@@ -86,52 +86,67 @@ public class SimpleQueue implements CommandQueue, JsonSerializable {
 		return !values.isEmpty();
 	}
 
+	@Override
+	public synchronized JsonSerializable getDataToFlush() {
+		if (values.isEmpty())
+			return null;
+		needsFlush = false;
+		return new QueueSeriliazable(values);
+	}
+	
+	private static final class QueueSeriliazable implements JsonSerializable {
+
+		private final LinkedHashMap<CommandId, Object> values;
+		public QueueSeriliazable(LinkedHashMap<CommandId, Object> values) {
+			this.values = new LinkedHashMap<CommandId, Object>();
+			this.values.putAll(values);
+			values.clear();
+		}
+		/* (non-Javadoc)
+		 * @see org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
+		 */
+		@Override
+		public synchronized void serialize(JsonGenerator gen, SerializerProvider sp) throws IOException, JsonProcessingException {
+			gen.writeStartArray();
+			while (!values.isEmpty()) {
+				CommandId id = values.keySet().iterator().next();
+				Object data = values.remove(id);
+
+				if (id.type == CommandType.DEFINE) {
+					ProxyType type = (ProxyType)id.object;
+					ProxySessionTracker tracker = ((ProxyObjectMapper)gen.getCodec()).getTracker();
+					if (tracker.isTypeDelivered(type))
+						continue;
+				}
+				
+				gen.writeStartObject();
+				gen.writeStringField("type", id.type.remoteId);
+				if (id.object != null)
+					gen.writeObjectField("object", id.object);
+				if (id.name != null)
+					gen.writeObjectField("name", id.name);
+				if (data != null)
+					gen.writeObjectField("data", data);
+				gen.writeEndObject();
+			}
+			gen.writeEndArray();
+		}
+
+		/* (non-Javadoc)
+		 * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.fasterxml.jackson.core.JsonGenerator, com.fasterxml.jackson.databind.SerializerProvider, com.fasterxml.jackson.databind.jsontype.TypeSerializer)
+		 */
+		@Override
+		public synchronized void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts) throws IOException, JsonProcessingException {
+			serialize(gen, sp);
+		}
+	}
+
 	/* (non-Javadoc)
 	 * @see com.zenesis.qx.remote.Queue#needsFlush()
 	 */
 	@Override
 	public synchronized boolean needsFlush() {
 		return needsFlush;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
-	 */
-	@Override
-	public synchronized void serialize(JsonGenerator gen, SerializerProvider sp) throws IOException, JsonProcessingException {
-		gen.writeStartArray();
-		while (!values.isEmpty()) {
-			CommandId id = values.keySet().iterator().next();
-			Object data = values.remove(id);
-
-			if (id.type == CommandType.DEFINE) {
-				ProxyType type = (ProxyType)id.object;
-				ProxySessionTracker tracker = ((ProxyObjectMapper)gen.getCodec()).getTracker();
-				if (tracker.isTypeDelivered(type))
-					continue;
-			}
-			
-			gen.writeStartObject();
-			gen.writeStringField("type", id.type.remoteId);
-			if (id.object != null)
-				gen.writeObjectField("object", id.object);
-			if (id.name != null)
-				gen.writeObjectField("name", id.name);
-			if (data != null)
-				gen.writeObjectField("data", data);
-			gen.writeEndObject();
-		}
-		gen.writeEndArray();
-		values.clear();
-		needsFlush = false;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.fasterxml.jackson.core.JsonGenerator, com.fasterxml.jackson.databind.SerializerProvider, com.fasterxml.jackson.databind.jsontype.TypeSerializer)
-	 */
-	@Override
-	public synchronized void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts) throws IOException, JsonProcessingException {
-		serialize(gen, sp);
 	}
 
 }
