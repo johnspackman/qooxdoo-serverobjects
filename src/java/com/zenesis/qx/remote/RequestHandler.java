@@ -287,7 +287,6 @@ public class RequestHandler {
 		}catch(InterruptedException e) {
 			throw new ServletException("Exception while waiting for request lock for " + requestId + ": " + e.getMessage());
 		}
-		System.out.println("Starting " + requestId);
 		try {
 			s_currentHandler.set(this);
 			ObjectMapper objectMapper = tracker.getObjectMapper();
@@ -324,7 +323,6 @@ public class RequestHandler {
 				s_currentHandler.set(null);
 			}
 		} finally {
-			System.out.println("Finished " + requestId);
 			tracker.getRequestLock().unlock();
 		}
 	}
