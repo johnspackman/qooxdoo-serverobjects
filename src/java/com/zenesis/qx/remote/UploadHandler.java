@@ -32,6 +32,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,6 +45,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.databind.JsonSerializable;
 import com.oreilly.servlet.multipart.FilePart;
 import com.oreilly.servlet.multipart.MultipartParser;
 import com.oreilly.servlet.multipart.ParamPart;
@@ -133,8 +135,15 @@ public class UploadHandler {
     		tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
 		}
 		response.setStatus(HttpServletResponse.SC_OK);
-		if (tracker.hasDataToFlush())	
-    		tracker.getObjectMapper().writeValue(response.getWriter(), tracker.getQueue());
+		if (tracker.hasDataToFlush()) {
+			CommandQueue queue = tracker.getQueue();
+			JsonSerializable data = null;
+			synchronized(queue) {
+				data = queue.getDataToFlush();
+			}
+			if (data != null)
+				tracker.getObjectMapper().writeValue(response.getWriter(), data);
+		}
 	}
 	
 	/**

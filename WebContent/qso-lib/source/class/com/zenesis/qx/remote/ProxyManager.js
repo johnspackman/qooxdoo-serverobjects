@@ -122,7 +122,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     "queuePending": "qx.event.type.Event",
 
     /** Fired when connected, data is the bootstrap object */
-    "connected": "qx.event.type.Data"
+    "connected": "qx.event.type.Data",
+    
+    /** Fired when all outstanding requests are complete */
+    "requestsComplete": "qx.event.type.Event"
   },
 
   members: {
@@ -368,6 +371,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           }
         }
         
+        if (t.__unprocessedResponses.length == 0)
+          t.fireEvent("requestsComplete");
         return result;
       }
       
