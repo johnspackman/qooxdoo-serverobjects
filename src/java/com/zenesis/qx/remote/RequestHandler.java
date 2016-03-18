@@ -698,19 +698,23 @@ public class RequestHandler {
 			
 			Map map = ArrayUtils.getMap(serverObject, prop);
 
-			if (map instanceof Proxied)
-				tracker.beginMutate((Proxied)map, null);
-			
-			ArrayUtils.removeAll(map, removed);
-			if (put != null)
-				map.putAll(put);
-			
-			// Because collection properties are objects and we change them without the serverObject's
-			//	knowledge, we have to make sure we notify other trackers ourselves
-			if (map instanceof Proxied)
-				tracker.endMutate((Proxied)map, null);
-			else
-				ProxyManager.propertyChanged(serverObject, propertyName, map, null);
+			Proxied mutating = null;
+			try {
+				if (map instanceof Proxied)
+					tracker.beginMutate(mutating = (Proxied)map, null);
+				
+				ArrayUtils.removeAll(map, removed);
+				if (put != null)
+					map.putAll(put);
+				
+				// Because collection properties are objects and we change them without the serverObject's
+				//	knowledge, we have to make sure we notify other trackers ourselves
+				if (mutating == null)
+					ProxyManager.propertyChanged(serverObject, propertyName, map, null);
+			}finally {
+				if (mutating != null)
+					tracker.endMutate(mutating, null);
+			}
 			
 			jp.nextToken();
 		} else {
@@ -733,26 +737,30 @@ public class RequestHandler {
 				list = new ArrayList();
 				ArrayUtils.addAll(list, currentArray);
 			}
-			if (list instanceof Proxied)
-				tracker.beginMutate((Proxied)list, null);
-			
-			ArrayUtils.removeAll(list, removed);
-			ArrayUtils.addAll(list, added);
-			if (!ArrayUtils.sameArray(list, array))
-				ArrayUtils.matchOrder(list, array);
-			
-			if (!prop.getPropertyClass().isCollection()) {
-				prop.setValue(serverObject, ArrayUtils.toArray(list, clazz));
-			}
+			Proxied mutating = null;
+			try {
+				if (list instanceof Proxied)
+					tracker.beginMutate(mutating = (Proxied)list, null);
 				
-			// Because collection properties are objects and we change them without the serverObject's
-			//	knowledge, we have to make sure we notify other trackers ourselves
-			if (list instanceof Proxied)
-				tracker.endMutate((Proxied)list, null);
-			else
-				ProxyManager.propertyChanged(serverObject, propertyName, list, null);
-			
-			jp.nextToken();
+				ArrayUtils.removeAll(list, removed);
+				ArrayUtils.addAll(list, added);
+				if (!ArrayUtils.sameArray(list, array))
+					ArrayUtils.matchOrder(list, array);
+				
+				if (!prop.getPropertyClass().isCollection()) {
+					prop.setValue(serverObject, ArrayUtils.toArray(list, clazz));
+				}
+					
+				// Because collection properties are objects and we change them without the serverObject's
+				//	knowledge, we have to make sure we notify other trackers ourselves
+				if (mutating == null)
+					ProxyManager.propertyChanged(serverObject, propertyName, list, null);
+				
+				jp.nextToken();
+			} finally {
+				if (mutating != null)
+					tracker.endMutate(mutating, null);
+			}
 		}
 		
 	}
