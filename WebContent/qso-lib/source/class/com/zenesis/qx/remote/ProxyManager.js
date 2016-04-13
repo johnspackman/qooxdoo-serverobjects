@@ -290,7 +290,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
           }
           
-          qx.core.Assert.assertTrue(reqIndex === proxyData.reqIndex);
+          qx.core.Assert.assertTrue(isNaN(reqIndex) || reqIndex === proxyData.reqIndex);
           result = this.__processResponse(proxyData);
   
         } else {
