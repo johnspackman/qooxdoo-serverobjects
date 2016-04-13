@@ -970,6 +970,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
           clazz.prototype.$$proxyDef = data;
         }
+        
+        // Make sure that the class package structure is mirrored in the Packages global; this
+        //  allows for source code compatibility with Rhino server apps
+        var tld = data.className.match(/^[^.]+/)[0];
+        if (tld) {
+          if (window.Packages === undefined)
+            window.Packages = {};
+          window.Packages[tld] = window[tld];
+        }
         this.__classInfo[data.className] = data;
 
         // Patch on demand properties
