@@ -1105,7 +1105,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return value.getTime();
       }
 
-      if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
+      if (value.$$proxyDef) {
+      //-- this doesn't work in older versions of Qx when using build target
+      //if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
         var id = value.getServerId();
         if (id < 0)
           this._queueClientObject(0 - id);

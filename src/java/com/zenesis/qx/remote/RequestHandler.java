@@ -347,9 +347,15 @@ public class RequestHandler {
 	 */
 	protected void handleException(Writer response, ObjectMapper objectMapper, ProxyException e) throws IOException {
 		Throwable cause = e.getCause();
-		tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, 
+		CommandQueue queue = tracker.getQueue();
+		queue.queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, 
 				new ExceptionDetails(cause.getClass().getName(), cause.getMessage()));
-		objectMapper.writeValue(response, tracker.getQueue());
+		
+		JsonSerializable data = null;
+		synchronized(queue) {
+			data = queue.getDataToFlush();
+		}
+		objectMapper.writeValue(response, data);
 	}
 	
 	/**
