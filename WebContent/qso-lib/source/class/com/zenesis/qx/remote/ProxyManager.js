@@ -1393,6 +1393,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           propertyName: propertyName,
           value: this.serializeValue(value)
         };
+        if (serverObject.classname == "uk.co.spar.app.qa.AbstractRevision$AbstractIngredient2" && propertyName == "weight" && 
+            (value === null || data.value === null)) {
+          this.trace("Invalid property value for weight, value=" + value + ", data.value=" + data.value);
+          debugger;
+        }
         var def = this.__classInfo[serverObject.classname];
 
         if (pd.sync == "queue") {
@@ -1862,7 +1867,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     __onPollTimeout: function() {
       // this.debug("poll");
       this.__pollTimerId = null;
-      this.flushQueue(true, true);
+      if (this.__numActiveRequests == 0)
+        this.flushQueue(true, true);
     },
     
     /**

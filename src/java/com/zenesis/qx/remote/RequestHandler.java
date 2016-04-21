@@ -303,10 +303,8 @@ public class RequestHandler {
 				synchronized(queue) {
 					data = queue.getDataToFlush();
 				}
-				if (data != null) {
-					Writer actualResponse = response;
-					objectMapper.writeValue(actualResponse, data);
-				}
+				if (data != null)
+					objectMapper.writeValue(response, data);
 				
 			} catch(ProxyTypeSerialisationException e) {
 				log.fatal("Unable to serialise type information to client for " + requestId + ": " + e.getMessage(), e);
@@ -317,7 +315,13 @@ public class RequestHandler {
 			} catch(Exception e) {
 				log.error("Exception during callback for " + requestId + ": " + e.getMessage(), e);
 				tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
-				objectMapper.writeValue(response, tracker.getQueue());
+				CommandQueue queue = tracker.getQueue();
+				JsonSerializable data = null;
+				synchronized(queue) {
+					data = queue.getDataToFlush();
+				}
+				if (data != null)
+					objectMapper.writeValue(response, data);
 				
 			} finally {
 				s_currentHandler.set(null);
@@ -347,15 +351,15 @@ public class RequestHandler {
 	 */
 	protected void handleException(Writer response, ObjectMapper objectMapper, ProxyException e) throws IOException {
 		Throwable cause = e.getCause();
-		CommandQueue queue = tracker.getQueue();
-		queue.queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, 
+		tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, 
 				new ExceptionDetails(cause.getClass().getName(), cause.getMessage()));
-		
+		CommandQueue queue = tracker.getQueue();
 		JsonSerializable data = null;
 		synchronized(queue) {
 			data = queue.getDataToFlush();
 		}
-		objectMapper.writeValue(response, data);
+		if (data != null)
+			objectMapper.writeValue(response, data);
 	}
 	
 	/**
