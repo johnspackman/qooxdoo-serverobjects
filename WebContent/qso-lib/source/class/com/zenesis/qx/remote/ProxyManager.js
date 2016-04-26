@@ -876,9 +876,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             var fromDef = data.properties[propName];
             fromDef.name = propName;
             
-            if (propName == "approvedBy")
-              propName = propName;
-
             if (fromDef.clazz && typeof fromDef.clazz == "object")
               deferredTypes.push(fromDef.clazz);
 
@@ -924,6 +921,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if ((fromDef.map || fromDef.array) && fromDef.create) {
               strConstructorCode += "this.set" + upname + "(new " + toDef.check + "());\n";
               strDestructorCode += "this.set" + upname + "(null);\n";
+            }
+
+            if (data.className.match(/AbstractIngredient2$/) && propName == "weight") {
+              toDef.transform = "_transformWeight";
+              def.members._transformWeight = function(value) {
+                if (value === null || value === undefined)
+                  this.trace("Invalid value set, value=" + value);
+                return value;
+              }
             }
 
             // Create an apply method
@@ -1393,7 +1399,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           propertyName: propertyName,
           value: this.serializeValue(value)
         };
-        if (serverObject.classname == "uk.co.spar.app.qa.AbstractRevision$AbstractIngredient2" && propertyName == "weight" && 
+        if (serverObject.classname.match(/Ingredient2$/) && propertyName == "weight" && 
             (value === null || data.value === null)) {
           this.trace("Invalid property value for weight, value=" + value + ", data.value=" + data.value);
           debugger;
