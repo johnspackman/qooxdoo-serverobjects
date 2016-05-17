@@ -332,7 +332,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             t.error("Exception during receive: " + t.__describeException(e), e);
             t._setException(e);
             if (typeof proxyData.async == "function")
-              proxyData.async(evt);
+              proxyData.async();
   
           } finally {
             if (t.getPollServer()) {
