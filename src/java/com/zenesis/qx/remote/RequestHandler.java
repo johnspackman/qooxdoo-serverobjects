@@ -703,8 +703,8 @@ public class RequestHandler {
 			Map put = readOptionalMap(jp, prop.getPropertyClass().getCollectionClass(), "put", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
 			
 			// Quick logging
-			if (log.isInfoEnabled())
-				log.info("edit-array: update map: property=" + prop + ", removed=" + DiagUtils.arrayToString(removed) + ", put=" + DiagUtils.mapToString(put));
+			if (log.isDebugEnabled())
+				log.debug("edit-array: update map: property=" + prop + ", removed=" + DiagUtils.arrayToString(removed) + ", put=" + DiagUtils.mapToString(put));
 			
 			Map map = ArrayUtils.getMap(serverObject, prop);
 
@@ -732,8 +732,8 @@ public class RequestHandler {
 			Object removed = readOptionalArray(jp, ArrayList.class, "removed", clazz);
 			Object added = readOptionalArray(jp, ArrayList.class, "added", clazz);
 			Object array = readOptionalArray(jp, ArrayList.class, "array", clazz);
-			if (log.isInfoEnabled())
-				log.info("edit-array: update array: property=" + prop + 
+			if (log.isDebugEnabled())
+				log.debug("edit-array: update array: property=" + prop + 
 						", removed=" + DiagUtils.arrayToString(removed) + 
 						", added=" + DiagUtils.arrayToString(added) + 
 						", array=" + DiagUtils.arrayToString(array));
@@ -783,8 +783,8 @@ public class RequestHandler {
 		
 		if (prop.getPropertyClass().isMap()) {
 			Map items = readOptionalMap(jp, HashMap.class, "items", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
-			if (log.isInfoEnabled())
-				log.info("edit-array: replaceAll map: property=" + prop + ", items=" + DiagUtils.mapToString(items));
+			if (log.isDebugEnabled())
+				log.debug("edit-array: replaceAll map: property=" + prop + ", items=" + DiagUtils.mapToString(items));
 			
 			Map map = ArrayUtils.getMap(serverObject, prop);
 			map.clear();
@@ -801,8 +801,8 @@ public class RequestHandler {
 			//	to use java.lang.reflect.Array to access members because we cannot cast arrays of
 			//	primitives to Object[]
 			Object items = readOptionalArray(jp, ArrayList.class, "items", prop.getPropertyClass().getJavaType());
-			if (log.isInfoEnabled())
-				log.info("edit-array: replaceAll array: property=" + prop + ", items=" + DiagUtils.arrayToString(items));
+			if (log.isDebugEnabled())
+				log.debug("edit-array: replaceAll array: property=" + prop + ", items=" + DiagUtils.arrayToString(items));
 			
 			if (prop.getPropertyClass().isCollection()) {
 				Collection list = ArrayUtils.getCollection(serverObject, prop);

@@ -326,10 +326,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               result = t._processData(data);
             }
             if (typeof proxyData.async == "function")
-              proxyData.async(evt);
+              proxyData.async();
   
           } catch (e) {
-            t.error("Exception during receive: " + t.__describeException(e));
+            t.error("Exception during receive: " + t.__describeException(e), e);
             t._setException(e);
             if (typeof proxyData.async == "function")
               proxyData.async(evt);
