@@ -391,7 +391,7 @@ public class FileApi implements Proxied {
 			if (uploadFolder.length() == 0)
 				uploadFolder = "";
 			else if (uploadFolder.charAt(uploadFolder.length() - 1) == '/')
-				uploadFolder = uploadFolder.substring(uploadFolder.length() - 1);
+				uploadFolder = uploadFolder.substring(0, uploadFolder.length() - 1);
 		} else {
 			uploadFolder = "";
 		}
