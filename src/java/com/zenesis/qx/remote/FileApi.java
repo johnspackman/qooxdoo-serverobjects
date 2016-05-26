@@ -396,8 +396,11 @@ public class FileApi implements Proxied {
 			uploadFolder = "";
 		}
 		
+		File src = upfile.getFile();
 		File dest = getFile(uploadFolder + "/" + upfile.getOriginalName());
-		moveTo(upfile.getFile(), dest);
+		dest = copyTo(src, dest, true, false);
+		src.delete();
+		onChange(ChangeType.MOVE, dest, src);
 		onChange(ChangeType.UPLOAD, uploadFolder + "/" + upfile.getOriginalName(), null);		
 		return dest;
 	}
