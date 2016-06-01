@@ -42,9 +42,12 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
   
   events: {
     /**
-     * Fired when the map changes, data is a map containing: type {String} one
-     * of "put", "remove" values {Object[]} values which had changed, each map
-     * contains: key {String} value {Object} oldValue {Object?}
+     * Fired when the map changes, data is a map containing: 
+     * type {String} one of "put", "remove" 
+     * values {Object[]} values which had changed, each map contains: 
+     *  key {String} 
+     *  value {Object} 
+     *  oldValue {Object?}
      */
     "change": "qx.event.type.Data"
   },
@@ -282,8 +285,17 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * Returns the native object containing the lookup; note that this is the
      * actual object and should not be dircetly modified (IE clone it if you're
      * going to edit it)
+     * @paran clone {Boolean?} if true, the object is cloned before returning so that it is safe to edit 
      */
-    toObject: function() {
+    toObject: function(clone) {
+      if (clone) {
+        var result = {};
+        var lookup = this.__lookup;
+        this.getKeys().forEach(function(key) {
+          result[key] = lookup[key];
+        });
+        return result;
+      }
       return this.__lookup;
     },
 

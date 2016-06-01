@@ -326,13 +326,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               result = t._processData(data);
             }
             if (typeof proxyData.async == "function")
-              proxyData.async(evt);
+              proxyData.async();
   
           } catch (e) {
-            t.error("Exception during receive: " + t.__describeException(e));
+            t.error("Exception during receive: " + t.__describeException(e), e);
             t._setException(e);
             if (typeof proxyData.async == "function")
-              proxyData.async(evt);
+              proxyData.async();
   
           } finally {
             if (t.getPollServer()) {
@@ -876,9 +876,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             var fromDef = data.properties[propName];
             fromDef.name = propName;
             
-            if (propName == "approvedBy")
-              propName = propName;
-
             if (fromDef.clazz && typeof fromDef.clazz == "object")
               deferredTypes.push(fromDef.clazz);
 
@@ -924,6 +921,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if ((fromDef.map || fromDef.array) && fromDef.create) {
               strConstructorCode += "this.set" + upname + "(new " + toDef.check + "());\n";
               strDestructorCode += "this.set" + upname + "(null);\n";
+            }
+
+            if (data.className.match(/AbstractIngredient2$/) && propName == "weight") {
+              toDef.transform = "_transformWeight";
+              def.members._transformWeight = function(value) {
+                if (value === null || value === undefined)
+                  this.trace("Invalid value set, value=" + value);
+                return value;
+              }
             }
 
             // Create an apply method
@@ -1105,7 +1111,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return value.getTime();
       }
 
-      if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
+      if (value.$$proxyDef) {
+      //-- this doesn't work in older versions of Qx when using build target
+      //if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
         var id = value.getServerId();
         if (id < 0)
           this._queueClientObject(0 - id);
@@ -1391,6 +1399,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           propertyName: propertyName,
           value: this.serializeValue(value)
         };
+        if (serverObject.classname.match(/Ingredient2$/) && propertyName == "weight" && 
+            (value === null || data.value === null)) {
+          this.trace("Invalid property value for weight, value=" + value + ", data.value=" + data.value);
+          debugger;
+        }
         var def = this.__classInfo[serverObject.classname];
 
         if (pd.sync == "queue") {
@@ -1860,7 +1873,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     __onPollTimeout: function() {
       // this.debug("poll");
       this.__pollTimerId = null;
-      this.flushQueue(true, true);
+      if (this.__numActiveRequests == 0)
+        this.flushQueue(true, true);
     },
     
     /**
