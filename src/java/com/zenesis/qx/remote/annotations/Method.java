@@ -76,4 +76,10 @@ public @interface Method {
 	 * @return
 	 */
 	public boolean cacheResult() default false;
+
+	/**
+	 * Annotation to send to the client
+	 * @return
+	 */
+	public String anno() default "";
 }

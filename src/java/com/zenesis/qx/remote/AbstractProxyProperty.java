@@ -29,6 +29,9 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	// Whether null is a valid value
 	protected Boolean nullable;
 	
+	// Client annotations
+	protected String[] clientAnno;
+	
 	// Whether to send exceptions which occur while setting a value received from teh client
 	protected Boolean sendExceptions;
 	
@@ -60,6 +63,12 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 			gen.writeBooleanField("readOnly", true);
 		if (create)
 			gen.writeBooleanField("create", true);
+		if (clientAnno != null) {
+			gen.writeArrayFieldStart("anno");
+			for (int i = 0; i < clientAnno.length; i++)
+				gen.writeString(clientAnno[i]);
+			gen.writeEndArray();
+		}
 		
 		if (propertyClass != null) {
 			Class clazz = propertyClass.getJavaType();

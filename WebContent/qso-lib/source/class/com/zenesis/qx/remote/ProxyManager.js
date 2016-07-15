@@ -864,6 +864,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               for (var i = 0; i < params.length; i++)
                 if (params[i] && typeof params[i] == "object")
                   deferredTypes.push(params[i]);
+            if (method.anno)
+              def.members["@" + methodName] = method.anno;
           }
 
         // Add properties
@@ -935,14 +937,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             // Create an apply method
             var applyName = "_apply" + upname;
             toDef.apply = applyName;
-            def.members[applyName] = new Function('value', 'oldValue', 'name', 'this._applyProperty("' + propName
-                + '", value, oldValue, name);');
+            def.members[applyName] = new Function('value', 'oldValue', 'name', 'this._applyProperty("' + propName + '", value, oldValue, name);');
 
             // onDemand properties - patch it later
             if (fromDef.onDemand)
               onDemandProperties.push(fromDef);
             else
               normalProperties.push(fromDef);
+            
+            // Annotations
+            if (fromDef.anno)
+              toDef["@"] = fromDef.anno;
           }
         }
 

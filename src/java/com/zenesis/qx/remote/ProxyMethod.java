@@ -74,6 +74,8 @@ public class ProxyMethod implements JsonSerializable {
 	private final boolean prefetchResult;
 	private final boolean cacheResult;
 	private final boolean staticMethod;
+	private String[] clientAnno;
+	
 	
 	/**
 	 * @param name
@@ -123,6 +125,8 @@ public class ProxyMethod implements JsonSerializable {
 				prefetchResult = anno.prefetchResult();
 				cacheResult = anno.cacheResult()||prefetchResult;
 			}
+			if (anno.anno().length() > 0)
+				clientAnno = new String[] { anno.anno() };
 		}
 		
 		this.keyType = keyType;
@@ -154,6 +158,13 @@ public class ProxyMethod implements JsonSerializable {
 			jgen.writeBooleanField("cacheResult", true);
 		if (staticMethod)
 			jgen.writeBooleanField("staticMethod", true);
+		if (clientAnno != null) {
+			jgen.writeArrayFieldStart("anno");
+			for (int i = 0; i < clientAnno.length; i++)
+				jgen.writeString(clientAnno[i]);
+			jgen.writeEndArray();
+		}
+			
 		
 		// Whether to wrap the return
 		if (array != null)

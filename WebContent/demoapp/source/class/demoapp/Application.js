@@ -158,6 +158,10 @@ qx.Class.define("demoapp.Application", {
       qx.core.Assert.assertEquals("Pippo #0: name=helloPippo #1: name=world", result);
       var testScalars = mainTests.getTestScalars();
 
+      var testAnnos = mainTests.getTestAnnos();
+      qx.core.Assert.assertArrayEquals(["qso.test.myAnno"], qx.Annotation.getProperty(testAnnos.constructor, "test"))
+      qx.core.Assert.assertArrayEquals(["qso.test.myMethodAnno"], qx.Annotation.getMember(testAnnos.constructor, "helloWorld"))
+
       mainTests.waitForMillis(1000, function(result) {
         this.debug("waitForMillis completed, result=" + result);
         qx.core.Assert.assertTrue(this == mainTests);

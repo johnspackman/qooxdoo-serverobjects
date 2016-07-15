@@ -156,4 +156,10 @@ public @interface Property {
 	 * @return
 	 */
 	public boolean create() default false;
+
+	/**
+	 * Annotation to send to the client
+	 * @return
+	 */
+	public String anno() default "";
 }

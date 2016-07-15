@@ -86,6 +86,8 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			deserializeMethod = findMethod(anno.deserialize(), new Class[] { ProxyProperty.class, Object.class });
 		if (anno.expire().length() > 0)
 			expireMethod = findMethod(anno.expire(), new Class[] { ProxyProperty.class });
+		if (anno.anno().length() > 0)
+			clientAnno = new String[] { anno.anno() };
 	}
 
 	/**

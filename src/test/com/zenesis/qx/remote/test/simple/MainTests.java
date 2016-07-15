@@ -51,6 +51,7 @@ public class MainTests implements IMainTests {
 	private final TestProperties testProperties = new TestProperties();
 	private final TestExceptions testExceptions = new TestExceptions();
 	private final ITestArrays testArrays = new TestArrays();
+	private final TestAnnos testAnnos = new TestAnnos();
 	
 	private TestProperties clientTestProperties;
 	private Pippo lastPippo;
@@ -122,6 +123,11 @@ public class MainTests implements IMainTests {
 	
 	public TestGroups getTestGroups() {
 		return testGroups;
+	}
+
+	@Method
+	public TestAnnos getTestAnnos() {
+		return testAnnos;
 	}
 
 	@Method
