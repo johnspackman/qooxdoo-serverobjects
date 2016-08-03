@@ -1,3 +1,13 @@
+/**
+ * @ignore(global)
+ * @ignore(global.Buffer)
+ * @ignore(global.Buffer.isBuffer)
+ * @ignore(reader.readAsArrayBuffer)
+ * @ignore(Uint8Array)
+ * @ignore(Int32Array)
+ * @ignore(DataView)
+ * @ignore(Int8Array)
+ */
 qx.Class.define("com.zenesis.qx.remote.Sha1", {
   extend: qx.core.Object,
   

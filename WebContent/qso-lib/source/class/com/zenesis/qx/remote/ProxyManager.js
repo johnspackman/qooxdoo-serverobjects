@@ -30,6 +30,7 @@
  * 
  * @author John Spackman [john.spackman@zenesis.com]
  * @ignore(com.zenesis.qx.remote.LogEntrySink)
+ * @ignore(debugger)
  */
 /*
  * @require(qx.core.Aspect) @ignore(auto-require)
@@ -234,10 +235,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         this.__clientObjects = {};
       var index = ++this.__clientObjectsLastId;
       this.__clientObjects[index] = obj;
+      /*
       this.debug("Registering client object " + obj.toHashCode() + " " + obj.classname + " client id=" + index);
       obj.addListenerOnce("changeServerId", function(evt) {
         this.debug("Changing ServerId for " + evt.getTarget().toHashCode() + " from " + evt.getOldData() + " to " + evt.getData());
       });
+      */
       return 0 - index;
     },
 
@@ -248,7 +251,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var id = obj.getServerId() * -1;
       qx.core.Assert.assertTrue(id > 0, "Object does not have a client ID, id=" + id);
       qx.core.Assert.assertTrue(this.__clientObjects[id] === obj, "Object is not a pending client object");
-      this.debug("Unregistering client object " + obj.toHashCode() + " client id=" + id);
+      //this.debug("Unregistering client object " + obj.toHashCode() + " client id=" + id);
       delete this.__clientObjects[id];
     },
 
@@ -881,10 +884,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (fromDef.clazz && typeof fromDef.clazz == "object")
               deferredTypes.push(fromDef.clazz);
 
-            var toDef = def.properties[propName] = {};
+            var toDef = def.properties[propName] = { "@": [] };
+            var propertyAnno = null;
+            
+            function getPropertyAnno() {
+              if (propertyAnno)
+                return propertyAnno;
+              propertyAnno = new com.zenesis.qx.remote.annotations.Property();
+              toDef["@"].push(propertyAnno);
+              return propertyAnno;
+            }
 
             // Define the property
             toDef.nullable = fromDef.nullable;
+            if (fromDef.readOnly)
+              getPropertyAnno().setReadOnly(true);
             if (!toDef.nullable && fromDef.check) {
               var defaultValue = com.zenesis.qx.remote.ProxyManager.__NON_NULLABLE_DEFAULTS[fromDef.check];
               if (defaultValue !== undefined) {
@@ -906,6 +920,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (fromDef.map) {
               if (fromDef.array && fromDef.array == "wrap")
                 toDef.check = arrayClassName || "com.zenesis.qx.remote.Map";
+              if (fromDef.keyTypeName)
+                getPropertyAnno().setKeyTypeName(fromDef.keyTypeName);
+              if (fromDef.componentTypeName)
+                getPropertyAnno().setComponentTypeName(fromDef.componentTypeName);
 
               // Checks
             } else if (fromDef.check) {
@@ -918,6 +936,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                 toDef.check = arrayClassName || "qx.data.Array";
               } else
                 toDef.check = "Array";
+              if (fromDef.componentTypeName)
+                getPropertyAnno().setComponentTypeName(fromDef.componentTypeName);
             }
 
             if ((fromDef.map || fromDef.array) && fromDef.create) {
@@ -947,7 +967,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             
             // Annotations
             if (fromDef.anno)
-              toDef["@"] = fromDef.anno;
+              fromDef.anno.forEach(function(anno) {
+                var result = eval(anno);
+                toDef["@"].push(result);
+              });
           }
         }
 
@@ -1271,7 +1294,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           info.removed = [];
         if (data.removed)
           data.removed.forEach(function(item) {
-            if (qx.lang.Array.remove(data.added, item) === undefined) {
+            if (qx.lang.Array.remove(info.added, item) === undefined) {
               info.removed.push(item);
             }
           });
@@ -1404,11 +1427,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           propertyName: propertyName,
           value: this.serializeValue(value)
         };
-        if (serverObject.classname.match(/Ingredient2$/) && propertyName == "weight" && 
-            (value === null || data.value === null)) {
-          this.trace("Invalid property value for weight, value=" + value + ", data.value=" + data.value);
-          debugger;
-        }
         var def = this.__classInfo[serverObject.classname];
 
         if (pd.sync == "queue") {
@@ -1497,7 +1515,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                   value = new (arrayClass || com.zenesis.qx.remote.Map)(value);
                   serverObject["set" + upname](value);
                 } else {
-                  current.replaceAll(value);
+                  current.replace(value);
                 }
 
                 // Arrays
@@ -1780,7 +1798,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         throw new Error("Invalid client ID " + clientId);
       if (clientObject.getSentToServer())
         return;
-      this.debug("Queuing client object " + clientObject.toHashCode() + " client id " + clientId);
+      //this.debug("Queuing client object " + clientObject.toHashCode() + " client id " + clientId);
 
       var queue = this.__queue;
       if (!queue)

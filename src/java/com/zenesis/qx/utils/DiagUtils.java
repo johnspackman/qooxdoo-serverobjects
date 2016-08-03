@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
 import java.util.Map;
 
 public class DiagUtils {
@@ -24,6 +25,8 @@ public class DiagUtils {
 	}
 
 	public static String arrayToString(Object items) {
+		if (items instanceof Collection)
+			items = ((Collection)items).toArray();
 		int itemsLength = Array.getLength(items);
 		String str = "";
 		if (items != null) {

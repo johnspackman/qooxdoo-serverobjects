@@ -148,6 +148,9 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var propDef = this.getPropertyDef(propertyName);
       
+      if (propDef.name == "parameters" && this.classname.match(/Chemical/))
+        propDef.name = propDef.name + "";
+      
       if (oldValue && oldValue instanceof qx.core.Object) {
         oldValue.$$proxyOwnerDetached = this;
         delete oldValue.$$proxyOwner;

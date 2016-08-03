@@ -13,11 +13,8 @@ import com.zenesis.qx.remote.annotations.Remote.Array;
 
 public abstract class AbstractProxyType implements ProxyType {
 	
-	/**
-	 * Returns the class
-	 * @return
-	 */
-	protected Class getClazz() {
+	@Override
+	public Class getClazz() {
 		String className = getClassName();
 		if (className == null)
 			return null;
@@ -71,6 +68,7 @@ public abstract class AbstractProxyType implements ProxyType {
 					gen.writeObjectField(method.getName(), method);
 				gen.writeEndObject();
 			}
+			
 			if (clazz == null || !clazz.isInterface()) {
 				if (properties != null && !properties.isEmpty()) {
 					gen.writeObjectFieldStart("properties");

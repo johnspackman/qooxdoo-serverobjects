@@ -36,7 +36,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       values: new qx.data.Array
     });
     if (values !== undefined) {
-      this.replaceAll(values);
+      this.replace(values);
     }
   },
   
@@ -125,6 +125,13 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       });
       return oldValue;
     },
+    
+    
+    replaceAll: function(src) {
+      qx.log.Logger.deprecatedMethodWarning(arguments.callee);
+      this.replace(src);
+    },
+    
 
     /**
      * Replaces all of the elements in this map with another, firing only one or
@@ -134,7 +141,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      *          {com.zenesis.qx.remote.Map|Object} the map or object to copy
      *          from
      */
-    replaceAll: function(src) {
+    replace: function(src) {
       var t = this;
       if (src instanceof com.zenesis.qx.remote.Map)
         src = src.toObject();

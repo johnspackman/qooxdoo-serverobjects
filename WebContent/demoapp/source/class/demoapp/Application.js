@@ -157,10 +157,22 @@ qx.Class.define("demoapp.Application", {
       this.debug("testPippoArray: " + result);
       qx.core.Assert.assertEquals("Pippo #0: name=helloPippo #1: name=world", result);
       var testScalars = mainTests.getTestScalars();
-
+      
       var testAnnos = mainTests.getTestAnnos();
-      qx.core.Assert.assertArrayEquals(["qso.test.myAnno"], qx.Annotation.getProperty(testAnnos.constructor, "test"))
-      qx.core.Assert.assertArrayEquals(["qso.test.myMethodAnno"], qx.Annotation.getMember(testAnnos.constructor, "helloWorld"))
+      function getPropertyAnno(name, clazz) {
+        var annos = qx.Annotation.getProperty(testAnnos.constructor, name);
+        for (var i = 0; i < annos.length; i++) {
+          if (annos[i] instanceof clazz)
+            return annos[i];
+        }
+        return null;
+      }
+      qx.core.Assert.assertArrayEquals(["qso.test.myAnno"], qx.Annotation.getProperty(testAnnos.constructor, "test"));
+      qx.core.Assert.assertArrayEquals(["qso.test.myMethodAnno"], qx.Annotation.getMember(testAnnos.constructor, "helloWorld"));
+      qx.core.Assert.assertEquals("String", getPropertyAnno("myStrings", com.zenesis.qx.remote.annotations.Property).getComponentTypeName());
+      qx.core.Assert.assertEquals("com.zenesis.qx.remote.test.simple.TestAnnos", getPropertyAnno("myTestAnnos", com.zenesis.qx.remote.annotations.Property).getComponentTypeName());
+      qx.core.Assert.assertEquals("String", getPropertyAnno("myTestAnnosMap", com.zenesis.qx.remote.annotations.Property).getKeyTypeName());
+      qx.core.Assert.assertEquals("com.zenesis.qx.remote.test.simple.TestAnnos", getPropertyAnno("myTestAnnosMap", com.zenesis.qx.remote.annotations.Property).getComponentTypeName());
 
       mainTests.waitForMillis(1000, function(result) {
         this.debug("waitForMillis completed, result=" + result);
@@ -470,6 +482,7 @@ qx.Class.define("demoapp.Application", {
       var boot = com.zenesis.qx.remote.ProxyManager.getInstance().getBootstrapObject();
       var mc = boot.getMapTests();
       var map = mc.getStringMap();
+      qx.core.Assert.assertTrue(map instanceof com.zenesis.qx.remote.Map);
       qx.core.Assert.assertEquals(map.getLength(), 5);
       qx.core.Assert.assertEquals(map.get("alpha"), "one");
       qx.core.Assert.assertEquals(map.get("bravo"), "two");

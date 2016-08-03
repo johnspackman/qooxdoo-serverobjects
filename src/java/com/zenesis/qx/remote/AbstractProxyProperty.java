@@ -1,6 +1,9 @@
 package com.zenesis.qx.remote;
 
 import java.io.IOException;
+import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Date;
 
 import org.hamcrest.core.IsAnything;
@@ -9,7 +12,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.zenesis.qx.remote.annotations.Annotation;
+import com.zenesis.qx.remote.annotations.Annotations;
 import com.zenesis.qx.remote.annotations.Remote;
+import com.zenesis.qx.remote.collections.HashMap;
 
 public abstract class AbstractProxyProperty implements ProxyProperty {
 
@@ -30,7 +36,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	protected Boolean nullable;
 	
 	// Client annotations
-	protected String[] clientAnno;
+	protected ArrayList<String> clientAnno;
 	
 	// Whether to send exceptions which occur while setting a value received from teh client
 	protected Boolean sendExceptions;
@@ -43,12 +49,37 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	
 	// Whether the client should automatically initialise the property (arrays and maps only)
 	protected boolean create;
+
+	// ProxyType this is attached to
+	private ProxyType proxyType;
 	
 	public AbstractProxyProperty(String name) {
 		super();
 		if (name.equals("property"))
 			throw new IllegalArgumentException("Cannot have a property called 'property'");
 		this.name = name;
+	}
+	
+	public void addClientAnno(Annotation anno) {
+		if (anno != null) {
+			if (clientAnno == null)
+				clientAnno = new ArrayList();
+			clientAnno.add(anno.value());
+		}
+	}
+	
+	public void addClientAnno(Annotations annos) {
+		if (annos != null) {
+			if (clientAnno == null)
+				clientAnno = new ArrayList();
+			for (int i = 0; i < annos.value().length; i++)
+				clientAnno.add(annos.value()[i].value());
+		}
+	}
+	
+	public void addAnnotations(AccessibleObject obj) {
+		this.addClientAnno(obj.getAnnotation(Annotation.class));
+		this.addClientAnno(obj.getAnnotation(Annotations.class));
 	}
 	
 	@Override
@@ -65,13 +96,15 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 			gen.writeBooleanField("create", true);
 		if (clientAnno != null) {
 			gen.writeArrayFieldStart("anno");
-			for (int i = 0; i < clientAnno.length; i++)
-				gen.writeString(clientAnno[i]);
+			for (int i = 0; i < clientAnno.size(); i++)
+				gen.writeString(clientAnno.get(i));
 			gen.writeEndArray();
 		}
 		
 		if (propertyClass != null) {
 			Class clazz = propertyClass.getJavaType();
+			//if (proxyType.getClazz().getName().equals("TestQsoMap"))
+			//	clazz = clazz;
 			boolean nullable;
 			if (this.nullable == null) {
 				if (clazz == Boolean.TYPE || 
@@ -91,6 +124,8 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 				
 			if (propertyClass.isMap()) {
 				gen.writeBooleanField("map", true);
+				if (propertyClass.getKeyClass() != null)
+					gen.writeStringField("keyTypeName", translateTypeName(propertyClass.getKeyClass()));
 			}
 			
 			if (propertyClass.isArray() || propertyClass.isCollection() || propertyClass.isMap()) {
@@ -102,6 +137,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 					ProxyType type = ProxyTypeManager.INSTANCE.getProxyType((Class<? extends Proxied>)propertyClass.getCollectionClass());
 					gen.writeObjectField("arrayClass", type);
 				}
+				gen.writeStringField("componentTypeName", translateTypeName(clazz));
 				
 			} else { 
 				if (clazz == boolean.class || clazz == Boolean.class)
@@ -125,6 +161,24 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 			gen.writeBooleanField("nullable", true);
 		}
 		gen.writeEndObject();
+	}
+	
+	private String translateTypeName(Class clazz) {
+		if (clazz == boolean.class || clazz == Boolean.class)
+			return "Boolean";
+		else if (clazz == int.class || clazz == Integer.class)
+			return "Integer";
+		else if (clazz == double.class || clazz == Double.class)
+			return "Number";
+		else if (clazz == float.class || clazz == Float.class)
+			return "Number";
+		else if (clazz == char.class || clazz == String.class)
+			return "String";
+		else if (Date.class.isAssignableFrom(clazz))
+			return "Date";
+		if (Proxied.class.isAssignableFrom(clazz))
+			return clazz.getName();
+		return null;
 	}
 
 	/* (non-Javadoc)
@@ -214,6 +268,20 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	 */
 	public boolean isCreate() {
 		return create;
+	}
+
+	/**
+	 * @return the proxyType
+	 */
+	public ProxyType getProxyType() {
+		return proxyType;
+	}
+
+	/**
+	 * @param proxyType the proxyType to set
+	 */
+	public void setProxyType(ProxyType proxyType) {
+		this.proxyType = proxyType;
 	}
 
 }

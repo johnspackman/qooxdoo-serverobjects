@@ -75,6 +75,14 @@ public class ProxyTypeArray implements ProxyType {
 	}
 
 	/* (non-Javadoc)
+	 * @see com.zenesis.qx.remote.ProxyType#getClazz()
+	 */
+	@Override
+	public Class getClazz() {
+		return type.getClazz();
+	}
+
+	/* (non-Javadoc)
 	 * @see com.zenesis.qx.remote.ProxyType#getSuperType()
 	 */
 	@Override

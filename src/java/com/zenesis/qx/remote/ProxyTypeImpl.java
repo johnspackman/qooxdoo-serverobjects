@@ -44,6 +44,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.remote.annotations.AlwaysProxy;
+import com.zenesis.qx.remote.annotations.Annotation;
 import com.zenesis.qx.remote.annotations.DoNotProxy;
 import com.zenesis.qx.remote.annotations.Event;
 import com.zenesis.qx.remote.annotations.Events;
@@ -290,7 +291,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 		Properties annoProperties = (Properties)clazz.getAnnotation(Properties.class);
 		if (annoProperties != null) {
 			for (Property anno : annoProperties.value()) {
-				ProxyProperty property = new ProxyPropertyImpl(clazz, anno.value(), anno, annoProperties);
+				ProxyPropertyImpl property = new ProxyPropertyImpl(clazz, anno.value(), anno, annoProperties);
 				properties.put(property.getName(), property);
 				ProxyEvent event = property.getEvent();
 				if (event != null)
@@ -300,7 +301,8 @@ public class ProxyTypeImpl extends AbstractProxyType {
 		for (Field field : clazz.getDeclaredFields()) {
 			Property anno = field.getAnnotation(Property.class);
 			if (anno != null) {
-				ProxyProperty property = new ProxyPropertyImpl(clazz, anno.value().length() > 0 ? anno.value() : field.getName(), anno, annoProperties);
+				ProxyPropertyImpl property = new ProxyPropertyImpl(clazz, anno.value().length() > 0 ? anno.value() : field.getName(), anno, annoProperties);
+				property.addAnnotations(field);
 				properties.put(property.getName(), property);
 				ProxyEvent event = property.getEvent();
 				if (event != null)
@@ -324,7 +326,8 @@ public class ProxyTypeImpl extends AbstractProxyType {
 			if (properties.containsKey(name))
 				continue;
 			
-			ProxyProperty property = new ProxyPropertyImpl(clazz, anno.value().length() > 0 ? anno.value() : name, anno, annoProperties);
+			ProxyPropertyImpl property = new ProxyPropertyImpl(clazz, anno.value().length() > 0 ? anno.value() : name, anno, annoProperties);
+			property.addAnnotations(method);
 			properties.put(property.getName(), property);
 			ProxyEvent event = property.getEvent();
 			if (event != null)
@@ -355,6 +358,9 @@ public class ProxyTypeImpl extends AbstractProxyType {
 			for (ProxyType type : interfaces)
 				addEvents((ProxyTypeImpl)type, events);
 		}
+		
+		for (ProxyProperty prop : properties.values())
+			((AbstractProxyProperty)prop).setProxyType(this);
 		
 		// Save
 		this.properties = properties.isEmpty() ? null : properties;

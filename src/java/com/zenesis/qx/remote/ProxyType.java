@@ -68,6 +68,12 @@ public interface ProxyType extends JsonSerializable {
 	public String getClassName();
 	
 	/**
+	 * Returns the class
+	 * @return
+	 */
+	public Class getClazz();
+	
+	/**
 	 * Returns the ProxyType for the classes superclass, or null if there is no superclass 
 	 * @return
 	 */
@@ -143,5 +149,4 @@ public interface ProxyType extends JsonSerializable {
 	 * @return
 	 */
 	public Proxied newInstance(Class <? extends Proxied> clazz) throws InstantiationException, IllegalAccessException, InvocationTargetException;
-	
 }

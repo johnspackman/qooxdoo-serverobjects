@@ -732,11 +732,6 @@ public class RequestHandler {
 			Object removed = readOptionalArray(jp, ArrayList.class, "removed", clazz);
 			Object added = readOptionalArray(jp, ArrayList.class, "added", clazz);
 			Object array = readOptionalArray(jp, ArrayList.class, "array", clazz);
-			if (log.isDebugEnabled())
-				log.debug("edit-array: update array: property=" + prop + 
-						", removed=" + DiagUtils.arrayToString(removed) + 
-						", added=" + DiagUtils.arrayToString(added) + 
-						", array=" + DiagUtils.arrayToString(array));
 			
 			Collection list;
 			Object currentArray = null;
@@ -747,6 +742,7 @@ public class RequestHandler {
 				list = new ArrayList();
 				ArrayUtils.addAll(list, currentArray);
 			}
+			
 			Proxied mutating = null;
 			try {
 				if (list instanceof Proxied)
@@ -761,6 +757,19 @@ public class RequestHandler {
 					prop.setValue(serverObject, ArrayUtils.toArray(list, clazz));
 				}
 					
+				if (log.isTraceEnabled()) {
+					log.debug("edit-array: update array: property=" + prop + 
+							",\n   removed=" + DiagUtils.arrayToString(removed) + 
+							",\n   added=" + DiagUtils.arrayToString(added) + 
+							",\n   array=" + DiagUtils.arrayToString(array) +
+							",\n   actual=" + DiagUtils.arrayToString(list));
+				} else if (log.isDebugEnabled()) {
+					log.debug("edit-array: update array: property=" + prop + 
+							", removed=" + DiagUtils.arrayToString(removed) + 
+							", added=" + DiagUtils.arrayToString(added) + 
+							", array=" + DiagUtils.arrayToString(array));
+				}
+				
 				// Because collection properties are objects and we change them without the serverObject's
 				//	knowledge, we have to make sure we notify other trackers ourselves
 				if (mutating == null)
