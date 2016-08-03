@@ -1002,6 +1002,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             });
           if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy))
             qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
+          clazz = qx.Class.getByName(data.className);
           clazz.prototype.$$proxyDef = data;
         }
         
