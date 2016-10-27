@@ -71,10 +71,11 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied {
 	 * Sorts the list with a comparator
 	 * @param comp
 	 */
-        public void sort(Comparator<? super T> comp) {
+	@Override
+    public void sort(Comparator<? super T> comp) {
 		sorting = true;
 		try {
-			Collections.sort(this, comp);
+			super.sort(comp);
 		} finally {
 			sorting = false;
 		}
