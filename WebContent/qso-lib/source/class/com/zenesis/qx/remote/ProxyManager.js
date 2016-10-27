@@ -466,6 +466,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     _processData: function(data) {
       var t = this;
       var result = null;
+      
+      // Map client IDs first
+      for (var i = 0, l = data.length; i < l; i++) {
+        var elem = data[i];
+        if (elem.type != "mapClientId")
+          continue;
+        
+        var index = 0 - elem.data.clientId;
+        var clientObject = this.__clientObjects[index];
+        qx.core.Assert.assertEquals(elem.data.clientId, clientObject.getServerId());
+
+        clientObject.setServerId(elem.data.serverId);
+        this.__serverObjects[elem.data.serverId] = clientObject;
+      }
+      
       for (var i = 0, l = data.length; i < l; i++) {
         var elem = data[i];
         var type = elem.type;
@@ -502,18 +517,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           // A client-created object has been registered on the server, update
           // the IDs to server IDs
         } else if (type == "mapClientId") {
-          var index = 0 - elem.data.clientId;
-          var clientObject = this.__clientObjects[index];
-          qx.core.Assert.assertEquals(elem.data.clientId, clientObject.getServerId());
-
-          clientObject.setServerId(elem.data.serverId);
-          this.__serverObjects[elem.data.serverId] = clientObject;
-
           // Now read in new/changed properties
           this.readProxyObject(elem.object);
 
-          // Setting a property failed with an exception - change the value back
-          // and handle the exception
+        // Setting a property failed with an exception - change the value back
+        // and handle the exception
         } else if (type == "restore") {
           var obj = this.readProxyObject(elem.object);
           try {
