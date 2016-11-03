@@ -645,7 +645,7 @@ public class FileApi implements Proxied {
 	 * Returns the mapping between mime type and file extensions 
 	 * @return
 	 */
-	@Property(array=Array.NATIVE)
+	@Property(array=Array.NATIVE, keyType=String.class, arrayType=String[].class)
 	public Map<String, String[]> getMimeTypes() {
 		if (s_mimeTypes == null)
 			return Collections.EMPTY_MAP;

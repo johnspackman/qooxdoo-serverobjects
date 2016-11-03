@@ -247,6 +247,39 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         values: old
       });
     },
+    
+    /**
+     * Equivalent of Array.forEach for every key/value pair
+     * @param cb {Function} called with (key, value)
+     */
+    forEach: function(cb) {
+      var t = this;
+      return Object.keys(this.__lookup).forEach(function(key) {
+        return cb(key, t.__lookup[key]);
+      });
+    },
+
+    /**
+     * Equivalent of Array.some for every key/value pair
+     * @param cb {Function} called with (key, value)
+     */
+    some: function(cb) {
+      var t = this;
+      return Object.keys(this.__lookup).some(function(key) {
+        return cb(key, t.__lookup[key]);
+      });
+    },
+
+    /**
+     * Equivalent of Array.every for every key/value pair
+     * @param cb {Function} called with (key, value)
+     */
+    every: function(cb) {
+      var t = this;
+      return Object.keys(this.__lookup).every(function(key) {
+        return cb(key, t.__lookup[key]);
+      });
+    },
 
     /**
      * Number of entries in the map
