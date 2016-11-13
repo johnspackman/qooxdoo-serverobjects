@@ -863,9 +863,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             else if (method.staticMethod)
               def.statics[methodName] = new Function('return com.zenesis.qx.remote.ProxyManager._callServer(' + data.className
                   + ', "' + methodName + '", qx.lang.Array.fromArguments(arguments));');
-            else
+            else {
               def.members[methodName] = new Function('return this._callServer("' + methodName
                   + '", qx.lang.Array.fromArguments(arguments));');
+              def.members[methodName + "Async"] = new Function(
+                  'var args = qx.lang.Array.fromArguments(arguments);' +
+                  'return new qx.Promise(function(resolve, reject) {' +
+                    'args.push(function() {' +
+                      'resolve.apply(this, qx.lang.Array.fromArguments(arguments));' +
+                    '});' +
+                    'this._callServer("' + methodName + '", args);' +
+                  '}, this);');
+            }
 
             if (method.returnType && typeof method.returnType == "object")
               deferredTypes.push(method.returnType);
@@ -953,15 +962,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               strDestructorCode += "this.set" + upname + "(null);\n";
             }
 
-            if (data.className.match(/AbstractIngredient2$/) && propName == "weight") {
-              toDef.transform = "_transformWeight";
-              def.members._transformWeight = function(value) {
-                if (value === null || value === undefined)
-                  this.trace("Invalid value set, value=" + value);
-                return value;
-              }
-            }
-
             // Create an apply method
             var applyName = "_apply" + upname;
             toDef.apply = applyName;
@@ -970,8 +970,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             // onDemand properties - patch it later
             if (fromDef.onDemand)
               onDemandProperties.push(fromDef);
-            else
+            else {
               normalProperties.push(fromDef);
+              def.members["get" + upname + "Async"] = new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"); 
+            }
             
             // Annotations
             if (fromDef.anno)
@@ -1050,15 +1052,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     __addOnDemandProperty: function(clazz, propName, readOnly) {
       var upname = qx.lang.String.firstUp(propName);
-      clazz.prototype["get" + upname] = function(async) {
-        return this._getPropertyOnDemand(propName, async);
-      };
-      clazz.prototype["expire" + upname] = function(sendToServer) {
-        return this._expirePropertyOnDemand(propName, sendToServer);
-      };
-      clazz.prototype["set" + upname] = function(value, async) {
-        return this._setPropertyOnDemand(propName, value, async);
-      };
+      clazz.prototype["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
+      clazz.prototype["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
+      clazz.prototype["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
+      clazz.prototype["get" + upname + "Async"] = new Function(
+          "return new qx.Promise(function(resolve) {" +
+            "this._getPropertyOnDemand('" + propName + "', function(result) {" +
+              "resolve(result);" + 
+            "});" +
+          "}, this);");
     },
     
     /**
