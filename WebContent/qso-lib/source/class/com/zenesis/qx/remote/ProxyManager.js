@@ -1568,7 +1568,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * server)
      */
     isSettingProperty: function(serverObject, propertyName) {
+      if (!propertyName)
+        return this.__setPropertyObject == serverObject;
       return this.__setPropertyObject == serverObject && this.__setPropertyName == propertyName;
+    },
+    
+    /**
+     * Detects whether a response is being processed
+     */
+    isInResponse: function() {
+      return !!this.__inProcessData;
     },
 
     /**
