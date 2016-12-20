@@ -721,6 +721,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Assign any values
         if (data.order) {
+          if (data.clazz == "uk.co.spar.app.qa.QaRevision$RecipeIngredient2") {
+            data.clazz = data.clazz + "";
+          }
           for (var i = 0; i < data.order.length; i++) {
             var propName = data.order[i];
             var propValue = data.values[propName];
@@ -1717,7 +1720,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return;
 
       // Set the data
-      var text = qx.lang.Json.stringify(obj);
+      var text = qx.lang.Json.stringify(obj, function(key, value) {
+        if (typeof this[key] === "function") {
+          return this[key]();
+        }
+        return value;
+      });
       this.__numActiveRequests++;
       var req = new qx.io.remote.Request(this.getProxyUrl(), "POST", "text/plain");
       req.setAsynchronous(!!async);

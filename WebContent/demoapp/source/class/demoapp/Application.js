@@ -20,15 +20,11 @@
 
  ************************************************************************ */
 
-/* ************************************************************************
-
- @asset(demoapp/*)
-
- ************************************************************************ */
-
 /**
  * This is the main application class of your custom application "demoapp"
  * 
+ * @require(qx.Promise)
+ * @asset(demoapp/*)
  * @ignore(com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer)
  * @ignore(com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer$Child)
  * @ignore(com.zenesis.qx.remote.test.simple.Pippo)
@@ -37,6 +33,7 @@
  */
 qx.Class.define("demoapp.Application", {
   extend: qx.application.Standalone,
+  include: [qx.core.MAssert],
 
   /*
    * ****************************************************************************
@@ -74,7 +71,11 @@ qx.Class.define("demoapp.Application", {
       var root = this.getRoot();
       var txtLog = this.__txtLog = new qx.ui.form.TextArea().set({ readOnly: true, minHeight: 400 });
       root.add(txtLog, { left: 0, right: 0, bottom: 0 });
+
+      t.log("Running testRecursiveArray");
+      t.testRecursiveArray();
       
+/*      
       this.log("Testing queued async");
       this.testQueuedAsyncMethods(function() {
         
@@ -92,6 +93,9 @@ qx.Class.define("demoapp.Application", {
         t.log("Testing ArrayLists");
         t.testArrayLists();
         
+        t.log("Running testRecursiveArray");
+        t.testRecursiveArray();
+        
         t.log("Testing Maps");
         t.testMaps();
        
@@ -101,6 +105,7 @@ qx.Class.define("demoapp.Application", {
         
         t.testBrowserTimeouts();
       });
+      */
     },
     
     log: function(msg) {
@@ -463,6 +468,57 @@ qx.Class.define("demoapp.Application", {
           cb();
         }, 100);
       }
+    },
+    
+    testRecursiveArray: function() {
+      var boot = com.zenesis.qx.remote.ProxyManager.getInstance().getBootstrapObject();
+      
+      function create(id, children) {
+        var item = new com.zenesis.qx.remote.test.collections.TestRecursiveArray();
+        item.setId(id);
+        if (children)
+          append(item, children);
+        return item;
+      }
+      
+      function append(item, children) {
+        children.forEach(function(child) {
+          item.getChildren().push(child);
+        });
+        return item;
+      }
+      var bravo = create("bravo");
+      var root = create("root", [
+        create("alpha"),
+        bravo,
+        create("charlie"),
+        create("delta")
+      ]);
+      boot.setRecursiveArray(root);
+      append(bravo, [
+          create("bravo-alpha"),
+          create("bravo-bravo"),
+          create("bravo-charlie")
+        ]);
+      
+      var rootChildren = root.getChildren();
+      var bravoChildren = bravo.getChildren();
+      boot.testRecursiveArray();
+      this.assertIdentical(root, boot.getRecursiveArray());
+      this.assertEquals(4, root.getChildren().getLength());
+      this.assertEquals("alpha", root.getChildren().getItem(0).getId());
+      this.assertEquals("bravo", root.getChildren().getItem(1).getId());
+      this.assertEquals("charlie", root.getChildren().getItem(2).getId());
+      this.assertEquals("delta", root.getChildren().getItem(3).getId());
+      
+      this.assertIdentical(bravo, root.getChildren().getItem(1));
+      this.assertEquals(3, bravo.getChildren().getLength());
+      this.assertEquals("bravo-alpha", bravo.getChildren().getItem(0).getId());
+      this.assertEquals("bravo-bravo", bravo.getChildren().getItem(1).getId());
+      this.assertEquals("bravo-charlie", bravo.getChildren().getItem(2).getId());
+      
+      this.assertIdentical(bravo.getChildren(), bravoChildren);
+      this.assertIdentical(root.getChildren(), rootChildren);
     },
 
     testArrayLists: function() {
