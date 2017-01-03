@@ -1229,9 +1229,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           if (methodDef) {// On-Demand property accessors don't have a method
             // definition
             if (methodDef.returnArray == "wrap") {
-              if (!!methodDef.map)
+              if (methodDef.map)
                 result = new com.zenesis.qx.remote.Map(result);
-              else
+              else if (!(result instanceof qx.data.Array))
                 result = new qx.data.Array(result || []);
             }
           }
