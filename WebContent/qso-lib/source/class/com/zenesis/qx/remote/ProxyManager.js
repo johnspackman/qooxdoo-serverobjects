@@ -599,8 +599,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           qx.core.Assert.assertTrue(false, "Unexpected type of command from server: " + type);
       }
       
-      if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length)
-        this._sendCommandToServer(null, true, true);
+      if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length) {
+        // Flatten the call stack when we flush the queue, and check that it is still valid to flush when
+        //  the timeout kicks in
+        setTimeout(function() {
+          if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length) {
+            this._sendCommandToServer(null, true, true);
+          }
+        }.bind(this), 1);
+      }
 
       return result;
     },
@@ -1074,21 +1081,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     __patchNormalProperty: function(clazz, name) {
       var upname = qx.lang.String.firstUp(name);
       var get = clazz.prototype["get" + upname];
+      if (get.$$install) {
+        get.$$install();
+        get = clazz.prototype["get" + upname];
+      }
       clazz.prototype["get" + upname] = function(cb) {
-        // qx.core.Property.executeOptimisedSetter changes the implementation of the 
-        //  get method the first time it is called; we detect that and swap our overridden
-        //  method back in
-        var currentGet = clazz.prototype["get" + upname];
         var value = get.call(this);
-        var newGet = clazz.prototype["get" + upname];
-        if (newGet != currentGet) {
-          get = newGet;
-          clazz.prototype["get" + upname] = currentGet;
-        }
         if (typeof cb == "function")
           cb(value);
         return value;
-      };
+      }
     },
 
     /**
