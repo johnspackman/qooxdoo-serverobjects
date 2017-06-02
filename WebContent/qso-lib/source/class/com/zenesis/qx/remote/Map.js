@@ -22,18 +22,43 @@
 
 /**
  * Implementation of Map, which is a set of key:value pairs with event handlers
- * and where the keys and values are qx.data.Array; this supports binding and
- * particularly provides a client based equivalent of Java java.util.Map
+ * for changes to the keys, values, and the entries (where an "entry" is a key/value 
+ * pair); this class is to <code>{}</code> as <code>qx.data.Array</code> is to 
+ * <code>[]</code>
+ * 
+ * By default, the keys are stored in a native object which means that only native
+ * types which can be converted to a String can be used as keys; however, by 
+ * specifying the `keysAreHashed` parameter to the constructor, the class will
+ * require that all keys are instance of <code>qx.core.Object</code> and will
+ * use the object's hash code.
+ * 
+ * This has a side effect when importing and exporting the Map into an external
+ * form, via the <code>replace()</code> and <code>toObject()</code methods; Maps
+ * which have `keysAreHashed==true` are imported and exported as an array of
+ * native objects with key & value properties.
+ * 
+ * @see com.zenesis.qx.remote.Entry
  */
 qx.Class.define("com.zenesis.qx.remote.Map", {
   extend: qx.core.Object,
 
-  construct: function(values) {
+  /**
+   * Constructor.
+   * @param values {Object?} values to import
+   * @param keysAreHashed {Boolean?} whether keys are objects and according to their hash  
+   */
+  construct: function(values, keysAreHashed) {
     this.base(arguments);
-    this.__lookup = {};
+    if (typeof values == "boolean") {
+      keysAreHashed = values;
+      values = undefined;
+    }
+    this.__keysAreHashed = keysAreHashed;
+    this.__lookupEntries = {};
     this.set({
-      keys: new qx.data.Array,
-      values: new qx.data.Array
+      keys: new qx.data.Array(),
+      values: new qx.data.Array(),
+      entries: new qx.data.Array()
     });
     if (values !== undefined) {
       this.replace(values);
@@ -71,12 +96,23 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       check: "qx.data.Array",
       event: "changeValues",
       apply: "_applyValues"
+    },
+    
+    /** List of all Entry's in the map */
+    entries: {
+      nullable: false,
+      check: "qx.data.Array",
+      event: "changeEntries",
+      apply: "_applyEntries"
     }
   },
 
   members: {
     // Implementation of the map
-    __lookup: null,
+    __lookupEntries: null,
+    
+    // Whether keys are objects and the hashcode is stored (as opposed to native values, ie string)
+    __keysAreHashed: false,
 
     /**
      * Gets a value from the map
@@ -86,7 +122,21 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * @returns {Object?} the object that was found, or undefined
      */
     get: function(key) {
-      return this.__lookup[key];
+      var id = this.__getKey(key);
+      var entry = this.__lookupEntries[id];
+      return entry ? entry.getValue() : undefined;
+    },
+    
+    /**
+     * Gets an entry from the map
+     * 
+     * @param key
+     *          {String} the key to lookup
+     * @returns {Entry?} the entry that was found, or null
+     */
+    getEntry: function(key) {
+      var id = this.__getKey(key);
+      return this.__lookupEntries[id] || null;
     },
 
     /**
@@ -104,29 +154,125 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         return this.remove(key);
       }
 
-      var values = this.getValues();
-      var keys = this.getKeys();
-
-      var oldValue = this.__lookup[key];
-      this.__lookup[key] = value;
-      if (oldValue !== undefined)
-        values.remove(oldValue);
-      values.push(value);
-      if (!keys.contains(key))
-        keys.push(key);
+      var data = this.__putImpl(key, value);
 
       this.fireDataEvent("change", {
         type: "put",
         values: [ {
           key: key,
           value: value,
-          oldValue: oldValue
+          oldValue: data.oldValue
         } ]
       });
-      return oldValue;
+      return data.oldValue;
+    },
+    
+    __getKey: function(key) {
+      if (this.__keysAreHashed)
+        return key ? key.toHashCode() : null;
+      return key;
+    },
+    
+    /**
+     * Internal implementation of put
+     * @param key {String} the key
+     * @param value {Object} the object
+     */
+    __putImpl:function(key, value) {
+      var values = this.getValues();
+      var keys = this.getKeys();
+      var entries = this.getEntries();
+      var id = this.__getKey(key);
+      
+      var entry = this.__lookupEntries[id];
+      var oldValue = null;
+      var result;
+      
+      if (entry) {
+        oldValue = entry.getValue();
+        values.remove(oldValue);
+        entry.setValue(value);
+        if (!values.contains(value))
+          values.push(value);
+        result = {
+          key: key,
+          value: value,
+          entry: entry,
+          oldValue: oldValue
+        };
+      } else {
+        entry = new com.zenesis.qx.remote.Entry(key, value);
+        this.__attachEntry(entry);
+        if (!values.contains(value))
+          values.push(value);
+        if (!keys.contains(key))
+          keys.push(key);
+        result = {
+          key: key,
+          value: value,
+          entry: entry
+        };
+      }
+      
+      return result;
+    },
+    
+    /**
+     * Attaches an entry
+     */
+    __attachEntry: function(entry) {
+      entry.addListener("changeValue", this.__onEntryChangeValue, this);
+      this.getEntries().push(entry);
+      var id = this.__getKey(entry.getKey());
+      this.__lookupEntries[id] = entry;
+    },
+    
+    /**
+     * Detaches an entry
+     */
+    __detachEntry: function(entry) {
+      entry.removeListener("changeValue", this.__onEntryChangeValue, this);
+      this.getEntries().remove(entry);
+      var id = this.__getKey(entry.getKey());
+      delete this.__lookupEntries[id];
+    },
+    
+    /**
+     * Event handler for changes to an entry's value property
+     */
+    __onEntryChangeValue: function(evt) {
+      var entry = evt.getTarget();
+      var value = entry.getValue();
+      var oldValue = evt.getOldData();
+      var remove = true;
+      for (var id in this.__lookupEntries) {
+        if (this.__lookupEntries[id].getValue() === oldValue) {
+          remove = false;
+          break;
+        }
+      }
+      var values = this.getValues();
+      if (remove)
+        values.remove(oldValue);
+      if (!values.contains(value))
+        values.push(value);
+      
+      this.fireDataEvent("change", {
+        type: "put",
+        values: [ {
+          key: entry.getKey(),
+          value: entry.getValue(),
+          oldValue: oldValue,
+          entry: entry
+        } ]
+      });
     },
     
     
+    /**
+     * Replaces all of the elements in this map
+     * @deprected in favour of better name to match qx.data.Array @see <code>replace</code>
+     */
     replaceAll: function(src) {
       qx.log.Logger.deprecatedMethodWarning(arguments.callee);
       this.replace(src);
@@ -145,88 +291,91 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       var t = this;
       if (src instanceof com.zenesis.qx.remote.Map)
         src = src.toObject();
+      
       var values = this.getValues();
       var keys = this.getKeys();
+      var entries = this.getEntries();
+
       var removed = [];
-      for ( var name in this.__lookup)
-        if (src[name] === undefined) {
-          var tmp = this.__lookup[name];
-          removed.push({
-            key: name,
-            value: tmp
-          });
-          delete this.__lookup[name];
-          values.remove(tmp);
-          keys.remove(name);
-        }
-      
       var changed = [];
-      function addEntry(key, value) {
-        var oldValue = t.__lookup[key];
-        if (oldValue === undefined) {
-          values.push(value);
-          keys.push(key);
-          changed.push({
-            key: key,
-            value: value
-          });
-
-        } else if (value !== oldValue) {
-          values.remove(oldValue);
-          values.push(value);
-          changed.push({
-            key: key,
-            value: value,
-            oldValue: oldValue
-          });
-        }
-        t.__lookup[key] = value;
-      }
-
-      if (src instanceof qx.data.Array)
-        src = src.toArray();
-      if (qx.lang.Type.isArray(src)) {
+      
+      if (this.__keysAreHashed) {
+        var srcEntries = {};
         src.forEach(function(entry) {
-          addEntry(entry.key, entry.value);
+          var id = entry.key.toHashCode();
+          srcEntries[id] = entry;
         });
-      } else {
-        for ( var key in src)
-          addEntry(key, src[key]);
       }
-      if (Object.keys(removed).length !== 0)
+
+      for (var id in this.__lookupEntries) {
+        if (srcEntries[id] === undefined) {
+          var tmp = this.__lookupEntries[id];
+          removed.push(tmp);
+          values.remove(tmp.getValue());
+          keys.remove(id);
+          this.__detachEntry(tmp);
+        }
+      }
+      
+      if (this.__keysAreHashed) {
+        for (var id in srcEntries) {
+          var entry = srcEntries[id];
+          changed.push(this.__putImpl(entry.key, entry.value));
+        }
+        
+      } else {
+        for (var key in src) {
+          changed.push(this.__putImpl(key, src[key]));
+        }
+      }
+
+      if (Object.keys(removed).length !== 0) {
         this.fireDataEvent("change", {
           type: "remove",
           values: removed
         });
-      if (Object.keys(changed).length !== 0)
+      }
+      if (Object.keys(changed).length !== 0) {
         this.fireDataEvent("change", {
           type: "put",
           values: changed
         });
+      }
     },
 
     /**
      * Removes a key:value pair
      * 
      * @param key
-     *          {String} the key to remove
+     *          {String|Entry} the key to remove
      * @returns {Object} the previous value for the key, or undefined
      */
     remove: function(key) {
-      var value = this.__lookup[key];
-      if (value !== undefined) {
-        delete this.__lookup[key];
+      var entry;
+      if (key instanceof com.zenesis.qx.remote.Entry) {
+        entry = this.__lookupEntries[key.getKey()];
+        if (entry && entry !== key)
+          throw new Error("Cannot remove entry because it is not part of this map");
+      } else {
+        var id = this.__getKey(key);
+        entry = this.__lookupEntries[id];
+      }
+      
+      if (entry) {
+        this.__detachEntry(entry);
+        this.getValues().remove(entry.getValue());
         this.getKeys().remove(key);
-        this.getValues().remove(value);
         this.fireDataEvent("change", {
           type: "remove",
           values: [ {
             key: key,
-            value: value
+            value: entry.getValue(),
+            entry: entry
           } ]
         });
       }
-      return value;
+      
+      return entry ? entry.getValue() : undefined;
     },
 
     /**
@@ -234,12 +383,15 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      */
     removeAll: function() {
       var old = [];
-      for ( var name in this.__lookup)
+      for (var id in this.__lookupEntries) {
+        var entry = this.__lookupEntries[id];
         old.push({
-          key: name,
-          value: this.__lookup[name]
+          key: entry.getKey(),
+          value: entry.getValue(),
+          entry: entry
         });
-      this.__lookup = {};
+        this.__detachEntry(entry);
+      }
       this.getValues().removeAll();
       this.getKeys().removeAll();
       this.fireDataEvent("change", {
@@ -250,12 +402,13 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     
     /**
      * Equivalent of Array.forEach for every key/value pair
-     * @param cb {Function} called with (key, value)
+     * @param cb {Function} called with (key, value, entry)
      */
     forEach: function(cb) {
       var t = this;
-      return Object.keys(this.__lookup).forEach(function(key) {
-        return cb(key, t.__lookup[key]);
+      return Object.keys(this.__lookupEntries).forEach(function(id) {
+        var entry = this.__lookupEntries[id];
+        return cb(entry.getKey(), entry.getValue(), entry);
       });
     },
 
@@ -265,8 +418,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      */
     some: function(cb) {
       var t = this;
-      return Object.keys(this.__lookup).some(function(key) {
-        return cb(key, t.__lookup[key]);
+      return Object.keys(this.__lookupEntries).some(function(id) {
+        var entry = this.__lookupEntries[id];
+        return cb(entry.getKey(), entry.getValue(), entry);
       });
     },
 
@@ -276,8 +430,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      */
     every: function(cb) {
       var t = this;
-      return Object.keys(this.__lookup).every(function(key) {
-        return cb(key, t.__lookup[key]);
+      return Object.keys(this.__lookupEntries).every(function(id) {
+        var entry = this.__lookupEntries[id];
+        return cb(entry.getKey(), entry.getValue(), entry);
       });
     },
 
@@ -307,7 +462,8 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * @returns {Boolean}
      */
     containsKey: function(key) {
-      return this.__lookup[key] !== undefined;
+      var id = this.__getKey(key);
+      return this.__lookupEntries[id] !== undefined;
     },
 
     /**
@@ -322,21 +478,39 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     },
 
     /**
-     * Returns the native object containing the lookup; note that this is the
-     * actual object and should not be dircetly modified (IE clone it if you're
-     * going to edit it)
-     * @paran clone {Boolean?} if true, the object is cloned before returning so that it is safe to edit 
+     * Returns a copy of the native object containing the lookup; note that this cannot
+     * work (and will throw an exception) if the keys are hashed, because it is not possible
+     * to use objects as keys in a native map (@see toArray instead)
      */
-    toObject: function(clone) {
-      if (clone) {
-        var result = {};
-        var lookup = this.__lookup;
-        this.getKeys().forEach(function(key) {
-          result[key] = lookup[key];
-        });
-        return result;
+    toObject: function() {
+      if (this.__keysAreHashed) {
+        throw new Error("Cannot export as an object because the map uses keys which are objects");
       }
-      return this.__lookup;
+      
+      var result = {};
+      var lookup = this.__lookupEntries;
+      this.getKeys().forEach(function(id) {
+        var entry = this.__lookupEntries[id];
+        result[entry.getKey()] = entry.getValue();
+      });
+      
+      return result;
+    },
+    
+    /**
+     * Outputs the map as an array of objects with key & value properties; this is a guaranteed
+     * export mechanism because it will work whether the keys are hashed or not
+     */
+    toArray: function() {
+      var result = [];
+      for (var id in this.__lookupEntries) {
+        var entry = this.__lookupEntries[id];
+        result.push({
+          key: entry.getKey(),
+          value: entry.getValue()
+        });
+      }
+      return result;
     },
 
     /**
@@ -363,6 +537,19 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     _applyKeys: function(value, oldValue) {
       if (oldValue)
         throw new Error("Cannot change property keys of com.zenesis.qx.remote.Map");
+    },
+
+    /**
+     * Apply method for entries property
+     * 
+     * @param value
+     *          {Object}
+     * @param oldValue
+     *          {Object}
+     */
+    _applyEntries : function(value, oldValue) {
+      if (oldValue)
+        throw new Error("Cannot change property entries of com.zenesis.qx.remote.Map");
     }
   }
 });

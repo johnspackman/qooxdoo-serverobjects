@@ -728,11 +728,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Assign any values
         if (data.order) {
-          if (data.clazz == "uk.co.spar.app.qa.QaRevision$RecipeIngredient2") {
-            data.clazz = data.clazz + "";
-          }
           for (var i = 0; i < data.order.length; i++) {
             var propName = data.order[i];
+            if (data.clazz == "uk.co.visionmedia.app.FileMetaMediaFragment" && propName == "templateSets") {
+              data.clazz = data.clazz + "";
+            }
             var propValue = data.values[propName];
             if (propValue)
               propValue = t.readProxyObject(propValue);
@@ -1231,10 +1231,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           if (methodDef) {// On-Demand property accessors don't have a method
             // definition
             if (methodDef.returnArray == "wrap") {
-              if (methodDef.map)
+              if (methodDef.map) {
                 result = new com.zenesis.qx.remote.Map(result);
-              else if (!(result instanceof qx.data.Array))
+              } else if (!(result instanceof qx.data.Array)) {
                 result = new qx.data.Array(result || []);
+              }
             }
           }
         }
