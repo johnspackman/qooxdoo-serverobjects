@@ -13,13 +13,15 @@ import java.util.Set;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.Proxied;
+import com.zenesis.qx.remote.ProxiedContainerAware;
 import com.zenesis.qx.remote.ProxyManager;
+import com.zenesis.qx.remote.ProxyProperty;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
 import com.zenesis.qx.utils.ArrayUtils;
 
 @Properties(extend="com.zenesis.qx.remote.Map")
-public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied {
+public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, ProxiedContainerAware {
 	
 	private static final long serialVersionUID = -7803265903489114209L;
 
@@ -27,6 +29,9 @@ public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied {
 	private KeySet keySet;
 	private Values values;
 	private EntrySet entrySet;
+	
+	private Proxied container;
+	private ProxyProperty property;
 
 	public HashMap() {
 		super();
@@ -48,7 +53,13 @@ public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied {
 		hashCode = new Object().hashCode();
 	}
 
-	@SerializeConstructorArgs
+	@Override
+    public void setProxiedContainer(Proxied container, ProxyProperty property) {
+	    this.container = container;
+	    this.property = property;
+    }
+
+    @SerializeConstructorArgs
 	public void serializeConstructorArgs(JsonGenerator jgen) throws IOException {
 		jgen.writeStartArray();
 		Object[] arr;
@@ -68,6 +79,9 @@ public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied {
 			jgen.writeEndObject();
 		}
 		jgen.writeEndArray();
+        if (property != null && property.getPropertyClass().getKeyClass() != String.class) {
+            jgen.writeBoolean(true);
+        }
 	}
 	
 	@Override

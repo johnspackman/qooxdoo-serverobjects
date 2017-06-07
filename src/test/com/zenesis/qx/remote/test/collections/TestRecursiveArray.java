@@ -13,6 +13,10 @@ public class TestRecursiveArray implements Proxied {
     @Property(arrayType=TestRecursiveArray.class, create=true)
     private ArrayList<TestRecursiveArray> children = new ArrayList();
 
+    public TestRecursiveArray() {
+        super();
+    }
+
     public String getId() {
         return id;
     }

@@ -52,7 +52,7 @@ public class SampleServlet extends HttpServlet {
 		if (str != null) {
 			File dir = new File(str);
 			dir.mkdirs();
-			RequestHandler.s_traceLogDir = dir;
+			RequestHandler.setTraceLogDir(dir);
 		}
 	}
 

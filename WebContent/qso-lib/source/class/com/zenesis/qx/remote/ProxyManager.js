@@ -730,9 +730,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (data.order) {
           for (var i = 0; i < data.order.length; i++) {
             var propName = data.order[i];
-            if (data.clazz == "uk.co.visionmedia.app.FileMetaMediaFragment" && propName == "templateSets") {
-              data.clazz = data.clazz + "";
-            }
             var propValue = data.values[propName];
             if (propValue)
               propValue = t.readProxyObject(propValue);

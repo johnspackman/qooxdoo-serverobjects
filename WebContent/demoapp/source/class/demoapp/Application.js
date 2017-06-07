@@ -63,19 +63,13 @@ qx.Class.define("demoapp.Application", {
        * -------------------------------------------------------------------------
        */
 
-      new demoapp.test.DemoTest().testMap();
-
       var manager = new com.zenesis.qx.remote.ProxyManager("/sampleServlet/ajax", true);
       manager.setTimeout(120 * 60 * 1000);
 
       var root = this.getRoot();
       var txtLog = this.__txtLog = new qx.ui.form.TextArea().set({ readOnly: true, minHeight: 400 });
       root.add(txtLog, { left: 0, right: 0, bottom: 0 });
-
-      t.log("Running testRecursiveArray");
-      t.testRecursiveArray();
       
-/*      
       this.log("Testing queued async");
       this.testQueuedAsyncMethods(function() {
         
@@ -97,15 +91,18 @@ qx.Class.define("demoapp.Application", {
         t.testRecursiveArray();
         
         t.log("Testing Maps");
+        new demoapp.test.DemoTest().testMap();
         t.testMaps();
        
+        t.log("Running testObjectKeyMaps");
+        t.testObjectKeyMaps();
+
         t.log("All automated tests passed - now open other browsers to start multi user testing");
         t.testMultiUser();
         t.testThreading();
         
         t.testBrowserTimeouts();
       });
-      */
     },
     
     log: function(msg) {
@@ -516,9 +513,6 @@ qx.Class.define("demoapp.Application", {
       this.assertEquals("bravo-alpha", bravo.getChildren().getItem(0).getId());
       this.assertEquals("bravo-bravo", bravo.getChildren().getItem(1).getId());
       this.assertEquals("bravo-charlie", bravo.getChildren().getItem(2).getId());
-      
-      this.assertIdentical(bravo.getChildren(), bravoChildren);
-      this.assertIdentical(root.getChildren(), rootChildren);
     },
 
     testArrayLists: function() {
@@ -555,6 +549,36 @@ qx.Class.define("demoapp.Application", {
       qx.core.Assert.assertEquals(map.get("alpha"), "first again");
       qx.core.Assert.assertEquals(map.get("foxtrot"), "six");
       qx.core.Assert.assertEquals(map.get("george"), "seven");
+    },
+    
+    testObjectKeyMaps: function() {
+      var EXPECTED = {
+          alpha: "one",
+          bravo: "two",
+          charlie: "three"
+      }
+      var VALUES = [];
+      for (var name in EXPECTED)
+        VALUES.push(EXPECTED[name]);
+      
+      var boot = com.zenesis.qx.remote.ProxyManager.getInstance().getBootstrapObject();
+      var mc = boot.getMapTests();
+      var map = mc.getObjectKeyMap();
+      qx.core.Assert.assertTrue(map instanceof com.zenesis.qx.remote.Map);
+      qx.core.Assert.assertEquals(map.getLength(), 3);
+      map.getKeys().forEach(function(key) {
+        qx.core.Assert.assertTrue(key instanceof com.zenesis.qx.remote.test.collections.TestQsoMap$MyKey);
+        qx.core.Assert.assertTrue(typeof key.getKeyId() == "string");
+        qx.core.Assert.assertTrue(!!EXPECTED[key.getKeyId()]);
+        var value = map.get(key);
+        qx.core.Assert.assertTrue(value instanceof com.zenesis.qx.remote.test.collections.TestQsoMap$MyValue);
+        qx.core.Assert.assertEquals(EXPECTED[key.getKeyId()], value.getValueId());
+      });
+      map.getValues().forEach(function(value) {
+        qx.core.Assert.assertTrue(value instanceof com.zenesis.qx.remote.test.collections.TestQsoMap$MyValue);
+        qx.core.Assert.assertTrue(typeof value.getValueId() == "string");
+        qx.core.Assert.assertTrue(VALUES.indexOf(value.getValueId()) > -1);
+      });
     },
     
     testThreading: function() {

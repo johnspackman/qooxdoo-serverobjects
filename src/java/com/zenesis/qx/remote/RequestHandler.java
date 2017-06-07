@@ -179,7 +179,7 @@ public class RequestHandler {
 	private String requestId = "(unnamed request)";
 
 	// Where I/O log files go to, null means that they are disabled
-	public static File s_traceLogDir = null;
+	private static File s_traceLogDir = null;
 	
 	/**
 	 * @param tracker
@@ -187,6 +187,14 @@ public class RequestHandler {
 	public RequestHandler(ProxySessionTracker tracker) {
 		super();
 		this.tracker = tracker;
+	}
+	
+	/**
+	 * Sets the trace logging directory (if null, disables logging)
+	 * @param traceLogDir
+	 */
+	public static void setTraceLogDir(File traceLogDir) {
+	    s_traceLogDir = traceLogDir;
 	}
 	
 	/**
@@ -256,7 +264,7 @@ public class RequestHandler {
 		}
 		
 		Writer writer = new StringWriter();
-		if (log.isTraceEnabled() && s_traceLogDir != null) {
+		if (s_traceLogDir != null) {
 			Object obj = tracker.getObjectMapper().readValue(sw.toString(), Object.class);
 			String out = tracker.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(obj);
 			DiagUtils.writeFile(new File(s_traceLogDir, requestId + "-in.txt"), out);
@@ -271,7 +279,7 @@ public class RequestHandler {
 		processRequest(new StringReader(sw.toString()), writer);
 		
 		String out = writer.toString();
-		if (log.isTraceEnabled() && s_traceLogDir != null) {
+		if (s_traceLogDir != null) {
 			DiagUtils.writeFile(new File(s_traceLogDir, requestId + "-out.txt"), out);
 		}
 		String hash = DiagUtils.getSha1(out);

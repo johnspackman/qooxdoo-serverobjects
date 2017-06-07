@@ -113,6 +113,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     
     // Whether keys are objects and the hashcode is stored (as opposed to native values, ie string)
     __keysAreHashed: false,
+    
+    // Anti recursion mutex
+    __changingValue: false,
 
     /**
      * Gets a value from the map
@@ -179,42 +182,48 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * @param value {Object} the object
      */
     __putImpl:function(key, value) {
-      var values = this.getValues();
-      var keys = this.getKeys();
-      var entries = this.getEntries();
-      var id = this.__getKey(key);
-      
-      var entry = this.__lookupEntries[id];
-      var oldValue = null;
-      var result;
-      
-      if (entry) {
-        oldValue = entry.getValue();
-        values.remove(oldValue);
-        entry.setValue(value);
-        if (!values.contains(value))
-          values.push(value);
-        result = {
-          key: key,
-          value: value,
-          entry: entry,
-          oldValue: oldValue
-        };
-      } else {
-        entry = new com.zenesis.qx.remote.Entry(key, value);
-        this.__attachEntry(entry);
-        if (!values.contains(value))
-          values.push(value);
-        if (!keys.contains(key))
-          keys.push(key);
-        result = {
-          key: key,
-          value: value,
-          entry: entry
-        };
+      qx.core.Assert.assertFalse(this.__changingValue);
+      this.__changingValue = true;
+      try {
+        var values = this.getValues();
+        var keys = this.getKeys();
+        var entries = this.getEntries();
+        var id = this.__getKey(key);
+        
+        var entry = this.__lookupEntries[id];
+        var oldValue = null;
+        var result;
+        
+        if (entry) {
+          oldValue = entry.getValue();
+          values.remove(oldValue);
+          entry.setValue(value);
+          if (!values.contains(value))
+            values.push(value);
+          result = {
+            key: key,
+            value: value,
+            entry: entry,
+            oldValue: oldValue
+          };
+        } else {
+          entry = new com.zenesis.qx.remote.Entry(key, value);
+          this.__attachEntry(entry);
+          if (!values.contains(value))
+            values.push(value);
+          if (!keys.contains(key))
+            keys.push(key);
+          result = {
+            key: key,
+            value: value,
+            entry: entry
+          };
+        }
+        
+        return result;
+      } finally {
+        this.__changingValue = false;
       }
-      
-      return result;
     },
     
     /**
@@ -241,6 +250,8 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * Event handler for changes to an entry's value property
      */
     __onEntryChangeValue: function(evt) {
+      if (this.__changingValue)
+        return;
       var entry = evt.getTarget();
       var value = entry.getValue();
       var oldValue = evt.getOldData();
@@ -299,34 +310,40 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       var removed = [];
       var changed = [];
       
+      var srcEntries = {};
       if (this.__keysAreHashed) {
-        var srcEntries = {};
         src.forEach(function(entry) {
           var id = entry.key.toHashCode();
           srcEntries[id] = entry;
         });
+      } else if (qx.lang.Type.isArray(src)) {
+        src.forEach(function(entry) {
+          var id = entry.key;
+          srcEntries[id] = entry;
+        });
+      } else {
+        for (var name in src) {
+          srcEntries[name] = { key: name, value: src[name] };
+        }
       }
 
       for (var id in this.__lookupEntries) {
         if (srcEntries[id] === undefined) {
           var tmp = this.__lookupEntries[id];
-          removed.push(tmp);
+          removed.push({
+            key: tmp.getKey(),
+            value: tmp.getValue(),
+            entry: tmp
+          });
           values.remove(tmp.getValue());
           keys.remove(id);
           this.__detachEntry(tmp);
         }
       }
       
-      if (this.__keysAreHashed) {
-        for (var id in srcEntries) {
-          var entry = srcEntries[id];
-          changed.push(this.__putImpl(entry.key, entry.value));
-        }
-        
-      } else {
-        for (var key in src) {
-          changed.push(this.__putImpl(key, src[key]));
-        }
+      for (var id in srcEntries) {
+        var entry = srcEntries[id];
+        changed.push(this.__putImpl(entry.key, entry.value));
       }
 
       if (Object.keys(removed).length !== 0) {
