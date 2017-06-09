@@ -171,8 +171,12 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     },
     
     __getKey: function(key) {
-      if (this.__keysAreHashed)
-        return key ? key.toHashCode() : null;
+      if (this.__keysAreHashed) {
+        if (key === null || key === undefined)
+          throw new Error("Invalid key passed to Map.__getKey");
+        var hash = qx.core.ObjectRegistry.toHashCode(key);
+        return hash;
+      }
       return key;
     },
     
@@ -313,7 +317,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       var srcEntries = {};
       if (this.__keysAreHashed) {
         src.forEach(function(entry) {
-          var id = entry.key.toHashCode();
+          var id = t.__getKey(entry.key);
           srcEntries[id] = entry;
         });
       } else if (qx.lang.Type.isArray(src)) {
@@ -370,9 +374,10 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     remove: function(key) {
       var entry;
       if (key instanceof com.zenesis.qx.remote.Entry) {
-        entry = this.__lookupEntries[key.getKey()];
-        if (entry && entry !== key)
-          throw new Error("Cannot remove entry because it is not part of this map");
+        if (qx.core.Environment.get("qx.debug")) {
+          qx.core.Assert.assertIdentical(key, this.__lookupEntries[this.__getKey(key.getKey())]);
+        }
+        entry = key;
       } else {
         var id = this.__getKey(key);
         entry = this.__lookupEntries[id];
@@ -381,7 +386,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       if (entry) {
         this.__detachEntry(entry);
         this.getValues().remove(entry.getValue());
-        this.getKeys().remove(key);
+        this.getKeys().remove(entry.getKey());
         this.fireDataEvent("change", {
           type: "remove",
           values: [ {
@@ -509,7 +514,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       this.getKeys().forEach(function(id) {
         var entry = this.__lookupEntries[id];
         result[entry.getKey()] = entry.getValue();
-      });
+      }.bind(this));
       
       return result;
     },

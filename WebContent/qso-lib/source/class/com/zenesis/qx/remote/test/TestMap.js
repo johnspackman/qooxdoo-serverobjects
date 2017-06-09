@@ -46,6 +46,20 @@ qx.Class.define("com.zenesis.qx.remote.test.TestMap", {
       this.assertFalse(map.containsValue("ONE-B"));
       this.assertFalse(map.containsValue("ONE"));
       this.assertFalse(map.containsKey("one"));
+      map.getEntries().forEach(function(entry) {
+        this.assertNotEquals("one", entry.getKey());
+        this.assertNotEquals("ONE-B", entry.getValue());
+      }.bind(this));
+      this.assertEquals(2, map.getEntries().getLength());
+      this.assertEquals(2, map.getKeys().getLength());
+      this.assertEquals(2, map.getValues().getLength());
+      
+      var obj = map.toObject();
+      this.assertEquals(2, Object.keys(obj).length);
+      for (var name in obj) {
+        this.assertTrue([ "two", "three"].indexOf(name) > -1);
+        this.assertIdentical(map.get(name), obj[name]);
+      }
     },
     
     testObjectKeys: function() {
@@ -96,6 +110,21 @@ qx.Class.define("com.zenesis.qx.remote.test.TestMap", {
       this.assertFalse(map.containsValue("ONE-B"));
       this.assertFalse(map.containsValue("ONE"));
       this.assertFalse(map.containsKey(DT_ONE));
+      map.getEntries().forEach(function(entry) {
+        this.assertNotEquals("one", entry.getKey());
+        this.assertNotEquals("ONE-B", entry.getValue());
+      }.bind(this));
+      this.assertEquals(2, map.getEntries().getLength());
+      this.assertEquals(2, map.getKeys().getLength());
+      this.assertEquals(2, map.getValues().getLength());
+      
+      var arr = map.toArray();
+      this.assertEquals(2, arr.length);
+      arr.forEach(function(entry) {
+        this.assertTrue([ DT_TWO, DT_THREE ].indexOf(entry.key) > -1);
+        this.assertIdentical(map.get(entry.key), entry.value);
+      }.bind(this));
+      
     }
   }
 });

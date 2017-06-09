@@ -29,6 +29,13 @@
  * @ignore(com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer$Child)
  * @ignore(com.zenesis.qx.remote.test.simple.Pippo)
  * @ignore(com.zenesis.qx.remote.test.properties.TestProperties)
+ * @ignore(alert)
+ * @ignore(com.zenesis.qx.remote.test.simple.Pippo)
+ * @ignore(com.zenesis.qx.remote.test.properties.TestProperties)
+ * @ignore(com.zenesis.qx.remote.test.properties.TestValue)
+ * @ignore(com.zenesis.qx.remote.test.collections.TestRecursiveArray)
+ * @ignore(com.zenesis.qx.remote.test.collections.TestQsoMap$MyKey)
+ * @ignore(com.zenesis.qx.remote.test.collections.TestQsoMap$MyValue)
  * 
  */
 qx.Class.define("demoapp.Application", {
@@ -46,9 +53,6 @@ qx.Class.define("demoapp.Application", {
      * This method contains the initial application code and gets called during
      * startup of the application
      * 
-     * @ignore(alert)
-     * @ignore(com.zenesis.qx.remote.test.simple.Pippo)
-     * @ignore(com.zenesis.qx.remote.test.properties.TestProperties)
      */
     main: function() {
       var t = this;
@@ -69,6 +73,10 @@ qx.Class.define("demoapp.Application", {
       var root = this.getRoot();
       var txtLog = this.__txtLog = new qx.ui.form.TextArea().set({ readOnly: true, minHeight: 400 });
       root.add(txtLog, { left: 0, right: 0, bottom: 0 });
+      
+      var test = new com.zenesis.qx.remote.test.TestMap();
+      test.testSimple();
+      test.testObjectKeys();
       
       this.log("Testing queued async");
       this.testQueuedAsyncMethods(function() {
