@@ -1,34 +1,33 @@
 package com.zenesis.qx.remote.test.collections;
 
 import com.zenesis.qx.remote.Proxied;
+import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.collections.HashMap;
 
 public class TestQsoMap implements Proxied {
     
-    public class MyKey implements Proxied {
-        @Property private final String keyId;
+    public static class MyKey implements Proxied {
+        @Property private String keyId;
 
         public MyKey(String keyId) {
             super();
             this.keyId = keyId;
         }
 
+        public MyKey() {
+            super();
+        }
+
         public String getKeyId() {
             return keyId;
         }
 
-        @Override
-        public int hashCode() {
-            return keyId.hashCode();
+        public void setKeyId(String keyId) {
+            this.keyId = ProxyManager.changeProperty(this, "keyId", keyId, this.keyId);
         }
-
-        @Override
-        public boolean equals(Object obj) {
-            return keyId.equals(((MyKey)obj).keyId);
-        }
-
+        
         @Override
         public String toString() {
             return "KEYID:" + keyId;
@@ -36,26 +35,24 @@ public class TestQsoMap implements Proxied {
         
     }
     
-    public class MyValue implements Proxied {
-        @Property private final String valueId;
+    public static class MyValue implements Proxied {
+        @Property private String valueId;
 
         public MyValue(String valueId) {
             super();
             this.valueId = valueId;
         }
 
+        public MyValue() {
+            super();
+        }
+
         public String getValueId() {
             return valueId;
         }
         
-        @Override
-        public int hashCode() {
-            return valueId.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return valueId.equals(((MyValue)obj).valueId);
+        public void setValueId(String valueId) {
+            this.valueId = ProxyManager.changeProperty(this, "valueId", valueId, this.valueId);
         }
 
         @Override
@@ -98,6 +95,29 @@ public class TestQsoMap implements Proxied {
 	
 	public HashMap<MyKey, MyValue> getObjectKeyMap() {
         return objectKeyMap;
+    }
+	
+	@Method
+	public void checkObjectMap() {
+	    assertTrue(objectKeyMap.size() == 5);
+        assertTrue(getValueId("delta").equals("four"));
+        assertTrue(getValueId("echo").equals("five"));
+	}
+	
+	private MyKey findKey(String id) {
+	    for (MyKey key : objectKeyMap.keySet())
+	        if (key.getKeyId().equals(id))
+	            return key;
+	    return null;
+	}
+	
+    private String getValueId(MyKey key) {
+        MyValue value = objectKeyMap.get(key);
+        return value != null ? value.getValueId() : null;
+    }
+
+    private String getValueId(String key) {
+        return getValueId(findKey(key));
     }
 
     public void assertTrue(boolean value) {

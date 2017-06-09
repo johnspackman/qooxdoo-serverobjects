@@ -74,9 +74,7 @@ qx.Class.define("demoapp.Application", {
       var txtLog = this.__txtLog = new qx.ui.form.TextArea().set({ readOnly: true, minHeight: 400 });
       root.add(txtLog, { left: 0, right: 0, bottom: 0 });
       
-      var test = new com.zenesis.qx.remote.test.TestMap();
-      test.testSimple();
-      test.testObjectKeys();
+      t.testObjectKeyMaps();
       
       this.log("Testing queued async");
       this.testQueuedAsyncMethods(function() {
@@ -99,6 +97,10 @@ qx.Class.define("demoapp.Application", {
         t.testRecursiveArray();
         
         t.log("Testing Maps");
+        var test = new com.zenesis.qx.remote.test.TestMap();
+        test.testSimple();
+        test.testObjectKeys();
+        
         new demoapp.test.DemoTest().testMap();
         t.testMaps();
        
@@ -574,6 +576,7 @@ qx.Class.define("demoapp.Application", {
       var map = mc.getObjectKeyMap();
       qx.core.Assert.assertTrue(map instanceof com.zenesis.qx.remote.Map);
       qx.core.Assert.assertEquals(map.getLength(), 3);
+      var keys = {};
       map.getKeys().forEach(function(key) {
         qx.core.Assert.assertTrue(key instanceof com.zenesis.qx.remote.test.collections.TestQsoMap$MyKey);
         qx.core.Assert.assertTrue(typeof key.getKeyId() == "string");
@@ -581,12 +584,37 @@ qx.Class.define("demoapp.Application", {
         var value = map.get(key);
         qx.core.Assert.assertTrue(value instanceof com.zenesis.qx.remote.test.collections.TestQsoMap$MyValue);
         qx.core.Assert.assertEquals(EXPECTED[key.getKeyId()], value.getValueId());
+        keys[key.getKeyId()] = key;
       });
       map.getValues().forEach(function(value) {
         qx.core.Assert.assertTrue(value instanceof com.zenesis.qx.remote.test.collections.TestQsoMap$MyValue);
         qx.core.Assert.assertTrue(typeof value.getValueId() == "string");
         qx.core.Assert.assertTrue(VALUES.indexOf(value.getValueId()) > -1);
       });
+      
+      function newKey(id) {
+        var key = new com.zenesis.qx.remote.test.collections.TestQsoMap$MyKey();
+        key.setKeyId(id);
+        return key;
+      }
+      
+      function newValue(id) {
+        var value = new com.zenesis.qx.remote.test.collections.TestQsoMap$MyValue();
+        value.setValueId(id);
+        return value;
+      }
+      
+      var delta = newKey("delta");
+      var echo = newKey("echo");
+      var four = newValue("four");
+      var five = newValue("five");
+      map.put(delta, four);
+      map.put(echo, five);
+      mc.checkObjectMap();
+      qx.core.Assert.assertEquals(map.getLength(), 5);
+      qx.core.Assert.assertIdentical(map.get(delta), four);
+      qx.core.Assert.assertIdentical(map.get(echo), five);
+      
     },
     
     testThreading: function() {

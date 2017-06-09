@@ -47,12 +47,16 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
    * @param values {Object?} values to import
    * @param keysAreHashed {Boolean?} whether keys are objects and according to their hash  
    */
-  construct: function(values, keysAreHashed) {
+  construct: function(values, keysAreHashed, keyClass, valueClass) {
     this.base(arguments);
-    if (typeof values == "boolean") {
-      keysAreHashed = values;
-      values = undefined;
-    }
+    var args = qx.lang.Array.fromArguments(arguments);
+    if (typeof args[0] == "boolean")
+      args.unshift(undefined);
+    values = args.shift();
+    keysAreHashed = args.shift();
+    keyClass = args.shift();
+    valueClass = args.shift();
+    
     this.__keysAreHashed = keysAreHashed;
     this.__lookupEntries = {};
     this.set({
@@ -60,6 +64,10 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       values: new qx.data.Array(),
       entries: new qx.data.Array()
     });
+    if (keyClass !== undefined)
+      this.setKeyClass(keyClass);
+    if (valueClass !== undefined)
+      this.setValueClass(valueClass);
     if (values !== undefined) {
       this.replace(values);
     }
@@ -104,6 +112,22 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       check: "qx.data.Array",
       event: "changeEntries",
       apply: "_applyEntries"
+    },
+    
+    /** Class of keys (ignored for native key types) */
+    keyClass: {
+      nullable: true,
+      init: null,
+      check: "Class",
+      transform: "_transformToClass"
+    },
+    
+    /** Class of values */
+    valueClass: {
+      nullable: true,
+      init: null,
+      check: "Class",
+      transform: "_transformToClass"
     }
   },
 
@@ -116,7 +140,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     
     // Anti recursion mutex
     __changingValue: false,
-
+    
     /**
      * Gets a value from the map
      * 
@@ -186,6 +210,12 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * @param value {Object} the object
      */
     __putImpl:function(key, value) {
+      var keyClass = this.getKeyClass();
+      var valueClass = this.getValueClass();
+      if (keyClass && !(key instanceof keyClass))
+        throw new Error("Cannot put key into map because key is the wrong class, expected " + keyClass + ", given key=" + key);
+      if (valueClass && !(value instanceof valueClass))
+        throw new Error("Cannot put value into map because value is the wrong class, expected " + valueClass + ", given value=" + value);
       qx.core.Assert.assertFalse(this.__changingValue);
       this.__changingValue = true;
       try {
@@ -572,6 +602,16 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     _applyEntries : function(value, oldValue) {
       if (oldValue)
         throw new Error("Cannot change property entries of com.zenesis.qx.remote.Map");
+    },
+    
+    /**
+     * Transform for keyClass and valueClass, converts strings to classes
+     */
+    _transformToClass: function(value) {
+      if (value)
+        value = qx.Class.getByName(value);
+      return value;
     }
+
   }
 });

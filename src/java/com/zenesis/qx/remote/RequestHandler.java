@@ -45,6 +45,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
@@ -708,7 +709,8 @@ public class RequestHandler {
 		
 		if (prop.getPropertyClass().isMap()) {
 			Object removed = readOptionalArray(jp, ArrayList.class, "removed", prop.getPropertyClass().getKeyClass());
-			Map put = readOptionalMap(jp, prop.getPropertyClass().getCollectionClass(), "put", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
+			Map put = readOptionalExpandedMap(jp, "put", 
+			        prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
 			
 			// Quick logging
 			if (log.isDebugEnabled())
@@ -722,8 +724,9 @@ public class RequestHandler {
 					tracker.beginMutate(mutating = (Proxied)map, null);
 				
 				ArrayUtils.removeAll(map, removed);
-				if (put != null)
-					map.putAll(put);
+				if (put != null) {
+				    map.putAll(put);
+				}
 				
 				// Because collection properties are objects and we change them without the serverObject's
 				//	knowledge, we have to make sure we notify other trackers ourselves
@@ -1172,6 +1175,56 @@ public class RequestHandler {
 		return null;
 	}
 	
+    private Map readOptionalExpandedMap(JsonParser jp, String name, Class keyClazz, Class valueClazz) throws IOException {
+        if (jp.nextToken() == JsonToken.FIELD_NAME &&
+                jp.getCurrentName().equals(name) &&
+                jp.nextToken() == JsonToken.START_OBJECT) {
+            return readExpandedMap(jp, keyClazz, valueClazz);
+        }
+        return null;
+    }
+    
+    private Map readExpandedMap(JsonParser jp, Class keyClazz, Class clazz) throws IOException {
+        if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
+            return null;
+        
+        if (clazz == null)
+            clazz = Object.class;
+        if (keyClazz == null)
+            keyClazz = String.class;
+        Map result = new HashMap<>();
+        for (; jp.nextToken() != JsonToken.END_OBJECT;) {
+            @SuppressWarnings("unused")
+            Object entryId = readSimpleValue(jp, keyClazz);
+            jp.nextToken();
+            Map<String, Object> entryMap = readExpandedMapEntry(jp, keyClazz, clazz);
+            Object key = entryMap.get("key");
+            Object value = entryMap.get("value");
+            result.put(key, value);
+        }
+        
+        return result;
+    }
+    
+    private Map<String, Object> readExpandedMapEntry(JsonParser jp, Class keyType, Class valueType) throws IOException {
+        HashMap<String, Object> map = new HashMap<>();
+        for (; jp.nextToken() != JsonToken.END_OBJECT;) {
+            String key = jp.getCurrentName();
+            jp.nextToken();
+            Class expectedType = null;
+            if (key.equals("key"))
+                expectedType = keyType;
+            else if (key.equals("value"))
+                expectedType = valueType;
+            if (expectedType != null) {
+                Object value = readComplexValue(jp, expectedType);
+                map.put(key, value);
+            }
+        }
+        
+        return map;
+    }
+    
 	/**
 	 * Reads an array from JSON, where each value is of the class clazz.  Note that while the result
 	 * is an array, you cannot assume that it is an array of Object, or use generics because generics
@@ -1267,6 +1320,22 @@ public class RequestHandler {
 				obj = jp.readValueAs(clazz);
 		}
 		return obj;
+	}
+	
+	private Object readComplexValue(JsonParser jp, Class clazz) throws IOException {
+        if (Proxied.class.isAssignableFrom(clazz)) {
+            Integer id = jp.readValueAs(Integer.class);
+            if (id != null) {
+                Proxied obj = getProxied(id);
+                if (!clazz.isInstance(obj))
+                    throw new ClassCastException("Cannot cast " + obj + " class " + obj.getClass() + " to " + clazz);
+                return obj;
+            } else
+                return null;
+        } else {
+            Object result = readSimpleValue(jp, clazz);
+            return result;
+        }
 	}
 	
 	/**
