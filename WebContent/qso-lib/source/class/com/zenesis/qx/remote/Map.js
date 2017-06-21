@@ -420,7 +420,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         this.fireDataEvent("change", {
           type: "remove",
           values: [ {
-            key: key,
+            key: entry.getKey(),
             value: entry.getValue(),
             entry: entry
           } ]
