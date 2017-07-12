@@ -728,9 +728,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Assign any values
         if (data.order) {
-          if (data.clazz == "uk.co.spar.app.qa.QaRevision$RecipeIngredient2") {
-            data.clazz = data.clazz + "";
-          }
           for (var i = 0; i < data.order.length; i++) {
             var propName = data.order[i];
             var propValue = data.values[propName];
@@ -945,6 +942,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
 
             if (fromDef.map) {
+              var NATIVE_KEY_TYPES = {
+                  "String": true,
+                  "Integer": true,
+                  "Double": true,
+                  "Float": true
+              }
+              fromDef.nativeKeyType = !fromDef.keyTypeName || NATIVE_KEY_TYPES[fromDef.keyTypeName];
               if (fromDef.array && fromDef.array == "wrap")
                 toDef.check = arrayClassName || "com.zenesis.qx.remote.Map";
               if (fromDef.keyTypeName)
@@ -1231,10 +1235,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           if (methodDef) {// On-Demand property accessors don't have a method
             // definition
             if (methodDef.returnArray == "wrap") {
-              if (methodDef.map)
+              if (methodDef.map) {
                 result = new com.zenesis.qx.remote.Map(result);
-              else if (!(result instanceof qx.data.Array))
+              } else if (!(result instanceof qx.data.Array)) {
                 result = new qx.data.Array(result || []);
+              }
             }
           }
         }
@@ -1325,18 +1330,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           info.put = {};
         if (!info.removed)
           info.removed = [];
+        function keyToId(key) {
+          if (propDef.nativeKeyType)
+            return key;
+          return qx.core.ObjectRegistry.toHashCode(key);
+        }
         if (data.type == "put") {
           data.values.forEach(function(entry) {
             qx.lang.Array.remove(info.removed, entry.key);
-            info.put[entry.key] = entry.value;
+            info.put[keyToId(entry.key)] = { key: entry.key, value: entry.value };
           });
         } else if (data.type == "remove") {
           data.values.forEach(function(entry) {
-            var key = entry.key;
-            if (info.put[key] !== undefined) {
-              delete info.put[key];
-            }
-            info.removed.push(key);
+            delete info.put[keyToId(entry.key)];
+            info.removed.push(entry.key);
           });
         }
       }

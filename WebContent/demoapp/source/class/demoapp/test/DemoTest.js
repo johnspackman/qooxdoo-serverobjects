@@ -66,13 +66,13 @@ qx.Class.define("demoapp.test.DemoTest", {
 				var data = evt.getData();
 				if (data.type == "put") {
 					this.assertEquivalent([
-						{ key: "charlie", value: "third", oldValue: "three" },
-						{ key: "delta", value: "four" },
-						{ key: "echo", value: "five" }
+						{ key: "charlie", value: "third", oldValue: "three", entry: undefined },
+						{ key: "delta", value: "four", entry: undefined },
+						{ key: "echo", value: "five", entry: undefined }
 					], data.values);
 				} else if (data.type == "remove") {
 					this.assertEquivalent([
-					    { key: "alpha", value: "one" }
+					    { key: "alpha", value: "one", entry: undefined }
 					], data.values);
 				}
 			}, this);
@@ -95,7 +95,8 @@ qx.Class.define("demoapp.test.DemoTest", {
 				this.assertTrue(qx.lang.Type.isObject(actual), msg);
 				this.assertEquals(Object.keys(expected).length, Object.keys(actual).length, msg);
 				for (var name in Object.keys(expected)) {
-					this.assertEquivalent(expected[name], actual[name], msg);
+				  if (expected[name] !== undefined)
+				    this.assertEquivalent(expected[name], actual[name], msg);
 				}
 			} else
 				this.assertEquals(expected, actual, msg);
