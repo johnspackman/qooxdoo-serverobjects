@@ -35,7 +35,8 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
   },
 
   events: {
-    "changeServerId": "qx.event.type.Data"
+    "changeServerId": "qx.event.type.Data",
+    "sentToServer": "qx.event.type.Event"
   },
 
   members: {
@@ -95,6 +96,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     setSentToServer: function() {
       qx.core.Assert.assertTrue(this.__isPending);
       delete this.__isPending;
+      this.fireEvent("sentToServer");
     },
 
     /**

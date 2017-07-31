@@ -151,6 +151,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 							}
 							try {
 								Object value = prop.getValue(proxied);
+								if (value instanceof ProxiedContainerAware)
+								    ((ProxiedContainerAware)value).setProxiedContainer(proxied, prop);
 								jgen.writeObjectField(prop.getName(), value);
 								order.add(prop.getName());
 							}catch(ProxyException e) {

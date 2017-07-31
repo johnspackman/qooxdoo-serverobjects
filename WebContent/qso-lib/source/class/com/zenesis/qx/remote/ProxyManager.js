@@ -596,8 +596,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           qx.core.Assert.assertTrue(false, "Unexpected type of command from server: " + type);
       }
       
-      if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length)
-        this._sendCommandToServer(null, true, true);
+      if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length) {
+        // Flatten the call stack when we flush the queue, and check that it is still valid to flush when
+        //  the timeout kicks in
+        setTimeout(function() {
+          if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length) {
+            this._sendCommandToServer(null, true, true);
+          }
+        }.bind(this), 1);
+      }
 
       return result;
     },
@@ -939,6 +946,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
 
             if (fromDef.map) {
+              var NATIVE_KEY_TYPES = {
+                  "String": true,
+                  "Integer": true,
+                  "Double": true,
+                  "Float": true
+              }
+              fromDef.nativeKeyType = !fromDef.keyTypeName || NATIVE_KEY_TYPES[fromDef.keyTypeName];
               if (fromDef.array && fromDef.array == "wrap")
                 toDef.check = arrayClassName || "com.zenesis.qx.remote.Map";
               if (fromDef.keyTypeName)
@@ -1188,10 +1202,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           if (methodDef) {// On-Demand property accessors don't have a method
             // definition
             if (methodDef.returnArray == "wrap") {
-              if (!!methodDef.map)
+              if (methodDef.map) {
                 result = new com.zenesis.qx.remote.Map(result);
-              else
+              } else if (!(result instanceof qx.data.Array)) {
                 result = new qx.data.Array(result || []);
+              }
             }
           }
         }
@@ -1282,18 +1297,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           info.put = {};
         if (!info.removed)
           info.removed = [];
+        function keyToId(key) {
+          if (propDef.nativeKeyType)
+            return key;
+          return qx.core.ObjectRegistry.toHashCode(key);
+        }
         if (data.type == "put") {
           data.values.forEach(function(entry) {
             qx.lang.Array.remove(info.removed, entry.key);
-            info.put[entry.key] = entry.value;
+            info.put[keyToId(entry.key)] = { key: entry.key, value: entry.value };
           });
         } else if (data.type == "remove") {
           data.values.forEach(function(entry) {
-            var key = entry.key;
-            if (info.put[key] !== undefined) {
-              delete info.put[key];
-            }
-            info.removed.push(key);
+            delete info.put[keyToId(entry.key)];
+            info.removed.push(entry.key);
           });
         }
       }
@@ -1682,7 +1699,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return;
 
       // Set the data
-      var text = qx.lang.Json.stringify(obj);
+      var text = qx.lang.Json.stringify(obj, function(key, value) {
+        if (typeof this[key] === "function") {
+          return this[key]();
+        }
+        return value;
+      });
       this.__numActiveRequests++;
       var req = new qx.io.remote.Request(this.getProxyUrl(), "POST", "text/plain");
       req.setAsynchronous(!!async);

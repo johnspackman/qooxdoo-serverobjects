@@ -218,6 +218,8 @@ public class UploadHandler {
 				String fileName = filePart.getFileName();
 				if (fileName == null || fileName.trim().length() == 0)
 					fileName = "unnamed-upload";
+				while (fileName.indexOf("..") > -1)
+				    fileName = fileName.replace("..", ".");
 				filePart.setRenamePolicy(null);
 				File file = ProxyManager.getInstance().createTemporaryFile(fileName);
 				String uploadId = (String)params.get("uploadId");
