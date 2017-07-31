@@ -481,6 +481,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       for (var i = 0, l = data.length; i < l; i++) {
         var elem = data[i];
         var type = elem.type;
+        if ((elem.type == "set" && elem.name === "watchedString") ||
+            (elem.type == "fire" && elem.name === "changeWatchedString"))
+          debugger;
 
         // Init
         if (type == "bootstrap") {
@@ -796,6 +799,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var clazz = eval(data);
         return clazz;
       }
+      
+      function cleanup(data) {
+        for (var name in data)
+          if (data[name] === undefined)
+            delete data[name];
+        return data;
+      }
 
       // Types are not created when encountered because thatr can lead to
       // unsolvable recursive
@@ -808,38 +818,26 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var def;
         var strConstructorCode = null;
         var strDestructorCode = "";
-        var strDeferCode = "this.$$eventMeta = {};\n" +
-        		"this.$$methodMeta = {};\n";
+        var strDeferCode = "clazz.$$eventMeta = {};\n" +
+        		"clazz.$$methodMeta = {};\n";
         if (data.isInterface)
           def = {
             members: {},
             statics: {}
           };
         else {
-          strConstructorCode = "var args = qx.lang.Array.fromArguments(arguments);\n" + "args.unshift(arguments);\n"
-              + "this.base.apply(this, args);\n" + "this.initialiseProxy();\n";
+          strConstructorCode = "var args = qx.lang.Array.fromArguments(arguments);\n" + 
+            "args.unshift(arguments);\n" + 
+            "this.base.apply(this, args);\n" + 
+            "this.initialiseProxy();\n";
           def = {
             members: {},
             statics: {}
           };
           if (data.extend) {
             def.extend = this.getClassOrCreate(data.extend);
-            data.extend = def.extend.prototype.$$proxyDef;
           } else {
             def.extend = qx.core.Object;
-          }
-          var mis = com.zenesis.qx.remote.ProxyManager.__mixins[data.className];
-          if (mis) {
-            mis.forEach(function(mixin) {
-              if (mixin.patch) {
-                strDeferCode += "qx.Class.patch(this, " + mixin.mixin + ");\n";
-              } else {
-                if (def.include === undefined)
-                  def.include = [ mixin.mixin ];
-                else
-                  def.include.push(mixin.mixin);
-              }
-            });
           }
         }
 
@@ -890,18 +888,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (method.anno)
               def.members["@" + methodName] = method.anno;
             
-            strDeferCode += "this.$$methodMeta." + methodName + " = " + JSON.stringify({
+            strDeferCode += "clazz.$$methodMeta." + methodName + " = " + JSON.stringify(cleanup({
             	isServer: true,
-            	returnType: fromDef.returnType,
-            	map: fromDef.map,
-            	cacheResult: fromDef.cacheResult,
-            	returnArray: fromDef.returnArray
-            }) + ";\n";
+            	returnType: method.returnType,
+            	map: method.map,
+            	cacheResult: method.cacheResult,
+            	returnArray: method.returnArray
+            })) + ";\n";
           }
         }
 
         // Add properties
-        var normalProperties = [];
         if (data.properties) {
           def.properties = {};
           for ( var propName in data.properties) {
@@ -997,7 +994,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                     "});" +
                   "}, this);");
             } else {
-              normalProperties.push(fromDef);
               def.members["get" + upname + "Async"] = new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"); 
             }
             
@@ -1010,7 +1006,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
             
             // Meta data
-            strDeferCode += "qx.lang.Object.mergeWith(properties." + propName + ", " + JSON.stringify({
+            strDeferCode += "qx.lang.Object.mergeWith(clazz.$$properties." + propName + ", " + JSON.stringify(cleanup({
             	isServer: true,
             	sync: fromDef.sync,
             	onDemand: fromDef.onDemand,
@@ -1018,7 +1014,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             	array: fromDef.array,
             	arrayClass: fromDef.arrayClass,
             	map: fromDef.map
-            }) + ");\n";
+            })) + ");\n";
           }
         }
 
@@ -1029,7 +1025,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             var fromDef = data.events[eventName];
             if (!fromDef.isProperty)
               def.events[eventName] = "qx.event.type.Data";
-            strDeferCode += "this.$$eventMeta." + eventName + " = " + JSON.stringify({
+            strDeferCode += "clazz.$$eventMeta." + eventName + " = " + JSON.stringify({
             	isServer: true,
             	isProperty: fromDef.isProperty
             }) + ";\n";
@@ -1040,22 +1036,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var clazz;
         if (data.isInterface) {
           clazz = qx.Interface.define(data.className, def) || qx.Interface.getByName(data.className);
-          clazz.$$proxyDef = data;
         } else {
           def.construct = new Function(strConstructorCode);
           if (strDestructorCode)
             def.destruct = new Function(strDestructorCode);
-          strDeferCode += "com.zenesis.qx.remote.MProxy.deferredClassInitialisation(this);\n";
-          def.defer = new Function("statics", "members", "properties", strDeferCode);
+          strDeferCode += "com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);\n";
+          def.defer = new Function("clazz", strDeferCode);
           clazz = qx.Class.define(data.className, def);
           clazz = qx.Class.getByName(data.className);
-          clazz.prototype.$$proxyDef = data;
         }
-
-        // Patch properties
-        normalProperties.forEach(function(propDef) {
-          com.zenesis.qx.remote.ProxyManager.patchNormalProperty(clazz, propDef.name);
-        });
       } catch (e) {
         throw e;
       } finally {
@@ -1123,9 +1112,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return value.getTime();
       }
 
-      if (value.$$proxyDef) {
-      //-- this doesn't work in older versions of Qx when using build target
-      //if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
+      if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
         var id = value.getServerId();
         if (id < 0)
           this._queueClientObject(0 - id);
@@ -1161,12 +1148,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var isClass = serverObject && serverObject.$$type === "Class";
       var methodDef;
       if (isClass) {
-        methodDef = com.zenesis.qx.remote.ProxyManager.getMethodDefinition(serverObject, methodName);
+        methodDef = com.zenesis.qx.remote.MProxy.getMethodDefinition(serverObject, methodName);
       } else {
         if (serverObject.isDisposed())
             throw new Error("Cannot call method " + serverObject.classname + "." + methodName + " on [" + serverObject.toHashCode() + "] because it is disposed, object=" + serverObject);
         
-        methodDef = com.zenesis.qx.remote.ProxyManager.getMethodDefinition(serverObject.constructor, methodName);
+        methodDef = com.zenesis.qx.remote.MProxy.getMethodDefinition(serverObject.constructor, methodName);
 
         // Can we get it from the cache?
         if (methodDef && 
@@ -1821,21 +1808,27 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         properties: {}
       };
       
-    	var pd = qx.Class.getPropertyDefinition(clazz, propName);    	
-      if (!pd.readOnly && !pd.onDemand) {
-        var value = undefined;
-
-        // If the get method is a standard Qooxdoo get method, then we
-        // access the property value directly so that we can detect 
-        // uninitialised property values; this allows us to not send 
-        // property values to the server unless necessary, so that server
-        // defaults are not overridden
-        var value = clientObject["$$runtime_" + propName];
-        if (value === undefined)
-          value = clientObject["$$user_" + propName];
-
-        if (value !== undefined)
-          data.properties[propName] = this.serializeValue(value);
+      var clazz = clientObject.constructor;
+      while (clazz.superclass) {
+        for (var propName in clazz.$$properties) {
+          var pd = clazz.$$properties[propName];
+          if (pd.isServer && !pd.readOnly && !pd.onDemand) {
+            var value = undefined;
+    
+            // If the get method is a standard Qooxdoo get method, then we
+            // access the property value directly so that we can detect 
+            // uninitialised property values; this allows us to not send 
+            // property values to the server unless necessary, so that server
+            // defaults are not overridden
+            var value = clientObject["$$runtime_" + propName];
+            if (value === undefined)
+              value = clientObject["$$user_" + propName];
+    
+            if (value !== undefined)
+              data.properties[propName] = this.serializeValue(value);
+          }
+        }
+        clazz = clazz.superclass;
       }
       
       queue[queue.length] = data;
@@ -1928,25 +1921,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return this.__clientObjects[0 - serverId];
 
       return this.__serverObjects[serverId];
-    },
-
-    /**
-     * Returns the proxy definition for a named method
-     * 
-     * @param serverObject
-     *          {Object} the object to get the method from
-     * @param methodName
-     *          {String} the name of the method
-     */
-    _getMethodDef: function(serverObject, methodName) {
-      for (var def = serverObject.$$proxyDef; def; def = def.extend) {
-        if (def.methods) {
-          var methodDef = def.methods[methodName];
-          if (methodDef)
-            return methodDef;
-        }
-      }
-      return null;
     },
 
     /**
@@ -2062,32 +2036,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     getInstance: function() {
       return this.__instance;
-    },
-
-    // Client mixins to add to server classes
-    __mixins: {},
-
-    /**
-     * Adds a mixin for a server class
-     * 
-     * @param className
-     *          {String} the name of the server class
-     * @param mixin
-     *          {Mixin} the mixin to add
-     * @param patch
-     *          {Boolean?} if true patch is used instead of include, default
-     *          false
-     */
-    addMixin: function(className, mixin, patch) {
-      if (qx.Class.getByName(className) != null)
-        throw new Error("Cannot add mixins for class " + className + " because the class has already been loaded");
-      var mis = this.__mixins[className];
-      if (mis === undefined)
-        mis = this.__mixins[className] = [];
-      mis.push({
-        mixin: mixin,
-        patch: patch
-      });
     },
 
     /**

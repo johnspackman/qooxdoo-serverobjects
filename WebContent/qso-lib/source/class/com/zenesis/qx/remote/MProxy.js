@@ -343,7 +343,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     patchNormalProperty: function(clazz, name) {
       var upname = qx.lang.String.firstUp(name);
       var get = clazz.prototype["get" + upname];
-      clazz.prototype["get" + upname] = function(cb) {
+      var fn = clazz.prototype["get" + upname] = function(cb) {
         // qx.core.Property.executeOptimisedSetter changes the implementation of the 
         //  get method the first time it is called; we detect that and swap our overridden
         //  method back in
@@ -358,6 +358,8 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
           cb(value);
         return value;
       };
+      if (get.$$install)
+        fn.$$install = get.$$install;
     },
     
     /**
@@ -365,6 +367,8 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      */
     addOnDemandProperty: function(clazz, propName, readOnly) {
       var upname = qx.lang.String.firstUp(propName);
+      if (upname == "ObjectKeyMap")
+        debugger;
       clazz.prototype["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
       clazz.prototype["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
       clazz.prototype["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
@@ -379,16 +383,16 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     deferredClassInitialisation: function(clazz) {
     	// Make sure it has this mixin - but check first because a super class may have already
     	//	included it
-    	if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy))
-        qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
+      if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy))
+    	  qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
     	
     	for (var name in clazz.$$properties) {
     		var def = clazz.$$properties[name];
     		if (def.isServer) {
     			if (def.onDemand)
-    				this.__addOnDemandProperty(clazz, name, !!def.readOnly);
+    				this.addOnDemandProperty(clazz, name, !!def.readOnly);
     			else
-    				this.__patchNormalProperty(clazz, name);
+    				this.patchNormalProperty(clazz, name);
     		}
     	}
     	
@@ -409,6 +413,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     		if (clazz.$$events && clazz.$$events[name] !== undefined) {
           return {};
         }
+        clazz = clazz.superclass;
     	}
     	return null;
     },
@@ -422,6 +427,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     		if (typeof clazz[name] == "function") {
           exists = true;
         }
+    		clazz = clazz.superclass;
     	}
     	return exists ? {} : null;
     }
