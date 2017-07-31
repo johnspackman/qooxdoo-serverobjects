@@ -27,11 +27,6 @@
  */
 qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 
-  construct: function() {
-    var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
-    this.__serverClass = PM.getClassInfo(this.classname);
-  },
-
   destruct: function() {
     if (this.__serverId > 0) {
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
@@ -45,7 +40,6 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 
   members: {
     __serverId: null,
-    __serverClass: null,
     // __isPending: undefined,
 
     /**
@@ -146,10 +140,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      */
     _applyProperty: function(propertyName, value, oldValue) {
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
-      var propDef = this.getPropertyDef(propertyName);
-      
-      if (propDef.name == "parameters" && this.classname.match(/Chemical/))
-        propDef.name = propDef.name + "";
+      var propDef = qx.Class.getPropertyDefinition(this.constructor, propertyName);
       
       if (oldValue && oldValue instanceof qx.core.Object) {
         oldValue.$$proxyOwnerDetached = this;
@@ -162,7 +153,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 
       // Add change handler for arrays; note that this works for maps too
       // because they are also "wrapped"
-      if (propDef.array == "wrap" && !propDef.noArrayEdits) {
+      if (propDef.array == "wrap") {
         if (oldValue)
           oldValue.removeListenerById(propDef.changeListenerId);
 
@@ -211,7 +202,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       // Call the server
       var upname = qx.lang.String.firstUp(propName);
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
-      var propDef = this.getPropertyDef(propName);
+      var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
       
       if (async) {
         PM.callServerMethod(this, "get" + upname, [function(value){
@@ -297,7 +288,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
         oldValue = this.$$proxyUser[propName];
 
       // Don't use __storePropertyOnDemand here - use _applyProperty instead
-      var propDef = this.getPropertyDef(propName);
+      var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
       if (propDef.array == "wrap" && !(value instanceof qx.data.Array))
         value = new qx.data.Array(value);
 
@@ -337,43 +328,102 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       PM.removeServerListener(this, name);
       return existed;
-    },
-
-    /**
-     * Gets the proxy property definition for a named property
-     * 
-     * @param propertyName
-     *          {String} the name of the property
-     * @return {Map} the property definition received from the server
-     */
-    getPropertyDef: function(propertyName) {
-      for (var $$proxyDef = this.$$proxyDef; $$proxyDef; $$proxyDef = $$proxyDef.extend) {
-        if ($$proxyDef.properties) {
-          var propDef = $$proxyDef.properties[propertyName];
-          if (propDef)
-            return propDef;
-        }
-      }
-      return null;
-    },
-
-    /**
-     * Gets the proxy event definition for a named event
-     * 
-     * @param name
-     *          {String} the name of the event
-     * @return {Map} the event definition received from the server
-     */
-    getEventDef: function(name) {
-      for (var $$proxyDef = this.$$proxyDef; $$proxyDef; $$proxyDef = $$proxyDef.extend) {
-        if ($$proxyDef.events) {
-          var eventDef = $$proxyDef.events[name];
-          if (eventDef)
-            return eventDef;
-        }
-      }
-      return null;
     }
+  },
+  
+  statics: {
+    
+    /**
+     * Patches a normal property so that it can take a callback as the parameter and have the
+     * value passed to the callback; this is important because it allows a uniform coding pattern
+     * which is the same for on demand and normal properties
+     */
+    patchNormalProperty: function(clazz, name) {
+      var upname = qx.lang.String.firstUp(name);
+      var get = clazz.prototype["get" + upname];
+      clazz.prototype["get" + upname] = function(cb) {
+        // qx.core.Property.executeOptimisedSetter changes the implementation of the 
+        //  get method the first time it is called; we detect that and swap our overridden
+        //  method back in
+        var currentGet = clazz.prototype["get" + upname];
+        var value = get.call(this);
+        var newGet = clazz.prototype["get" + upname];
+        if (newGet != currentGet) {
+          get = newGet;
+          clazz.prototype["get" + upname] = currentGet;
+        }
+        if (typeof cb == "function")
+          cb(value);
+        return value;
+      };
+    },
+    
+    /**
+     * Adds an on-demand property
+     */
+    addOnDemandProperty: function(clazz, propName, readOnly) {
+      var upname = qx.lang.String.firstUp(propName);
+      clazz.prototype["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
+      clazz.prototype["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
+      clazz.prototype["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
+      clazz.prototype["get" + upname + "Async"] = new Function(
+          "return new qx.Promise(function(resolve) {" +
+            "this._getPropertyOnDemand('" + propName + "', function(result) {" +
+              "resolve(result);" + 
+            "});" +
+          "}, this);");
+    },
+
+    deferredClassInitialisation: function(clazz) {
+    	// Make sure it has this mixin - but check first because a super class may have already
+    	//	included it
+    	if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy))
+        qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
+    	
+    	for (var name in clazz.$$properties) {
+    		var def = clazz.$$properties[name];
+    		if (def.isServer) {
+    			if (def.onDemand)
+    				this.__addOnDemandProperty(clazz, name, !!def.readOnly);
+    			else
+    				this.__patchNormalProperty(clazz, name);
+    		}
+    	}
+    	
+    	// Update Packages global - this is for compatibility with Rhino server apps
+      var tld = clazz.classname.match(/^[^.]+/)[0];
+      if (tld) {
+        if (window.Packages === undefined)
+          window.Packages = {};
+        window.Packages[tld] = window[tld];
+      }
+    },
+    
+    getEventDefinition: function(clazz, name) {
+    	while (clazz.superclass) {
+    		if (clazz.$$eventMeta && clazz.$$eventMeta[name]) {
+    			return clazz.$$eventMeta[name];
+    		}
+    		if (clazz.$$events && clazz.$$events[name] !== undefined) {
+          return {};
+        }
+    	}
+    	return null;
+    },
+    
+    getMethodDefinition: function(clazz, name) {
+    	var exists = false;
+    	while (clazz.superclass) {
+    		if (clazz.$$methodMeta && clazz.$$methodMeta[name]) {
+    			return clazz.$$methodMeta[name];
+    		}
+    		if (typeof clazz[name] == "function") {
+          exists = true;
+        }
+    	}
+    	return exists ? {} : null;
+    }
+
   }
 
 });

@@ -27,6 +27,8 @@
  */
 package com.zenesis.qx.remote;
 
+import java.util.HashMap;
+
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.zenesis.qx.remote.annotations.Remote;
 
@@ -116,4 +118,11 @@ public interface ProxyProperty extends JsonSerializable {
 	 * @return
 	 */
 	public Object deserialize(Proxied proxied, Object value);
+	
+	/**
+	 * Called to write the property definition
+	 * @param cw
+	 * @param type
+	 */
+	public void write(ClassWriter cw);
 }

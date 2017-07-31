@@ -37,6 +37,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.zenesis.qx.remote.annotations.Mixin;
 import com.zenesis.qx.remote.annotations.Remote;
 
 /**
@@ -113,6 +114,11 @@ public class ProxyTypeArray implements ProxyType {
 	@Override
 	public Set<ProxyType> getInterfaces() {
 		return type.getInterfaces();
+	}
+
+	@Override
+	public Mixin[] getMixins() {
+		return type.getMixins();
 	}
 
 	@Override

@@ -1,15 +1,19 @@
 package com.zenesis.qx.remote;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.zenesis.qx.remote.annotations.Mixin;
 import com.zenesis.qx.remote.annotations.Remote;
 import com.zenesis.qx.remote.annotations.Remote.Array;
+import com.zenesis.qx.remote.ClassWriter.Function;
 
 public abstract class AbstractProxyType implements ProxyType {
 	
@@ -29,7 +33,7 @@ public abstract class AbstractProxyType implements ProxyType {
 		try {
 			ProxySessionTracker tracker = ((ProxyObjectMapper)gen.getCodec()).getTracker();
 			
-			Class clazz = getClazz();
+			Class<?> clazz = getClazz();
 			Set<ProxyType> interfaces = getInterfaces();
 			ProxyMethod[] methods = getMethods();
 			Map<String, ProxyProperty> properties = getProperties();
@@ -91,6 +95,81 @@ public abstract class AbstractProxyType implements ProxyType {
 		}catch(IOException e) {
 			throw new ProxyTypeSerialisationException(e);
 		}
+	}
+	
+	public ClassWriter write() {
+		ClassWriter cw = new ClassWriter(this);
+		Class<?> clazz = getClazz();
+		
+		cw.method("constructor", new Function(
+				"var args = qx.lang.Array.fromArguments(arguments);\n" + 
+				"args.unshift(arguments);\n" + 
+				"this.base.apply(this, args);\n" + 
+				"this.initialiseProxy();\n"));
+		
+		boolean isInterface = clazz != null && clazz.isInterface();
+		if (!isInterface) {
+			Function fn = cw.method("defer", true);
+			String extend = null;
+			if (getSuperType() != null)
+				extend = getSuperType().getClassName();
+			else if (getQooxdooExtend() != null)
+				extend = getQooxdooExtend();
+			cw.extend(extend == null ? "qx.core.Object" : extend);
+			
+			if (getMixins() != null) {
+				for (Mixin mixin : getMixins())
+					if (mixin.patch()) {
+						fn.code += "qx.Class.patch(this, " + mixin.value() + ");\n";
+					}
+				ArrayList<String> arr = new ArrayList<>();
+				for (Mixin mixin : getMixins())
+					if (!mixin.patch())
+						arr.add(mixin.value());
+				if (!arr.isEmpty())
+					cw.include(arr);
+			}
+			fn.code += "com.zenesis.qx.remote.MProxy.deferredClassInitialisation(this);\n";
+		}
+		
+		Set<ProxyType> interfaces = getInterfaces();
+		if (!interfaces.isEmpty()) {
+			ArrayList<String> arr = new ArrayList<>();
+			for (ProxyType type : interfaces)
+				arr.add(type.getClassName());
+			if (isInterface)
+				cw.extend(arr);
+			else
+				cw.implement(arr);
+		}
+		
+		ProxyMethod[] methods = getMethods();
+		for (ProxyMethod method : methods)
+			method.write(cw);
+		
+		if (clazz == null || !isInterface) {
+			Map<String, ProxyProperty> properties = getProperties();
+			if (properties != null)
+				for (ProxyProperty prop : properties.values())
+					prop.write(cw);
+			
+			Map<String, ProxyEvent> events = getEvents();
+			Set<String> propertyEventNames = createPropertyEventNames();
+			if (events != null && !events.isEmpty()) {
+				for (ProxyEvent event : events.values()) {
+					HashMap<String, Object> meta = new HashMap<>();
+					meta.put("isServer", true);
+					if (!propertyEventNames.contains(event.getName())) {
+						cw.event(event.getName(), "qx.event.type.Data");
+						meta.put("isProperty", false);
+					} else
+						meta.put("isProperty", true);
+					cw.method("defer").code += "this.$$eventMeta." + event.getName() + " = " + cw.objectToString(meta) + ";\n";
+				}
+			}
+		}
+		
+		return cw;
 	}
 
 	/**

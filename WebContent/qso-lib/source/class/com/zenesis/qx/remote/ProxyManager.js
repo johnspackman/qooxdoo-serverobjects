@@ -148,9 +148,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     // Objects disposed on the client that need to be removed from the server
     __disposedServerObjects: null,
 
-    // Extra class information
-    __classInfo: {},
-
     // Classes currently being defined
     __classesBeingDefined: {},
 
@@ -804,6 +801,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var def;
         var strConstructorCode = null;
         var strDestructorCode = "";
+        var strDeferCode = "this.$$eventMeta = {};\n" +
+        		"this.$$methodMeta = {};\n";
         if (data.isInterface)
           def = {
             members: {},
@@ -826,10 +825,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           if (mis) {
             mis.forEach(function(mixin) {
               if (mixin.patch) {
-                if (def.patch === undefined)
-                  def.patch = [ mixin.mixin ];
-                else
-                  def.patch.push(mixin.mixin);
+                strDeferCode += "qx.Class.patch(this, " + mixin.mixin + ");\n";
               } else {
                 if (def.include === undefined)
                   def.include = [ mixin.mixin ];
@@ -854,7 +850,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }
 
         // Add methods
-        if (data.methods)
+        if (data.methods) {
           for ( var methodName in data.methods) {
             var method = data.methods[methodName];
             method.name = methodName;
@@ -886,10 +882,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                   deferredTypes.push(params[i]);
             if (method.anno)
               def.members["@" + methodName] = method.anno;
+            
+            strDeferCode += "this.$$methodMeta." + methodName + " = " + JSON.stringify({
+            	isServer: true,
+            	returnType: fromDef.returnType,
+            	map: fromDef.map,
+            	cacheResult: fromDef.cacheResult,
+            	returnArray: fromDef.returnArray
+            }) + ";\n";
           }
+        }
 
         // Add properties
-        var onDemandProperties = [];
         var normalProperties = [];
         if (data.properties) {
           def.properties = {};
@@ -968,19 +972,39 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             def.members[applyName] = new Function('value', 'oldValue', 'name', 'this._applyProperty("' + propName + '", value, oldValue, name);');
 
             // onDemand properties - patch it later
-            if (fromDef.onDemand)
-              onDemandProperties.push(fromDef);
-            else {
+            if (fromDef.onDemand) {
+              def.members["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
+              def.members["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
+              def.members["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
+              def.members["get" + upname + "Async"] = new Function(
+                  "return new qx.Promise(function(resolve) {" +
+                    "this._getPropertyOnDemand('" + propName + "', function(result) {" +
+                      "resolve(result);" + 
+                    "});" +
+                  "}, this);");
+            } else {
               normalProperties.push(fromDef);
               def.members["get" + upname + "Async"] = new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"); 
             }
             
             // Annotations
-            if (fromDef.anno)
+            if (fromDef.anno) {
               fromDef.anno.forEach(function(anno) {
                 var result = eval(anno);
                 toDef["@"].push(result);
               });
+            }
+            
+            // Meta data
+            strDeferCode += "qx.lang.Object.mergeWith(properties." + propName + ", " + JSON.stringify({
+            	isServer: true,
+            	sync: fromDef.sync,
+            	onDemand: fromDef.onDemand,
+            	readOnly: fromDef.readOnly,
+            	array: fromDef.array,
+            	arrayClass: fromDef.arrayClass,
+            	map: fromDef.map
+            }) + ");\n";
           }
         }
 
@@ -991,6 +1015,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             var fromDef = data.events[eventName];
             if (!fromDef.isProperty)
               def.events[eventName] = "qx.event.type.Data";
+            strDeferCode += "this.$$eventMeta." + eventName + " = " + JSON.stringify({
+            	isServer: true,
+            	isProperty: fromDef.isProperty
+            }) + ";\n";
           }
         }
 
@@ -1000,38 +1028,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           clazz = qx.Interface.define(data.className, def) || qx.Interface.getByName(data.className);
           clazz.$$proxyDef = data;
         } else {
-          var patch = def.patch;
-          delete def.patch;
           def.construct = new Function(strConstructorCode);
           if (strDestructorCode)
             def.destruct = new Function(strDestructorCode);
+          strDeferCode += "com.zenesis.qx.remote.MProxy.deferredClassInitialisation(this);\n";
+          def.defer = new Function("statics", "members", "properties", strDeferCode);
           clazz = qx.Class.define(data.className, def);
-          if (patch)
-            patch.forEach(function(mixin) {
-              qx.Class.patch(clazz, mixin);
-            });
-          if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy))
-            qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
           clazz = qx.Class.getByName(data.className);
           clazz.prototype.$$proxyDef = data;
         }
-        
-        // Make sure that the class package structure is mirrored in the Packages global; this
-        //  allows for source code compatibility with Rhino server apps
-        var tld = data.className.match(/^[^.]+/)[0];
-        if (tld) {
-          if (window.Packages === undefined)
-            window.Packages = {};
-          window.Packages[tld] = window[tld];
-        }
-        this.__classInfo[data.className] = data;
 
-        // Patch on demand properties
-        onDemandProperties.forEach(function(propDef) {
-          t.__addOnDemandProperty(clazz, propDef.name, propDef.readOnly || false);
-        });
+        // Patch properties
         normalProperties.forEach(function(propDef) {
-          t.__patchNormalProperty(clazz, propDef.name);
+          com.zenesis.qx.remote.ProxyManager.patchNormalProperty(clazz, propDef.name);
         });
       } catch (e) {
         throw e;
@@ -1045,56 +1054,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       // Done
       return clazz;
-    },
-
-    /**
-     * Adds an on-demand property
-     */
-    __addOnDemandProperty: function(clazz, propName, readOnly) {
-      var upname = qx.lang.String.firstUp(propName);
-      clazz.prototype["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
-      clazz.prototype["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
-      clazz.prototype["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
-      clazz.prototype["get" + upname + "Async"] = new Function(
-          "return new qx.Promise(function(resolve) {" +
-            "this._getPropertyOnDemand('" + propName + "', function(result) {" +
-              "resolve(result);" + 
-            "});" +
-          "}, this);");
-    },
-    
-    /**
-     * Patches a normal property so that it can take a callback as the parameter and have the
-     * value passed to the callback; this is important because it allows a uniform coding pattern
-     * which is the same for on demand and normal properties
-     */
-    __patchNormalProperty: function(clazz, name) {
-      var upname = qx.lang.String.firstUp(name);
-      var get = clazz.prototype["get" + upname];
-      clazz.prototype["get" + upname] = function(cb) {
-        // qx.core.Property.executeOptimisedSetter changes the implementation of the 
-        //  get method the first time it is called; we detect that and swap our overridden
-        //  method back in
-        var currentGet = clazz.prototype["get" + upname];
-        var value = get.call(this);
-        var newGet = clazz.prototype["get" + upname];
-        if (newGet != currentGet) {
-          get = newGet;
-          clazz.prototype["get" + upname] = currentGet;
-        }
-        if (typeof cb == "function")
-          cb(value);
-        return value;
-      };
-    },
-
-    /**
-     * Returns the class definition received from the server for a named class
-     */
-    getClassInfo: function(className) {
-      var info = this.__classInfo[className];
-      qx.core.Assert.assertNotNull(info);
-      return info;
     },
 
     /**
@@ -1185,20 +1144,23 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Array} the arguments passed to the method
      */
     callServerMethod: function(serverObject, methodName, args) {
-      var isClass = serverObject && serverObject.$$type !== undefined && serverObject.$$type === "Class";
+      var isClass = serverObject && serverObject.$$type === "Class";
       var methodDef;
       if (isClass) {
-        var cinfo = this.getClassInfo(serverObject.classname);
-        methodDef = cinfo.methods[methodName];
+        methodDef = com.zenesis.qx.remote.ProxyManager.getMethodDefinition(serverObject, methodName);
       } else {
         if (serverObject.isDisposed())
             throw new Error("Cannot call method " + serverObject.classname + "." + methodName + " on [" + serverObject.toHashCode() + "] because it is disposed, object=" + serverObject);
         
-        methodDef = this._getMethodDef(serverObject, methodName);
+        methodDef = com.zenesis.qx.remote.ProxyManager.getMethodDefinition(serverObject.constructor, methodName);
+
         // Can we get it from the cache?
-        if (methodDef && methodDef.cacheResult && serverObject.$$proxy.cachedResults
-            && serverObject.$$proxy.cachedResults[methodName])
+        if (methodDef && 
+        		methodDef.cacheResult && 
+        		serverObject.$$proxy.cachedResults && 
+        		serverObject.$$proxy.cachedResults[methodName]) {
           return serverObject.$$proxy.cachedResults[methodName];
+        }
       }
 
       // Serialise the request
@@ -1425,7 +1387,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     setPropertyValue: function(serverObject, propertyName, value, oldValue) {
       if (this.__inConstructor)
         return;
-      var pd = serverObject.getPropertyDef(propertyName);
+      var pd = qx.Class.getPropertyDefinition(serverObject.constructor, propertyName);
 
       if (!this.isSettingProperty(serverObject, propertyName)) {
         // Skip changing date instances if they are equivalent
@@ -1438,7 +1400,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           propertyName: propertyName,
           value: this.serializeValue(value)
         };
-        var def = this.__classInfo[serverObject.classname];
 
         if (pd.sync == "queue") {
           var queue = this.__queue;
@@ -1483,7 +1444,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       this.__setPropertyObject = serverObject;
       this.__setPropertyName = propertyName;
       try {
-        var def = serverObject.getPropertyDef(propertyName);
+        var def = qx.Class.getPropertyDefinition(serverObject.constructor, propertyName);
         var upname = qx.lang.String.firstUp(propertyName);
         
         // If there is a property definition, and the value is not a Proxied instance, 
@@ -1591,19 +1552,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     addServerListener: function(serverObject, eventName) {
       var className = serverObject.classname;
-      var def = this.__classInfo[className];
-      var event = serverObject.getEventDef(eventName);
 
-      // If the event is not a server event, or it's for a property, or there is
-      // already
-      // a server based listener, then skip (property change events will be
-      // triggered
-      // automatically by Qx when the property change is synchronised)
-      if (!event || event.isProperty || event.numListeners)
-        return;
+      // If the event is not a server event or there is already a server based listener or it's for a 
+      //	property then skip (property change events will be triggered automatically by Qx when the 
+      //	property change is synchronised)
+      var eventDef = com.zenesis.qx.remote.MProxy.getEventDefinition(serverObject.constructor, eventName);
+      if (!eventDef.isServer || eventDef.numListeners)
+      	return;
+      if (eventName.length > 6 && eventName.startsWith("change") && eventName[7] == eventName[7].toUpperCase()) {
+      	var propName = eventName[7].toLowerCase() + eventName.substring(8);
+      	if (qx.Class.getPropertyDefinition(serverObject.constructor, propName))
+      		return;
+      }
 
       // Queue the addListener to the server
-      event.numListeners = (event.numListeners || 0) + 1;
+      eventDef.numListeners = (eventDef.numListeners || 0) + 1;
       var data = {
         cmd: "listen",
         serverId: serverObject.getServerId(),
@@ -1623,19 +1586,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     removeServerListener: function(serverObject, eventName) {
       var className = serverObject.classname;
-      var def = this.__classInfo[className];
-      var event = def.events && def.events[eventName];
-
-      // If the event is not a server event or it's for a property then skip
-      // (property change
-      // events will be triggered automatically by Qx when the property change
-      // is synchronised)
-      if (!event || event.isProperty)
-        return;
+      
+      // If the event is not a server event or it's for a property then skip (property change 
+      //	events will be triggered automatically by Qx when the property change is synchronised)
+      var eventDef = com.zenesis.qx.remote.MProxy.getEventDefinition(serverObject.constructor, eventName);
+      if (!eventDef.isServer)
+      	return;
+      if (eventName.length > 6 && eventName.startsWith("change") && eventName[7] == eventName[7].toUpperCase()) {
+      	var propName = eventName[7].toLowerCase() + eventName.substring(8);
+      	if (qx.Class.getPropertyDefinition(serverObject.constructor, propName))
+      		return;
+      }
 
       // Queue the removeListener to the server
-      event.numListeners--;
-      qx.core.Assert.assertTrue(event.numListeners >= 0);
+      eventDef.numListeners--;
+      qx.core.Assert.assertTrue(eventDef.numListeners >= 0);
       var data = {
         cmd: "unlisten",
         serverId: serverObject.getServerId(),
@@ -1827,36 +1792,30 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // Send it
       clientObject.setSentToServer();
       var className = clientObject.classname;
-      var def = this.__classInfo[className];
       var data = {
         cmd: "new",
         className: className,
         clientId: clientObject.getServerId(),
         properties: {}
       };
-      for (; def; def = def.extend) {
-        if (def.properties)
-          for ( var propName in def.properties) {
-            var pd = def.properties[propName];
-            if (!pd.readOnly && !pd.onDemand) {
-              var value = undefined;
+      
+    	var pd = qx.Class.getPropertyDefinition(clazz, propName);    	
+      if (!pd.readOnly && !pd.onDemand) {
+        var value = undefined;
 
-              // If the get method is a standard Qooxdoo get method, then we
-              // access the property
-              // value directly so that we can detect uninitialised property
-              // values; this allows
-              // to not send property values to the server unless necessary, so
-              // that server
-              // defaults are not overridden
-              var value = clientObject["$$runtime_" + propName];
-              if (value === undefined)
-                value = clientObject["$$user_" + propName];
+        // If the get method is a standard Qooxdoo get method, then we
+        // access the property value directly so that we can detect 
+        // uninitialised property values; this allows us to not send 
+        // property values to the server unless necessary, so that server
+        // defaults are not overridden
+        var value = clientObject["$$runtime_" + propName];
+        if (value === undefined)
+          value = clientObject["$$user_" + propName];
 
-              if (value !== undefined)
-                data.properties[propName] = this.serializeValue(value);
-            }
-          }
+        if (value !== undefined)
+          data.properties[propName] = this.serializeValue(value);
       }
+      
       queue[queue.length] = data;
     },
 

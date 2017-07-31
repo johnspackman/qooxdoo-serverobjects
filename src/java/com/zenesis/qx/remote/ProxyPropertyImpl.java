@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 
 import org.apache.logging.log4j.Logger;
 
@@ -434,7 +435,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		}
 		return value;
 	}
-	
+
 	/**
 	 * Returns true if this property is readonly
 	 * @return

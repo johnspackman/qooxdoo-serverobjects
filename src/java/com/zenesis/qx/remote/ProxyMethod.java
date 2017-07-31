@@ -32,6 +32,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
@@ -42,6 +43,8 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.remote.annotations.Remote;
+import com.zenesis.qx.remote.collections.ArrayList;
+import com.zenesis.qx.remote.ClassWriter.Function;
 
 /**
  * ProxyMethod is compiled by ProxyManager and attached to ProxyType to define
@@ -184,6 +187,60 @@ public class ProxyMethod implements JsonSerializable {
 		}
 		
 		jgen.writeEndObject();
+	}
+	
+	/**
+	 * Called to write the property definition
+	 * @param cw
+	 * @param type
+	 */
+	public void write(ClassWriter cw) {
+		Class<?> clazz = cw.getProxyType().getClazz();
+		boolean isInterface = clazz != null && clazz.isInterface();
+
+		if (isInterface) {
+			cw.member(method.getName(), new Function(""));
+	        if (clientAnno != null)
+	        	cw.member("@" + method.getName(), clientAnno);
+	        
+		} else if (staticMethod) {
+			cw.statics(method.getName(), new Function("return com.zenesis.qx.remote.ProxyManager._callServer(" + clazz.getName()
+	                  + ", \"" + method.getName() + "\", qx.lang.Array.fromArguments(arguments));"));
+	        if (clientAnno != null)
+	        	cw.statics("@" + method.getName(), clientAnno);
+	        
+		} else {
+			cw.member(method.getName(), new Function("return this._callServer(\"" + 
+            		method.getName() + "\", qx.lang.Array.fromArguments(arguments));"));
+            
+			cw.member(method.getName() + "Async", 
+            		new Function(
+                    "var args = qx.lang.Array.fromArguments(arguments);\n" +
+                    "return new qx.Promise(function(resolve, reject) {\n" +
+                    "  args.push(function() {\n" +
+                    "    resolve.apply(this, qx.lang.Array.fromArguments(arguments));\n" +
+                    "  });\n" +
+                    "  this._callServer(\"" + method.getName() + "\", args);\n" +
+                    "}, this);"));
+	        if (clientAnno != null)
+	        	cw.member("@" + method.getName(), clientAnno);
+		}
+		HashMap<String, Object> meta = new HashMap<>();
+		meta.put("isServer", true);
+		Class tmp = arrayType != null ? arrayType : method.getReturnType();
+		if (Proxied.class.isAssignableFrom(tmp)) {
+			ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(tmp);
+			meta.put("returnType", type.getClassName());
+		} else if (isMap) {
+			meta.put("map", true);
+		}
+		if (cacheResult)
+			meta.put("cacheResult", true);
+		if (staticMethod)
+			meta.put("staticMethod", true);
+		if (array != null)
+			meta.put("returnArray", array.toString().toLowerCase());
+		cw.method("defer").code += "this.$$methodMeta." + method.getName() + " = " + cw.objectToString(meta) + ";\n";
 	}
 	
 	/* (non-Javadoc)

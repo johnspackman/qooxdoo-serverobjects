@@ -49,6 +49,8 @@ import com.zenesis.qx.remote.annotations.DoNotProxy;
 import com.zenesis.qx.remote.annotations.Event;
 import com.zenesis.qx.remote.annotations.Events;
 import com.zenesis.qx.remote.annotations.FactoryMethod;
+import com.zenesis.qx.remote.annotations.Mixin;
+import com.zenesis.qx.remote.annotations.Mixins;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
@@ -200,6 +202,9 @@ public class ProxyTypeImpl extends AbstractProxyType {
 	// Base Qooxdoo class, null is qx.core.Object
 	private final String qooxdooExtend;
 	
+	// Qooxdoo Mixins
+	private final Mixin[] mixins;
+	
 	// @SerializeConstructorArgs method
 	private final Method serializeConstructorArgs;
 	
@@ -254,9 +259,10 @@ public class ProxyTypeImpl extends AbstractProxyType {
 		}
 		
 		boolean defaultProxy = false;
-		if (clazz.isInterface())
+		if (clazz.isInterface()) {
 			defaultProxy = true;
-		else {
+			mixins = null;
+		} else {
 			for (Class tmp = clazz; tmp != null; tmp = tmp.getSuperclass()) {
 				if (factoryMethod == null) {
 					for (Method method : tmp.getDeclaredMethods()) {
@@ -276,6 +282,15 @@ public class ProxyTypeImpl extends AbstractProxyType {
 					break;
 				}
 			}
+			ArrayList<Mixin> mixins = new ArrayList<>();
+			Mixin annoMixin = (Mixin)clazz.getAnnotation(Mixin.class);
+			if (annoMixin != null)
+				mixins.add(annoMixin);
+			Mixins annoMixins = (Mixins)clazz.getAnnotation(Mixins.class);
+			if (annoMixins != null)
+				for (Mixin tmp : annoMixins.value())
+					mixins.add(tmp);
+			this.mixins = mixins.isEmpty() ? null : mixins.toArray(new Mixin[mixins.size()]);
 		}
 		
 		// If the class does not have any proxied interfaces or the class is marked with
@@ -452,6 +467,11 @@ public class ProxyTypeImpl extends AbstractProxyType {
 		return allInterfaces;
 	}
 	
+	@Override
+	public Mixin[] getMixins() {
+		return mixins;
+	}
+
 	/**
 	 * Detects whether the method is a property accessor
 	 * @param method
