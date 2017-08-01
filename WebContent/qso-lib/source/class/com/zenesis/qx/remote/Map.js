@@ -33,8 +33,8 @@
  * use the object's hash code.
  * 
  * This has a side effect when importing and exporting the Map into an external
- * form, via the <code>replace()</code> and <code>toObject()</code methods; Maps
- * which have `keysAreHashed==true` are imported and exported as an array of
+ * form, via the <code>replace()</code> and <code>toObject()</code> methods; Maps
+ * which have <code>keysAreHashed===true</code> are imported and exported as an array of
  * native objects with key & value properties.
  * 
  * @see com.zenesis.qx.remote.Entry

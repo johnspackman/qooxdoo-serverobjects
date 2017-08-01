@@ -12,6 +12,7 @@ import java.util.HashMap;
 import org.apache.logging.log4j.Logger;
 
 import com.zenesis.qx.event.EventManager;
+import com.zenesis.qx.remote.AbstractProxyProperty.Spec;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote;
@@ -105,7 +106,13 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 		}
 	}
 	
-	/**
+	@Override
+    protected Spec analyse() {
+	    getAccessors();
+        return super.analyse();
+    }
+
+    /**
 	 * Gets the accessor(s) for the property, caching the result
 	 */
 	private void getAccessors() {

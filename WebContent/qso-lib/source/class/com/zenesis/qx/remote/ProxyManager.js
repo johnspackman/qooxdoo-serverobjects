@@ -30,7 +30,6 @@
  * 
  * @author John Spackman [john.spackman@zenesis.com]
  * @ignore(com.zenesis.qx.remote.LogEntrySink)
- * @ignore(debugger)
  */
 /*
  * @require(qx.core.Aspect) @ignore(auto-require)
@@ -481,9 +480,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       for (var i = 0, l = data.length; i < l; i++) {
         var elem = data[i];
         var type = elem.type;
-        if ((elem.type == "set" && elem.name === "watchedString") ||
-            (elem.type == "fire" && elem.name === "changeWatchedString"))
-          debugger;
 
         // Init
         if (type == "bootstrap") {
@@ -1013,7 +1009,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             	readOnly: fromDef.readOnly,
             	array: fromDef.array,
             	arrayClass: fromDef.arrayClass,
-            	map: fromDef.map
+            	map: fromDef.map,
+            	nativeKeyType: fromDef.nativeKeyType
             })) + ");\n";
           }
         }
@@ -1563,8 +1560,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var eventDef = com.zenesis.qx.remote.MProxy.getEventDefinition(serverObject.constructor, eventName);
       if (!eventDef.isServer || eventDef.numListeners)
       	return;
-      if (eventName.length > 6 && eventName.startsWith("change") && eventName[7] == eventName[7].toUpperCase()) {
-      	var propName = eventName[7].toLowerCase() + eventName.substring(8);
+      if (eventName.length > 6 && eventName.startsWith("change") && eventName[6] == eventName[6].toUpperCase()) {
+      	var propName = eventName[6].toLowerCase() + eventName.substring(7);
       	if (qx.Class.getPropertyDefinition(serverObject.constructor, propName))
       		return;
       }
@@ -1596,8 +1593,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var eventDef = com.zenesis.qx.remote.MProxy.getEventDefinition(serverObject.constructor, eventName);
       if (!eventDef.isServer)
       	return;
-      if (eventName.length > 6 && eventName.startsWith("change") && eventName[7] == eventName[7].toUpperCase()) {
-      	var propName = eventName[7].toLowerCase() + eventName.substring(8);
+      if (eventName.length > 6 && eventName.startsWith("change") && eventName[6] == eventName[6].toUpperCase()) {
+      	var propName = eventName[6].toLowerCase() + eventName.substring(7);
       	if (qx.Class.getPropertyDefinition(serverObject.constructor, propName))
       		return;
       }

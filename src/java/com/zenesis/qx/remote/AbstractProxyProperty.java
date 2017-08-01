@@ -83,7 +83,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		this.addClientAnno(obj.getAnnotation(Annotations.class));
 	}
 	
-	private static final class Spec {
+	protected static final class Spec {
 		boolean nullable;
 		boolean map = false;
 		String keyTypeName = null;
@@ -94,9 +94,11 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		ProxyType clazz;
 	}
 	
-	private Spec analyse() {
+	protected Spec analyse() {
 		Spec spec = new Spec();
 		
+		if (name.equals("objectKeyMap"))
+		    spec = spec;
 		if (propertyClass != null) {
 			Class clazz = propertyClass.getJavaType();
 			//if (proxyType.getClazz().getName().equals("TestQsoMap"))
