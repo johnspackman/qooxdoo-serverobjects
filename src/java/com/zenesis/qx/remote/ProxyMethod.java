@@ -225,22 +225,23 @@ public class ProxyMethod implements JsonSerializable {
 	        if (clientAnno != null)
 	        	cw.member("@" + method.getName(), clientAnno);
 		}
-		HashMap<String, Object> meta = new HashMap<>();
-		meta.put("isServer", true);
-		Class tmp = arrayType != null ? arrayType : method.getReturnType();
-		if (Proxied.class.isAssignableFrom(tmp)) {
-			ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(tmp);
-			meta.put("returnType", type.getClassName());
-		} else if (isMap) {
-			meta.put("map", true);
+		if (!cw.isInterface()) {
+    		HashMap<String, Object> meta = new HashMap<>();
+    		meta.put("isServer", true);
+    		Class tmp = arrayType != null ? arrayType : method.getReturnType();
+    		if (Proxied.class.isAssignableFrom(tmp)) {
+    			ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(tmp);
+    			meta.put("returnType", type.getClassName());
+    			cw.use(type);
+    		} else if (isMap) {
+    			meta.put("map", true);
+    		}
+    		if (cacheResult)
+    			meta.put("cacheResult", true);
+    		if (array != null)
+    			meta.put("returnArray", array.toString().toLowerCase());
+    		cw.method("defer").code += "clazz.$$methodMeta." + method.getName() + " = " + cw.objectToString(meta) + ";\n";
 		}
-		if (cacheResult)
-			meta.put("cacheResult", true);
-		if (staticMethod)
-			meta.put("staticMethod", true);
-		if (array != null)
-			meta.put("returnArray", array.toString().toLowerCase());
-		cw.method("defer").code += "this.$$methodMeta." + method.getName() + " = " + cw.objectToString(meta) + ";\n";
 	}
 	
 	/* (non-Javadoc)

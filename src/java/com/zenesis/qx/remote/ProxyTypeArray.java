@@ -39,6 +39,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.remote.annotations.Mixin;
 import com.zenesis.qx.remote.annotations.Remote;
+import com.zenesis.qx.remote.annotations.Use;
 
 /**
  * Provides a thin wrapper around ProxyType so that serialisation works for arrays
@@ -122,6 +123,11 @@ public class ProxyTypeArray implements ProxyType {
 	}
 
 	@Override
+    public Use[] getUses() {
+        return type.getUses();
+    }
+
+    @Override
 	public ProxyMethod[] getMethods() {
 		return type.getMethods();
 	}

@@ -330,18 +330,14 @@ public class ProxySessionTracker implements UploadInterceptor {
 	private static int s_serialNo;
 	private Date lastClientTime;
 	private final Lock requestLock = new ReentrantLock();
-
+	
 	/**
 	 * Creates a tracker for a session; if bootstrapClass is null you must override
 	 * createBootstrap() 
 	 * @param bootstrapClass
 	 */
 	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass) {
-		super();
-		this.bootstrapClass = bootstrapClass;
-		objectMapper = createObjectMapper(null);
-		serialNo = ++s_serialNo;
-		sessionId = UUID.randomUUID() + ":" + serialNo; 
+        this(bootstrapClass, null, null);
 	}
 	
 	/**
@@ -350,11 +346,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 * @param bootstrapClass
 	 */
 	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir) {
-		super();
-		this.bootstrapClass = bootstrapClass;
-		objectMapper = createObjectMapper(rootDir);
-		serialNo = ++s_serialNo;
-		sessionId = UUID.randomUUID() + ":" + serialNo; 
+		this(bootstrapClass, rootDir, null);
 	}
 	
 	/**
@@ -365,8 +357,10 @@ public class ProxySessionTracker implements UploadInterceptor {
 	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir, String sessionPrefix) {
 		super();
 		this.bootstrapClass = bootstrapClass;
-		objectMapper = new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
-		serialNo = ++s_serialNo;
+        objectMapper = createObjectMapper(rootDir);
+        synchronized(this) {
+            serialNo = ++s_serialNo;
+        }
 		String sessionId = UUID.randomUUID() + ":" + serialNo;
 		if (sessionPrefix != null)
 			sessionId = sessionPrefix + sessionId;
@@ -661,6 +655,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 * @return
 	 */
 	public boolean isTypeDelivered(ProxyType type) {
+	    if (ProxyManager.isPrecompiledTypesOnly())
+	        return true;
 		return deliveredTypes.contains(type);
 	}
 	
@@ -670,7 +666,9 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 * @return
 	 */
 	public void setTypeDelivered(ProxyType type) {
-		if (deliveredTypes.contains(type))
+		if (ProxyManager.isPrecompiledTypesOnly())
+		    return;
+	    if (deliveredTypes.contains(type))
 			throw new IllegalArgumentException("ProxyType " + type + " has already been sent to the client");
 		deliveredTypes.add(type);
 		for (ProxyType extra : type.getExtraTypes())
@@ -679,8 +677,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 				queue.queueCommand(CommandId.CommandType.LOAD_TYPE, extra, null, null);
 			}
 	}
-	
-	/**
+
+    /**
 	 * Marks a property as being mutated by the client
 	 * @param proxied
 	 * @param propertyName

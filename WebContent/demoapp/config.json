@@ -65,6 +65,10 @@
         {
           "manifest" : "../qso-lib/Manifest.json",
           "uri" : "/qso-lib"
+        },
+        {
+          "manifest" : "../javalib/Manifest.json",
+          "uri" : "/javalib"
         }
       ]
     },

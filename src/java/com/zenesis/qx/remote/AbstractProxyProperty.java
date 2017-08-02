@@ -5,6 +5,7 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 
 import org.hamcrest.core.IsAnything;
 
@@ -13,6 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.remote.ClassWriter.Function;
+import com.zenesis.qx.remote.ClassWriter.RawValue;
 import com.zenesis.qx.remote.annotations.Annotation;
 import com.zenesis.qx.remote.annotations.Annotations;
 import com.zenesis.qx.remote.annotations.Remote;
@@ -86,6 +88,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	protected static final class Spec {
 		boolean nullable;
 		boolean map = false;
+		ProxyType keyType;
 		String keyTypeName = null;
 		Remote.Array array;
 		ProxyType arrayClass;
@@ -97,8 +100,6 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	protected Spec analyse() {
 		Spec spec = new Spec();
 		
-		if (name.equals("objectKeyMap"))
-		    spec = spec;
 		if (propertyClass != null) {
 			Class clazz = propertyClass.getJavaType();
 			//if (proxyType.getClazz().getName().equals("TestQsoMap"))
@@ -120,8 +121,11 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 				
 			if (propertyClass.isMap()) {
 				spec.map = true;
-				if (propertyClass.getKeyClass() != null)
+				if (propertyClass.getKeyClass() != null) {
+				    if (propertyClass.getKeyClass() != null && Proxied.class.isAssignableFrom(propertyClass.getKeyClass()))
+				        spec.keyType = ProxyTypeManager.INSTANCE.getProxyType((Class<? extends Proxied>)propertyClass.getKeyClass());
 					spec.keyTypeName = translateTypeName(propertyClass.getKeyClass());
+				}
 			}
 			
 			if (propertyClass.isArray() || propertyClass.isCollection() || propertyClass.isMap()) {
@@ -134,7 +138,12 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 					spec.arrayClass = type;
 				}
 				spec.componentTypeName = translateTypeName(clazz);
+                spec.clazz = propertyClass.getProxyType();
 				
+			} else if (Proxied.class.isAssignableFrom(clazz)) {
+                ProxyType type = propertyClass.getProxyType();
+                spec.clazz = type;
+                
 			} else { 
 				if (clazz == boolean.class || clazz == Boolean.class)
 					spec.check = "Boolean";
@@ -148,10 +157,6 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 					spec.check = "String";
 				else if (Date.class.isAssignableFrom(clazz))
 					spec.check = "Date";
-			}
-			if (Proxied.class.isAssignableFrom(clazz)) {
-				ProxyType type = propertyClass.getProxyType();
-				spec.clazz = type;
 			}
 		} else {
 			spec.nullable = true;
@@ -213,6 +218,9 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		HashMap<String, Object> pdef = new HashMap<>();
 		cw.property(name, pdef);
 		
+		if (cw.getProxyType().getClassName().endsWith("TestQsoMap"))
+		    System.out.println(this);
+		
 		Spec spec = analyse();
 		pdef.put("nullable", spec.nullable);
 		HashMap<String, Object> annoSets = new HashMap<>();
@@ -244,35 +252,47 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		String arrayClassName = null;
 		if ((spec.map || spec.array != null) && spec.arrayClass != null) {
 			arrayClassName = spec.arrayClass.getClassName();
+			cw.use(spec.arrayClass);
 		}
 
+        if (spec.clazz != null)
+            cw.use(spec.clazz);
+        
 		if (spec.map) {
 			if (spec.array == Remote.Array.WRAP)
 				pdef.put("check", arrayClassName != null ? arrayClassName :  "com.zenesis.qx.remote.Map");
 			if (spec.keyTypeName != null)
 				annoSets.put("keyTypeName", spec.keyTypeName);
+            if (spec.keyType != null)
+				cw.use(spec.keyType);
 			if (spec.componentTypeName != null)
 				annoSets.put("componentTypeName", spec.componentTypeName);
+			
 
 		} else if (spec.check != null) {
 			pdef.put("check", spec.check);
 
 		} else if (spec.array != null) {
 			if (spec.array == Remote.Array.WRAP) {
-				pdef.put("transform", "_transformToDataArray");
-				pdef.put("check", arrayClassName != null ? arrayClassName : "qx.data.Array");
+			    String tmp = arrayClassName == null ? "qx.data.Array" : arrayClassName;
+                pdef.put("transform", "__transform" + upname);
+                pdef.put("check", tmp);
+                cw.member("__transform" + upname, new Function("value", "return com.zenesis.qx.remote.MProxy.transformToDataArray(value, " + tmp + ");"));
 			} else
 				pdef.put("check", "Array");
 			if (spec.componentTypeName != null)
 				annoSets.put("componentTypeName", spec.componentTypeName);
+		} else if (spec.clazz != null) {
+		    pdef.put("check", spec.clazz.getClassName());
 		}
 		if ((spec.map || spec.array != null) && create) {
-			Function fn = cw.method("constructor");
+			Function fn = cw.method("construct");
 			fn.code += "this.set" + upname + "(new " + pdef.get("check") + "());\n";
-			fn = cw.method("destructor", true);
+			fn = cw.method("destruct", true);
 			fn.code += "this.set" + upname + "(null);\n";
 		}
 
+		pdef.put("apply", "_apply" + upname);
 		cw.member("_apply" + upname, new Function("value", "oldValue", "name", 
 				"this._applyProperty(\"" + name + "\", value, oldValue, name);"));
 		
@@ -286,37 +306,47 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		          "    resolve(result);\n" + 
 		          "  });\n" +
 		          "}, this);"));
-		} else {
-			Function fn = cw.method("defer", true);
-			fn.code += "com.zenesis.qx.remote.ProxyManager.patchNormalProperty(this, \"" + name + "\");\n";
 		}
 		cw.member("get" + upname + "Async", new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"));
 		
 		if (!annoSets.isEmpty() || clientAnno != null) {
-			ArrayList<String> arr = new ArrayList<>();
+			ArrayList<RawValue> arr = new ArrayList<>();
 			if (!annoSets.isEmpty())
-				arr.add("new com.zenesis.qx.remote.annotations.Property().set(" + cw.objectToString(annoSets) + ")");
+				arr.add(new RawValue("new com.zenesis.qx.remote.annotations.Property().set(" + cw.objectToString(annoSets) + ")"));
 			if (clientAnno != null) {
 				for (int i = 0; i < clientAnno.size(); i++) {
-					arr.add(clientAnno.get(i));
+					arr.add(new RawValue(clientAnno.get(i)));
 				}
 			}
-			cw.property("@" + name, arr);
+			pdef.put("@", arr);
 		}
 		
-		HashMap<String, Object> meta = new HashMap<>();
-		meta.put("isServer", true);
-		if (sync != null)
-			meta.put("sync", sync.toString().toLowerCase());
-		meta.put("onDemand", onDemand);
-		meta.put("readOnly", readOnly);
-		if (spec.array != null)
-			meta.put("array", spec.array == Remote.Array.WRAP ? "wrap" : "native");
-		if (spec.arrayClass != null)
-			meta.put("arrayClass", spec.arrayClass.getClassName());
-		if (spec.map)
-			meta.put("map", true);
-		cw.method("defer").code += "qx.lang.Object.mergeWith(properties." + name + ", " + cw.objectToString(meta) + ");\n";
+		if (!cw.isInterface()) {
+    		HashMap<String, Object> meta = new HashMap<>();
+    		meta.put("isServer", true);
+    		if (sync != null)
+    			meta.put("sync", sync.toString().toLowerCase());
+    		meta.put("onDemand", onDemand);
+    		meta.put("readOnly", readOnly);
+    		if (spec.array != null)
+    			meta.put("array", spec.array == Remote.Array.WRAP ? "wrap" : "native");
+    		if (spec.arrayClass != null)
+    			meta.put("arrayClass", spec.arrayClass.getClassName());
+    		if (spec.map)
+    			meta.put("map", true);
+            if (spec.keyTypeName == null || NATIVE_KEY_TYPES.contains(spec.keyTypeName))
+                meta.put("nativeKeyType", true);
+    
+    		cw.method("defer").code += "qx.lang.Object.mergeWith(clazz.$$properties." + name + ", " + cw.objectToString(meta) + ");\n";
+		}
+	}
+	private static final HashSet<String> NATIVE_KEY_TYPES;
+	static {
+	    NATIVE_KEY_TYPES = new HashSet<>();
+	    NATIVE_KEY_TYPES.add("String");
+	    NATIVE_KEY_TYPES.add("Integer");
+        NATIVE_KEY_TYPES.add("Double");
+        NATIVE_KEY_TYPES.add("Float");
 	}
 	
 	private String translateTypeName(Class clazz) {

@@ -315,16 +315,6 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     
     
     /**
-     * Replaces all of the elements in this map
-     * @deprected in favour of better name to match qx.data.Array @see <code>replace</code>
-     */
-    replaceAll: function(src) {
-      qx.log.Logger.deprecatedMethodWarning(arguments.callee);
-      this.replace(src);
-    },
-    
-
-    /**
      * Replaces all of the elements in this map with another, firing only one or
      * two "change" events for "put" and/or "remove"
      * 

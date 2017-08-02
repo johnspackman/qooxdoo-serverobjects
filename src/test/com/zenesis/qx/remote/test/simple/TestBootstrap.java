@@ -6,6 +6,8 @@ import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
+import com.zenesis.qx.remote.annotations.Use;
+import com.zenesis.qx.remote.annotations.Uses;
 import com.zenesis.qx.remote.test.collections.TestQsoArrayList;
 import com.zenesis.qx.remote.test.collections.TestQsoMap;
 import com.zenesis.qx.remote.test.collections.TestRecursiveArray;
@@ -13,6 +15,11 @@ import com.zenesis.qx.remote.test.multiuser.TestMultiUser;
 import com.zenesis.qx.remote.test.multiuser.TestThreading;
 import com.zenesis.qx.test.AbstractTestCase;
 
+@Uses({
+    @Use(MainTests.class),
+    @Use(TestQsoMap.class),
+    @Use(TestQsoArrayList.class)
+    })
 public class TestBootstrap implements Proxied, LogEntrySink {
 	
 	@Property private TestMultiUser multiUser = new TestMultiUser();

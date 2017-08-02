@@ -54,6 +54,8 @@ import com.zenesis.qx.remote.annotations.Mixins;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
+import com.zenesis.qx.remote.annotations.Use;
+import com.zenesis.qx.remote.annotations.Uses;
 
 public class ProxyTypeImpl extends AbstractProxyType {
 	
@@ -202,9 +204,12 @@ public class ProxyTypeImpl extends AbstractProxyType {
 	// Base Qooxdoo class, null is qx.core.Object
 	private final String qooxdooExtend;
 	
-	// Qooxdoo Mixins
-	private final Mixin[] mixins;
-	
+    // Qooxdoo Mixins
+    private final Mixin[] mixins;
+    
+    // Explicitly required classes
+    private final Use[] uses;
+    
 	// @SerializeConstructorArgs method
 	private final Method serializeConstructorArgs;
 	
@@ -292,7 +297,17 @@ public class ProxyTypeImpl extends AbstractProxyType {
 					mixins.add(tmp);
 			this.mixins = mixins.isEmpty() ? null : mixins.toArray(new Mixin[mixins.size()]);
 		}
-		
+
+        ArrayList<Use> uses = new ArrayList<>();
+        Use annoUse = (Use)clazz.getAnnotation(Use.class);
+        if (annoUse != null)
+            uses.add(annoUse);
+        Uses annoUses = (Uses)clazz.getAnnotation(Uses.class);
+        if (annoUses != null)
+            for (Use tmp : annoUses.value())
+                uses.add(tmp);
+        this.uses = uses.isEmpty() ? null : uses.toArray(new Use[uses.size()]);
+
 		// If the class does not have any proxied interfaces or the class is marked with
 		//	the AlwaysProxy annotation, then we take methods from the class definition
 		methodsCompiler.addMethods(clazz, defaultProxy);
@@ -472,7 +487,12 @@ public class ProxyTypeImpl extends AbstractProxyType {
 		return mixins;
 	}
 
-	/**
+	@Override
+	public Use[] getUses() {
+        return uses;
+    }
+
+    /**
 	 * Detects whether the method is a property accessor
 	 * @param method
 	 * @return

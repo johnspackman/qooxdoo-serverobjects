@@ -24,6 +24,7 @@
  * This is the main application class of your custom application "demoapp"
  * 
  * @require(qx.Promise)
+ * @use(com.zenesis.qx.remote.test.simple.TestBootstrap)
  * @asset(demoapp/*)
  * @ignore(com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer)
  * @ignore(com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer$Child)
@@ -136,8 +137,8 @@ qx.Class.define("demoapp.Application", {
 
       var cont = new com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer();
       cont.set({
-        list: new qx.data.Array(),
-        map: new com.zenesis.qx.remote.Map()
+        list: new com.zenesis.qx.remote.collections.ArrayList(),
+        map: new com.zenesis.qx.remote.collections.HashMap()
       });
       cont.getList().push(new com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer$Child().set({
         name: "alpha"

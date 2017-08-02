@@ -34,6 +34,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.zenesis.qx.remote.annotations.Mixin;
+import com.zenesis.qx.remote.annotations.Use;
 
 /**
  * ProxyType is compiled by ProxyManager from a Java class definition via reflection;
@@ -102,12 +103,18 @@ public interface ProxyType extends JsonSerializable {
 	 */
 	public Set<ProxyType> getInterfaces();
 	
-	/**
-	 * Returns the mixins for the class
-	 * @return
-	 */
-	public Mixin[] getMixins();
-	
+    /**
+     * Returns the mixins for the class
+     * @return
+     */
+    public Mixin[] getMixins();
+    
+    /**
+     * Returns the explicit uses for the class
+     * @return
+     */
+    public Use[] getUses();
+    
 	/**
 	 * Returns the properties; returns an empty set if no properties defined, i.e. never null
 	 * @return

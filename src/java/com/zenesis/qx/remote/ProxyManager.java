@@ -78,7 +78,11 @@ public class ProxyManager implements EventListener {
 	// MIME type mapper, null until first use
 	private static MimetypesFileTypeMap s_fileTypeMap;
 	
+	// Class used for tracking sessions
 	private static Class<? extends ProxySessionTracker> s_sessionTrackerClass = ProxySessionTracker.class;
+
+	// Whether all classes are expected to be precompiled and installed on the client already
+    private static boolean s_precompiledTypesOnly;
 	
 	/**
 	 * Constructor; will set the singleton instance if it has not already been set 
@@ -828,6 +832,23 @@ public class ProxyManager implements EventListener {
 	public static void setSessionTrackerClass(Class<? extends ProxySessionTracker> sessionTrackerClass) {
 		ProxyManager.s_sessionTrackerClass = sessionTrackerClass;
 	}
+    
+    /**
+     * Whether all types are expected to be precompiled and already on the client
+     * @return
+     */
+    public static boolean isPrecompiledTypesOnly() {
+        return s_precompiledTypesOnly;
+    }
+
+    /**
+     * Sets whether all types are precompiled
+     * 
+     * @param precompiledTypesOnly
+     */
+    public static void setPrecompiledTypesOnly(boolean precompiledTypesOnly) {
+        s_precompiledTypesOnly = precompiledTypesOnly;
+    }
 
 	/**
 	 * Gets the singleton instance

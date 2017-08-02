@@ -1,0 +1,41 @@
+{
+	"targets": [
+		{
+			"type": "source",
+			"outputPath": "source-output"
+		},
+		{
+			"type": "hybrid",
+			"outputPath": "hybrid-output"
+		},
+		{
+			"type": "build",
+			"outputPath": "build-output"
+		}
+	],
+	"defaultTarget": "source",
+	"locales": [
+		"en"
+	],
+	"applications": [
+		{
+			"class": "demoapp.Application",
+			"theme": "qx.theme.Modern",
+			"name": "demoapp"
+		}
+	],
+	"libraries": [
+		{
+			"path": "../../../../../../../../Local/WebContent/public/grasshopper/qooxdoo-trunk/framework"
+		},
+		{
+			"path": "../javalib"
+		},
+		{
+		  "path": "../qso-lib"
+		},
+		{
+			"path": "."
+		}
+	]
+}

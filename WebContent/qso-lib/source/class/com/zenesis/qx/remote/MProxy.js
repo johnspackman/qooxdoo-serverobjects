@@ -298,18 +298,6 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       this._applyProperty(propName, value, oldValue);
     },
 
-    /**
-     * Used as the transform property for arrays to make sure that the value is
-     * always a qx.data.Array
-     */
-    _transformToDataArray: function(value) {
-      if (!value)
-        return new qx.data.Array();
-      if (qx.Class.isSubClassOf(value.constructor, qx.data.Array))
-        return value;
-      return new qx.data.Array([ value ]);
-    },
-
     /*
      * @Override
      */
@@ -367,8 +355,6 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      */
     addOnDemandProperty: function(clazz, propName, readOnly) {
       var upname = qx.lang.String.firstUp(propName);
-      if (upname == "ObjectKeyMap")
-        debugger;
       clazz.prototype["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
       clazz.prototype["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
       clazz.prototype["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
@@ -403,6 +389,18 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
           window.Packages = {};
         window.Packages[tld] = window[tld];
       }
+    },
+    
+    /**
+     * Used as the transform property for arrays to make sure that the value is
+     * always a qx.data.Array or derived
+     */
+    transformToDataArray: function(value, clazz) {
+      if (!value)
+        return new clazz();
+      if (qx.Class.isSubClassOf(value.constructor, clazz))
+        return value;
+      return new clazz([ value ]);
     },
     
     getEventDefinition: function(clazz, name) {

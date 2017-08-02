@@ -54,6 +54,7 @@ public class SampleServlet extends HttpServlet {
 			dir.mkdirs();
 			RequestHandler.setTraceLogDir(dir);
 		}
+		ProxyManager.setPrecompiledTypesOnly(true);
 	}
 
 	@Override

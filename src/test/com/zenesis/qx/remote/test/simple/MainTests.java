@@ -30,11 +30,15 @@ package com.zenesis.qx.remote.test.simple;
 import java.util.Calendar;
 import java.util.Date;
 
+import org.junit.runners.Parameterized.UseParametersRunnerFactory;
+
 import com.zenesis.qx.remote.LogEntry;
 import com.zenesis.qx.remote.LogEntrySink;
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
+import com.zenesis.qx.remote.annotations.Use;
+import com.zenesis.qx.remote.annotations.Uses;
 import com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer;
 import com.zenesis.qx.remote.test.collections.TestJavaUtilMap;
 import com.zenesis.qx.remote.test.properties.ITestArrays;
@@ -44,6 +48,12 @@ import com.zenesis.qx.remote.test.properties.TestArrays;
 import com.zenesis.qx.remote.test.properties.TestExceptions;
 import com.zenesis.qx.remote.test.properties.TestGroups;
 import com.zenesis.qx.remote.test.properties.TestProperties;
+
+@Uses({
+    @Use(TestScalars.class),
+    @Use(TestExceptions.class),
+    @Use(TestArrays.class)
+})
 
 public class MainTests implements IMainTests {
 	

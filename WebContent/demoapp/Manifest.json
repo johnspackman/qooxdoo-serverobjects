@@ -6,19 +6,19 @@
     "summary" : "Demo application for testing Qooxdoo Server Objects",
     "description" : "Demo application for testing Qooxdoo Server Objects",
     
-    "homepage" : "http://qooxdoo.org/contrib/project/ServerObjects",
+    "homepage" : "https://github.com/johnspackman/qooxdoo-serverobjects",
 
     "license" : "Same as Qooxdoo",
     "authors" : 
     [
       {
-        "name" : "John Spackman (spackers)",
+        "name" : "John Spackman (johnspackman)",
         "email" : "john.spackman@zenesis.com"
       }
     ],
 
     "version" : "trunk",
-    "qooxdoo-versions": ["1.6", "2.0", "2.1" ]
+    "qooxdoo-versions": [ "6.0" ]
   },
   
   "provides" : 

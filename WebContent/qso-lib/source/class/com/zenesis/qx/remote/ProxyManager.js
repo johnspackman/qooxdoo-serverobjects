@@ -985,9 +985,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               def.members["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
               def.members["get" + upname + "Async"] = new Function(
                   "return new qx.Promise(function(resolve) {" +
-                    "this._getPropertyOnDemand('" + propName + "', function(result) {" +
-                      "resolve(result);" + 
-                    "});" +
+                  "  this._getPropertyOnDemand('" + propName + "', function(result) {" +
+                  "    resolve(result);" + 
+                  "  });" +
                   "}, this);");
             } else {
               def.members["get" + upname + "Async"] = new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"); 

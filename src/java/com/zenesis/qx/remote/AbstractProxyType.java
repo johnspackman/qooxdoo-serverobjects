@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.zenesis.qx.remote.annotations.Mixin;
 import com.zenesis.qx.remote.annotations.Remote;
 import com.zenesis.qx.remote.annotations.Remote.Array;
+import com.zenesis.qx.remote.annotations.Use;
 import com.zenesis.qx.remote.ClassWriter.Function;
 
 public abstract class AbstractProxyType implements ProxyType {
@@ -101,14 +102,14 @@ public abstract class AbstractProxyType implements ProxyType {
 		ClassWriter cw = new ClassWriter(this);
 		Class<?> clazz = getClazz();
 		
-		cw.method("constructor", new Function(
-				"var args = qx.lang.Array.fromArguments(arguments);\n" + 
-				"args.unshift(arguments);\n" + 
-				"this.base.apply(this, args);\n" + 
-				"this.initialiseProxy();\n"));
-		
 		boolean isInterface = clazz != null && clazz.isInterface();
 		if (!isInterface) {
+	        cw.method("construct", new Function(
+	                "var args = qx.lang.Array.fromArguments(arguments);\n" + 
+	                "args.unshift(arguments);\n" + 
+	                "this.base.apply(this, args);\n" + 
+	                "this.initialiseProxy();\n"));
+	        
 			Function fn = cw.method("defer", true);
 			String extend = null;
 			if (getSuperType() != null)
@@ -120,7 +121,7 @@ public abstract class AbstractProxyType implements ProxyType {
 			if (getMixins() != null) {
 				for (Mixin mixin : getMixins())
 					if (mixin.patch()) {
-						fn.code += "qx.Class.patch(this, " + mixin.value() + ");\n";
+						fn.code += "qx.Class.patch(clazz, " + mixin.value() + ");\n";
 					}
 				ArrayList<String> arr = new ArrayList<>();
 				for (Mixin mixin : getMixins())
@@ -129,7 +130,14 @@ public abstract class AbstractProxyType implements ProxyType {
 				if (!arr.isEmpty())
 					cw.include(arr);
 			}
-			fn.code += "com.zenesis.qx.remote.MProxy.deferredClassInitialisation(this);\n";
+			fn.code += "com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);\n";
+		}
+		
+		if (getUses() != null) {
+		    for (Use use : getUses()) {
+		        ProxyType type = ProxyTypeManager.INSTANCE.getProxyType((Class<? extends Proxied>)use.value());
+		        cw.use(type);
+		    }
 		}
 		
 		Set<ProxyType> interfaces = getInterfaces();
@@ -164,7 +172,7 @@ public abstract class AbstractProxyType implements ProxyType {
 						meta.put("isProperty", false);
 					} else
 						meta.put("isProperty", true);
-					cw.method("defer").code += "this.$$eventMeta." + event.getName() + " = " + cw.objectToString(meta) + ";\n";
+					cw.method("defer").code += "clazz.$$eventMeta." + event.getName() + " = " + cw.objectToString(meta) + ";\n";
 				}
 			}
 		}

@@ -76,7 +76,7 @@ qx.Class.define("demoapp.test.DemoTest", {
 					], data.values);
 				}
 			}, this);
-			map.replaceAll({
+			map.replace({
 				"charlie": "third",
 				"delta": "four",
 				"echo": "five"
