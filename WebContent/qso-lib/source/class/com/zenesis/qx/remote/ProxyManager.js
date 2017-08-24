@@ -125,7 +125,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     "connected": "qx.event.type.Data",
     
     /** Fired when all outstanding requests are complete */
-    "requestsComplete": "qx.event.type.Event"
+    "requestsComplete": "qx.event.type.Event",
+    
+    /** Fired when shutdown is called */
+    "shutdown": "qx.event.type.Event"
   },
 
   members: {
@@ -176,6 +179,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     __exception: null,
 
     __preRequestCallback: null,
+    __shutdownPromise: false,
 
     /**
      * The Servlet at the other end is configured to return an initial object
@@ -218,6 +222,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     hasConnected: function() {
       return this.__serverObjects.length > 0;
+    },
+    
+    /**
+     * Shutsdown the connection, and cannot be undone.  Returns a promise which
+     * completes when all currently active connections are complete
+     */
+    shutdown: function() {
+      this.setPollServer(false);
+      if (!this.__shutdownPromise) {
+        this.__shutdownPromise = new qx.Promise();
+        this.fireEvent("shutdown");
+        if (this.__numActiveRequests === 0)
+          this.__shutdownPromise.resolve();
+      }
+      return this.__shutdownPromise;
     },
 
     /**
@@ -303,6 +322,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
           console.log && console.log("__onResponseReceived 2: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
         this.__inProcessData--;
+        if (this.__shutdownPromise && this.__numActiveRequests === 0)
+          this.__shutdownPromise.resolve();
       }
     },
     
@@ -595,11 +616,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           qx.core.Assert.assertTrue(false, "Unexpected type of command from server: " + type);
       }
       
-      if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length) {
+      if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length && !this.__shutdownPromise) {
         // Flatten the call stack when we flush the queue, and check that it is still valid to flush when
         //  the timeout kicks in
         setTimeout(function() {
-          if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length) {
+          if (this.__numActiveRequests == 0 && this.__queuedServerMethods && this.__queuedServerMethods.length && !this.__shutdownPromise) {
             this._sendCommandToServer(null, true, true);
           }
         }.bind(this), 1);
@@ -1640,6 +1661,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @return {String} the server response
      */
     _sendCommandToServer: function(obj, async, suppressWarnings) {
+      if (this.__shutdownPromise)
+        throw new Error("Cannot connect to server because ProxyManager is shutdown");
+      
       var startTime = new Date().getTime();
       
       // We must not allow recursive commands, otherwise a partially formed
