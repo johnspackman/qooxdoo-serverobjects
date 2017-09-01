@@ -286,7 +286,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var req = evt.getTarget();
       
       var proxyData = req.getUserData("proxyData");
-      proxyData.receivedTime = new Date().getTime();
+      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+        proxyData.receivedTime = new Date().getTime();
+        console.log("__onResponseReceived: starting receive");
+      }
       proxyData.txt = txt;
 
       var result = null;
@@ -317,6 +320,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             proxyData.async(evt);
         }
         
+        if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+          var ms = new Date().getTime() - proxyData.receivedTime;
+          var sentMs = new Date().getTime() - proxyData.startTime;
+          console.log("__onResponseReceived: took " + ms + "ms, async=" + proxyData.async + ", sent=" + sentMs);
+        }
         return result;
       } finally {
         if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
@@ -510,11 +518,26 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           // Function return
         } else if (type == "return") {
           var asyncId = elem.data.asyncId;
+          if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+            var startTime = new Date().getTime();
+            console.log("return+readProxyObject: starting");
+          }
           result = this.readProxyObject(elem.data.result);
+          if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+            var ms = new Date().getTime() - startTime;
+            console.log("return+readProxyObject: " + ms + "ms");
+          }
           var cb = this.__asyncCallback[asyncId];
           if (cb) {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+              var startTime = new Date().getTime();
+            }
             delete this.__asyncCallback[asyncId];
             cb(result);
+            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+              var ms = new Date().getTime() - startTime;
+              console.log("return+callback: " + ms + "ms");
+            }
           }
 
           // Upload
@@ -714,7 +737,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         result = t.getServerObject(serverId);
         if (!result && data.clazz) {
           var clazz = t.getClassOrCreate(data.clazz);
+          if (!clazz) {
+            t.error("Cannot find class for " + data.clazz);
+            throw new Error("Cannot find class for " + data.clazz);
+          }
 
+          if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+            var startTime = new Date().getTime();
+          }
+          
           // Collect constructor args now in case they refer to a Proxied object
           // (which would cause recursion
           // and would conflict with __currentNewServerId being a single use
@@ -739,10 +770,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           t.__inConstructor = false;
           qx.core.Assert.assertEquals(serverId, result.getServerId());
           t.__serverObjects[serverId] = result;
+          if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+            var ms = new Date().getTime() - startTime;
+            console.log("new " + data.clazz + " : took " + ms + "ms");
+          }
         } else if (!result) {
           throw new Error("Cannot find serverId " + serverId + ", probable recursion in loading");
         }
 
+        if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+          var startTime = new Date().getTime();
+        }
+        
         // Assign any values
         if (data.order) {
           for (var i = 0; i < data.order.length; i++) {
@@ -777,6 +816,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           }
         }
 
+        if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+          var ms = new Date().getTime() - startTime;
+          console.log("setValues " + data.clazz + " : took " + ms + "ms");
+        }
         return result;
       }
 
@@ -2078,6 +2121,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     "com.zenesis.qx.remote.traceRecursion": true,
     "com.zenesis.qx.remote.traceMethodSync": false,
     "com.zenesis.qx.remote.traceOnDemandSync": false,
-    "com.zenesis.qx.remote.traceOverlaps": false
+    "com.zenesis.qx.remote.traceOverlaps": false,
+    "com.zenesis.qx.remote.perfTrace": false
   }
 });

@@ -16,8 +16,8 @@ public @interface Mixin {
 	public String value();
 	
 	/**
-	 * Whether to patch (default is false, to include) 
+	 * Whether to patch (false == to use 'include' method) 
 	 * @return
 	 */
-	public boolean patch() default false;
+	public boolean patch() default true;
 }

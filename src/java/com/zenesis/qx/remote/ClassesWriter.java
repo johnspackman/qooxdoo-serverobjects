@@ -31,7 +31,7 @@ public class ClassesWriter {
             try {
                 clazz = Class.forName(name);
             }catch(ClassNotFoundException e) {
-                System.err.println(e.getMessage());
+                System.err.println(e.toString());
                 continue;
             }
             AbstractProxyType type = (AbstractProxyType)ProxyTypeManager.INSTANCE.getProxyType(clazz);
