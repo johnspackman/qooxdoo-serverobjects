@@ -48,7 +48,7 @@ public abstract class AbstractProxyType implements ProxyType {
 				className += "[wrap]";
 			
 			if (tracker.isTypeDelivered(this)) {
-				gen.writeString(className);
+			    gen.writeString(className);
 				return;
 			}
 			

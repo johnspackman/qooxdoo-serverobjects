@@ -81,6 +81,8 @@ public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, Pro
 		jgen.writeEndArray();
         if (property != null) {
             Class keyClass = property.getPropertyClass().getKeyClass();
+            if (keyClass == null)
+                keyClass = String.class;
             Class valueClass = property.getPropertyClass().getJavaType();
             jgen.writeBoolean(keyClass != String.class && !Enum.class.isAssignableFrom(keyClass));
             if (Proxied.class.isAssignableFrom(keyClass))

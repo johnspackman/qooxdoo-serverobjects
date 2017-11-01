@@ -202,5 +202,22 @@ public class ProxyTypeManager {
 	private <T> T getAnnotation(Class clazz, Class<T> annotationClass) {
 		return (T)clazz.getAnnotation(annotationClass);
 	}
-	
+    
+    /**
+     * Flushes the type cache
+     */
+    public void flushProxyTypeCache(Class<? extends Proxied> clazz) {
+        synchronized(this) {
+            proxyTypes.remove(clazz);
+        }
+    }
+    
+    /**
+     * Flushes the type cache
+     */
+    public void flushProxyTypeCache() {
+        synchronized(this) {
+            proxyTypes.clear();
+        }
+    }
 }

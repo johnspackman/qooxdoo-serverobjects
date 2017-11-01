@@ -66,6 +66,12 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied {
 		sort(null);
 	}
 	
+	public void replace(Collection<? extends T> c) {
+	    clear();
+	    for (T x : c)
+	        add(x);
+	}
+	
 	/**
 	 * Sorts the list with a comparator
 	 * @param comp

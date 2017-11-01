@@ -269,8 +269,10 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      * Called when an on-demand property's expire method is called
      */
     _expirePropertyOnDemand: function(propName, sendToServer) {
-      if (this.$$proxyUser && this.$$proxyUser[propName])
-        this.__storePropertyOnDemand(this.getPropertyDef(propName), undefined);
+      if (this.$$proxyUser && this.$$proxyUser[propName]) {
+        var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
+        this.__storePropertyOnDemand(propDef, undefined);
+      }
 
       if (sendToServer === undefined || sendToServer) {
         var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
@@ -400,7 +402,12 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
         return new clazz();
       if (qx.Class.isSubClassOf(value.constructor, clazz))
         return value;
-      return new clazz([ value ]);
+      var result = new clazz();
+      if (value instanceof qx.data.Array || qx.lang.Type.isArray(value))
+        result.append(value);
+      else
+        result.push(value);
+      return result;
     },
     
     getEventDefinition: function(clazz, name) {

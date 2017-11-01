@@ -306,8 +306,8 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		          "    resolve(result);\n" + 
 		          "  });\n" +
 		          "}, this);"));
-		}
-		cw.member("get" + upname + "Async", new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"));
+		} else
+		    cw.member("get" + upname + "Async", new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"));
 		
 		if (!annoSets.isEmpty() || clientAnno != null) {
 			ArrayList<RawValue> arr = new ArrayList<>();
