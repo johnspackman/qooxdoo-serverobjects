@@ -46,6 +46,11 @@ public class TestBootstrap implements Proxied, LogEntrySink {
 	public Object getMapTests() {
 		return new TestQsoMap();
 	}
+	
+	@Method
+	public TestObserver getTestObserver() {
+	    return new TestObserver();
+	}
 
 	public TestMultiUser getMultiUser() {
 		return multiUser;

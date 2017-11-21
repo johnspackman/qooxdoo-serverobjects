@@ -84,6 +84,33 @@ qx.Class.define("demoapp.test.DemoTest", {
 			this.assertEquals(2, count);
 		},
 		
+		testObserver: function() {
+		  var t = this;
+		  var boot = com.zenesis.qx.remote.ProxyManager.getInstance().getBootstrapObject();
+		  var to = boot.getTestObserver();
+		  function doTest(name) {
+	      var obj = to["create" + qx.lang.String.firstUp(name)]();
+	      obj.setSomeValue("hello "+ name)
+	      obj.doStuff();
+	      t.assertEquals(true, obj.isDirty());
+		  }
+      doTest("staticInner1");
+      doTest("staticInner2");
+      doTest("inner");
+      
+      var obj = to.createInner();
+      t.assertEquals(false, obj.isDirty());
+      obj.getSimpleArray().push("alpha");
+      obj.doStuff();
+      t.assertEquals(true, obj.isDirty());
+      
+      var obj = to.createInner();
+      t.assertEquals(false, obj.isDirty());
+      obj.getQsoArrayList().push("zulu");
+      obj.doStuff();
+      t.assertEquals(true, obj.isDirty());
+		},
+		
 		assertEquivalent: function(expected, actual, msg) {
 			if (qx.lang.Type.isArray(expected)) {
 				this.assertTrue(qx.lang.Type.isArray(actual), msg);
