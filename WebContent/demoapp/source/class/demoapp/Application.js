@@ -73,7 +73,9 @@ qx.Class.define("demoapp.Application", {
       var root = this.getRoot();
       var txtLog = this.__txtLog = new qx.ui.form.TextArea().set({ readOnly: true, minHeight: 400 });
       root.add(txtLog, { left: 0, right: 0, bottom: 0 });
-      
+
+      var unitTest = new demoapp.test.DemoTest();
+
       t.testObjectKeyMaps();
       
       this.log("Testing queued async");
@@ -86,6 +88,8 @@ qx.Class.define("demoapp.Application", {
         qx.event.GlobalError.setErrorHandler(function(ex) {
           t.error("Unhandled error: " + ex.stack);
         }, t);
+        
+        unitTest.testObserver();
         
         t.log("Testing main");
         t.testMain();
@@ -100,8 +104,7 @@ qx.Class.define("demoapp.Application", {
         var test = new com.zenesis.qx.remote.test.TestMap();
         test.testSimple();
         test.testObjectKeys();
-        
-        new demoapp.test.DemoTest().testMap();
+        unitTest.testMap();
         t.testMaps();
        
         t.log("Running testObjectKeyMaps");

@@ -36,16 +36,16 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.security.MessageDigest;
+import java.lang.reflect.Modifier;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
@@ -60,6 +60,7 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.CommandId.CommandType;
+import com.zenesis.qx.remote.annotations.EnclosingThisMethod;
 import com.zenesis.qx.utils.DiagUtils;
 import com.zenesis.qx.utils.ArrayUtils;
 
@@ -606,6 +607,79 @@ public class RequestHandler {
 	}
 	
 	/**
+	 * Finds the observer for a Proxied object, if the object does not implement ProxiedObserver then
+	 * it looks for enclosing classes which do.  Static enclosing classes are located by looking for
+	 * methods named in the form "getXxxx" which have no parameters and return an instance of Proxied,
+	 * or which have the EnclosingThisMethod annotation.
+	 * 
+	 * @param proxied
+	 * @return null if not found
+	 */
+	private ProxiedObserver getObserver(Proxied proxied) {
+	    while (proxied != null) {
+	        if (proxied instanceof ProxiedObserver)
+	            return (ProxiedObserver)proxied;
+
+	        Class clazz = proxied.getClass();
+	        Class outerClazz = clazz.getEnclosingClass();
+	        if (outerClazz == null)
+	            return null;
+	        
+            Object nextObject = null;
+	        if (Modifier.isStatic(clazz.getModifiers())) {
+	            Method matched = null;
+                for (Method method : clazz.getMethods()) {
+                    if (method.getAnnotationsByType(EnclosingThisMethod.class).length > 0) {
+                        if (matched != null)
+                            throw new IllegalStateException("Too many methods marked as EnclosingThisMethod in " + clazz + " (found " + matched + " and " + method + ")");
+                        matched = method;
+                    }
+                }
+                if (matched == null) {
+                    for (Method method : clazz.getMethods()) {
+                        String name = method.getName();
+                        if (method.getParameterTypes().length == 0 && 
+                                name.length() > 3 && 
+                                name.startsWith("get") && 
+                                Character.isUpperCase(name.charAt(3)) &&
+                                Proxied.class.isAssignableFrom(method.getReturnType())) {
+                            if (matched != null)
+                                throw new IllegalStateException("Too many methods which could provide the enclosing this in " + clazz + " (found " + matched + " and " + method + ")");
+                            matched = method;
+                        }
+                    }
+                }
+                if (matched != null) {
+                    try {
+                        nextObject = matched.invoke(proxied, new Object[0]);
+                    }catch(InvocationTargetException e) {
+                        throw new IllegalStateException("Cannot get enclosing instance from " + matched + ": " + e.getMessage(), e);
+                    }catch(IllegalAccessException e) {
+                        throw new IllegalStateException("Cannot get enclosing instance from " + matched + ": " + e.getMessage(), e);
+                    }
+                }
+	        } else {
+	            try {
+        	            Field field = clazz.getDeclaredField("this$0");
+        	            field.setAccessible(true);
+        	            nextObject = field.get(proxied);
+                } catch(NoSuchFieldException e) {
+                    throw new IllegalStateException("Cannot find enclosing instance in this$0 of " + clazz);
+                } catch(IllegalAccessException e) {
+                    throw new IllegalStateException("Cannot get enclosing instance from this$0 of " + clazz + ": " + e.getMessage(), e);
+	            }
+	        }
+	        
+	        if (nextObject != null && nextObject instanceof Proxied)
+	            proxied = (Proxied)nextObject;
+	        else
+	            break;
+	    }
+	    
+	    return null;
+	}
+	
+	/**
 	 * Handles setting a server object property from the client; expects a serverId, propertyName, and a value
 	 * @param jp
 	 * @throws ServletException
@@ -704,6 +778,7 @@ public class RequestHandler {
 	private void arrayUpdate(JsonParser jp, int serverId, String propertyName) throws ServletException, IOException {
 		// Get our info
 		Proxied serverObject = getProxied(serverId);
+		ProxiedObserver observer = getObserver(serverObject);
 		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverObject.getClass());
 		ProxyProperty prop = getProperty(type, propertyName);
 		
@@ -736,6 +811,9 @@ public class RequestHandler {
 				if (mutating != null)
 					tracker.endMutate(mutating, null);
 			}
+
+	        if (observer != null)
+	            observer.observeEditArray(serverObject, prop, map);
 			
 			jp.nextToken();
 		} else {
@@ -786,6 +864,9 @@ public class RequestHandler {
 				if (mutating == null)
 					ProxyManager.propertyChanged(serverObject, propertyName, list, null);
 				
+	            if (observer != null)
+	                observer.observeEditArray(serverObject, prop, list);
+	            
 				jp.nextToken();
 			} finally {
 				if (mutating != null)
@@ -798,6 +879,7 @@ public class RequestHandler {
 	private void arrayReplaceAll(JsonParser jp, int serverId, String propertyName) throws ServletException, IOException {
 		// Get our info
 		Proxied serverObject = getProxied(serverId);
+        ProxiedObserver observer = getObserver(serverObject);
 		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverObject.getClass());
 		ProxyProperty prop = getProperty(type, propertyName);
 		
@@ -814,6 +896,8 @@ public class RequestHandler {
 			//	knowledge, we have to make sure we notify other trackers ourselves
 			if (!(map instanceof Proxied))
 				ProxyManager.propertyChanged(serverObject, propertyName, items, null);
+            if (observer != null)
+                observer.observeEditArray(serverObject, prop, map);
 			
 			jp.nextToken();
 		} else {
@@ -833,8 +917,12 @@ public class RequestHandler {
 				//	knowledge, we have to make sure we notify other trackers ourselves
 				if (!(list instanceof Proxied))
 					ProxyManager.propertyChanged(serverObject, propertyName, list, null);
+	            if (observer != null)
+	                observer.observeEditArray(serverObject, prop, list);
 			} else {
 				prop.setValue(serverObject, items);
+	            if (observer != null)
+	                observer.observeEditArray(serverObject, prop, items);
 			}
 			
 			jp.nextToken();
@@ -1007,16 +1095,19 @@ public class RequestHandler {
 			
 			value = coerce(property.getPropertyClass().getJavaType(), value);
 			
+            Object oldValue = property.getValue(proxied);
 			if (!property.isSendExceptions())
 				property.setValue(proxied, value);
 			else {
-				Object oldValue = property.getValue(proxied);
 				try {
 					property.setValue(proxied, value);
 				} catch(Exception e) {
 					tracker.getQueue().queueCommand(CommandId.CommandType.RESTORE_VALUE, proxied, propertyName, new PropertyReset(oldValue, e.getClass().getName(), e.getMessage()));
 				}
 			}
+	        ProxiedObserver observer = getObserver(proxied);
+	        if (observer != null)
+	            observer.observeSetProperty(proxied, property, value, oldValue);
 		}finally {
 			tracker.endMutate(proxied, propertyName);
 		}
