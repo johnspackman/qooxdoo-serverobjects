@@ -642,7 +642,7 @@ public class RequestHandler {
                                 name.length() > 3 && 
                                 name.startsWith("get") && 
                                 Character.isUpperCase(name.charAt(3)) &&
-                                Proxied.class.isAssignableFrom(method.getReturnType())) {
+                                outerClazz.isAssignableFrom(method.getReturnType())) {
                             if (matched != null)
                                 throw new IllegalStateException("Too many methods which could provide the enclosing this in " + clazz + " (found " + matched + " and " + method + ")");
                             matched = method;
