@@ -298,6 +298,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       this.__inProcessData++;
       try {
         if (statusCode == 200) {
+          var sessionId = evt.getResponseHeaders()["X-ProxyManager-SessionId"];
+          if (sessionId) {
+            if (qx.core.Environment.get("qx.debug")) {
+              if (this.__sessionId && this.__sessionId != sessionId) {
+                this.warn("Changing session ID from " + this._sessionId + " to " + sessionId);
+              }
+            }
+            this.__sessionId = sessionId;
+          }
           reqIndex = parseInt(evt.getResponseHeaders()["X-ProxyManager-RequestIndex"], 10);
           if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
             console.log && console.log("__onResponseReceived 1: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);

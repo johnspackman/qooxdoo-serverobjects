@@ -261,7 +261,7 @@ public class RequestHandler {
 		}
 		
 		if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
-			log.debug("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + sw.toString());
+			log.error("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + sw.toString());
 			throw new IllegalArgumentException("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId);
 		}
 		
@@ -287,6 +287,9 @@ public class RequestHandler {
 		String hash = DiagUtils.getSha1(out);
 		response.setHeader(HEADER_SHA1, hash);
 		response.setHeader(HEADER_INDEX, Integer.toString(index));
+        if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
+            response.setHeader(HEADER_SESSION_ID, tracker.getSessionId());
+        }
 		response.getWriter().write(out);
 	}
 	
