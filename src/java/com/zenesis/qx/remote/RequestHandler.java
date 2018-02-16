@@ -1109,8 +1109,12 @@ public class RequestHandler {
 				}
 			}
 	        ProxiedObserver observer = getObserver(proxied);
-	        if (observer != null)
-	            observer.observeSetProperty(proxied, property, value, oldValue);
+	        if (observer != null) {
+	            Object setValue = property.getValue(proxied);
+	            if (setValue != oldValue && (setValue == null || !setValue.equals(setValue))) {
+	                observer.observeSetProperty(proxied, property, value, oldValue);
+	            }
+	        }
 		}finally {
 			tracker.endMutate(proxied, propertyName);
 		}
