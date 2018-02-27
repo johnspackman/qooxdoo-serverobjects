@@ -3,9 +3,9 @@
 	<property name="build.compiler" value="modern" />
 	<property name="src.dir" value="src" />
 	<property name="build.dir" value="build" />
-	<property name="version" value="6.0-alpha" />
+	<property name="version" value="6.0.0-alpha" />
 	<property name="jarfile" value="${build.dir}/qso-${version}.jar" />
-	<property name="depsfile" value="${build.dir}/qso-${version}-deps.jar" />
+	<property name="depsfile" value="${build.dir}/qso-${version}-deps.zip" />
 	
 	<path id="classpath">
         <fileset dir="WebContent/WEB-INF/lib" includes="*.jar" />
@@ -39,9 +39,10 @@
 	
 	<target name="dist" depends="jar">
 		<delete file="${depsfile}" />
-		<jar destfile="${depsfile}">
+		<zip destfile="${depsfile}">
 			<fileset dir="lib" includes="*.jar" />
-		</jar>
+	        <fileset dir="WebContent/WEB-INF/lib" includes="*.jar" />
+		</zip>
 	</target>
 
 </project>
