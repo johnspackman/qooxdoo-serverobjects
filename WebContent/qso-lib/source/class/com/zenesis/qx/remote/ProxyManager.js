@@ -173,6 +173,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     // The number of call backs to the server
     __numberOfCalls: 0,
     __inProcessData: 0,
+    __inUploadReceived: 0,
 
     // Exception returned from the server, to be thrown at end of current
     // function call
@@ -554,9 +555,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           var fileInfos = this.readProxyObject(elem.data);
           if (!result)
             result = [];
-          for (var j = 0; j < fileInfos.length; j++) {
-            result.push(fileInfos[j]);
-            this.fireDataEvent("uploadComplete", fileInfos[j]);
+          this.__inUploadReceived++;
+          try {
+            for (var j = 0; j < fileInfos.length; j++) {
+              result.push(fileInfos[j]);
+              this.fireDataEvent("uploadComplete", fileInfos[j]);
+            }
+          }finally {
+            this.__inUploadReceived--;
           }
 
           // An exception was thrown
@@ -1609,12 +1615,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     },
 
     /**
-     * Detects whether a response is being processed
+     * Detects whether a response is being processed; note that this will return false when an upload 
+     * is being processed because the purpose is to detect whether the server is sync'ing the client,
+     * whereas upload is an actual physical event created by the user
+     * 
+     * @return {Boolean}
      */
     isInResponse: function() {
-      return !!this.__inProcessData;
+      return !!this.__inProcessData && !this.__inUploadReceived;
     },
-
+    
     /**
      * Called by Proxy when an event listener is added; this queues a command to
      * the server
