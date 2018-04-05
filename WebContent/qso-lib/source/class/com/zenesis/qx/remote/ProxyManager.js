@@ -289,7 +289,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var proxyData = req.getUserData("proxyData");
       if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
         proxyData.receivedTime = new Date().getTime();
-        console.log("__onResponseReceived: starting receive");
       }
       proxyData.txt = txt;
 
@@ -330,11 +329,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             proxyData.async(evt);
         }
 
-        if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
-          var ms = new Date().getTime() - proxyData.receivedTime;
-          var sentMs = new Date().getTime() - proxyData.startTime;
-          console.log("__onResponseReceived: took " + ms + "ms, async=" + proxyData.async + ", sent=" + sentMs);
-        }
         return result;
       } finally {
         if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
@@ -515,6 +509,128 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         clientObject.setServerId(elem.data.serverId);
         this.__serverObjects[elem.data.serverId] = clientObject;
       }
+      
+      var stats = null;
+      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+        class ClassStats {
+          
+          constructor(classname) {
+            this.classname = classname;
+            this.numObjects = 0;
+            this.defineTime = 0;
+            this.constructorTime = 0; 
+            this.propertiesTime = 0;
+            this.properties = {};
+            this.prefetch = {};
+          }
+          
+          forProperty(propName) {
+            var propStats = this.properties[propName];
+            if (!propStats)
+              propStats = this.properties[propName] = { name: propName, numSets: 0, time: 0 };
+            return propStats;
+          }
+  
+          forPrefetch(methodName) {
+            var prefetchStats = this.prefetch[methodName];
+            if (!propStats)
+              prefetchStats = this.prefetch[methodName] = { name: methodName, numSets: 0, time: 0 };
+            return prefetchStats;
+          }
+        }
+        
+        class AllStats {
+          
+          constructor() {
+            this.numObjects = 0;
+            this.numCallbacks = 0;
+            this.callbacksTime = 0;
+            this.startTime = new Date().getTime();
+            this.statsByClass = {};
+          }
+          
+          forClass(classname) {
+            var classStats = this.statsByClass[classname]; 
+            if (!classStats)
+              classStats = this.statsByClass[classname] = new ClassStats(classname);
+            return classStats;
+          }
+          
+          end() {
+            this.totalTime = new Date().getTime() - this.startTime;
+          }
+          
+          dumpStats() {
+            const SPACES = "                    ";
+            function rpad(str, len, spaces) {
+              if (spaces === undefined)
+                spaces = SPACES;
+              str = str + "";
+              while (str.length < len) {
+                var add = len - str.length;
+                if (add >= spaces.length)
+                  str += spaces;
+                else
+                  str += spaces.substring(0, add);
+              }
+              return str;
+            }
+            function lpad(str, len, spaces) {
+              if (spaces === undefined)
+                spaces = SPACES;
+              str = str + "";
+              while (str.length < len) {
+                var add = len - str.length;
+                if (add >= spaces.length)
+                  str = spaces + str;
+                else
+                  str = spaces.substring(0, add) + str;
+              }
+              return str;
+            }
+            var classnameLen = 0;
+            var numSets = 0;
+            var setsTime = 0;
+            Object.keys(this.statsByClass).forEach(classname => classnameLen = Math.max(classnameLen, classname.length));
+            
+            console.log(rpad("Classname", classnameLen + 1) + " Count  Define   Constr   Props    Slowest Properties");
+            Object.keys(this.statsByClass).sort().forEach(classname => {
+              let classStats = this.statsByClass[classname];
+              let str = rpad(classname, classnameLen + 1) + " " + 
+                lpad(classStats.numObjects, 6) + " " +
+                lpad(classStats.defineTime, 6) + "ms " +
+                lpad(classStats.constructorTime, 6) + "ms " +
+                lpad(classStats.propertiesTime, 6) + "ms ";
+              
+              let properties = Object.keys(classStats.properties)
+                .sort((l, r) => {
+                  l = classStats.properties[l].time;
+                  r = classStats.properties[r].time;
+                  return l < r ? 1 : l > r ? -1 : 0;
+                })
+                .map(propName => classStats.properties[propName]);
+              properties.forEach(propStats => { 
+                numSets += propStats.numSets; 
+                setsTime += propStats.time; 
+              });
+
+              for (let i = 0; i < properties.length && i < 2; i++) {
+                let propStats = properties[i];
+                if (i)
+                  str += ", ";
+                str += propStats.name + "= #" + propStats.numSets + " @ " + propStats.time + "ms";
+              }
+              console.log(str);
+            });
+            console.log("numObjects: " + this.numObjects + 
+                ", Callbacks: " + this.numCallbacks + " @ " + this.callbacksTime + "ms" + 
+                ", Property sets: " + numSets + " @ " + setsTime + "ms");
+            console.log("TOTAL TIME: " + this.totalTime + "ms");
+          }
+        };
+        
+        stats = new AllStats();
+      }
 
       for (var i = 0, l = data.length; i < l; i++) {
         var elem = data[i];
@@ -523,36 +639,30 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         // Init
         if (type == "bootstrap") {
           this.__sessionId = elem.data.sessionId;
-          result = this.readProxyObject(elem.data.bootstrap);
+          result = this.readProxyObject(elem.data.bootstrap, stats);
 
           // Function return
         } else if (type == "return") {
           var asyncId = elem.data.asyncId;
           if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
             var startTime = new Date().getTime();
-            console.log("return+readProxyObject: starting");
           }
-          result = this.readProxyObject(elem.data.result);
-          if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
-            var ms = new Date().getTime() - startTime;
-            console.log("return+readProxyObject: " + ms + "ms");
-          }
+          result = this.readProxyObject(elem.data.result, stats);
           var cb = this.__asyncCallback[asyncId];
           if (cb) {
-            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
-              var startTime = new Date().getTime();
-            }
+            var startTime = new Date().getTime();
             delete this.__asyncCallback[asyncId];
             cb(result);
+            var ms = new Date().getTime() - startTime;
             if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
-              var ms = new Date().getTime() - startTime;
-              console.log("return+callback: " + ms + "ms");
+              stats.numCallbacks++;
+              stats.callbacksTime += ms;
             }
           }
 
           // Upload
         } else if (type == "upload") {
-          var fileInfos = this.readProxyObject(elem.data);
+          var fileInfos = this.readProxyObject(elem.data, stats);
           if (!result)
             result = [];
           this.__inUploadReceived++;
@@ -573,14 +683,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           // the IDs to server IDs
         } else if (type == "mapClientId") {
           // Now read in new/changed properties
-          this.readProxyObject(elem.object);
+          this.readProxyObject(elem.object, stats);
 
           // Setting a property failed with an exception - change the value back
           // and handle the exception
         } else if (type == "restore") {
-          var obj = this.readProxyObject(elem.object);
+          var obj = this.readProxyObject(elem.object, stats);
           try {
-            var value = this.readProxyObject(elem.data.oldValue);
+            var value = this.readProxyObject(elem.data.oldValue, stats);
             this.setPropertyValueFromServer(obj, elem.name, value);
           } catch (e) {
             // Ignore it - we were only trying to recover from a server
@@ -590,20 +700,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
           // A server property value changed, update the client
         } else if (type == "set") {
-          var obj = this.readProxyObject(elem.object);
-          var value = this.readProxyObject(elem.data);
+          var obj = this.readProxyObject(elem.object, stats);
+          var value = this.readProxyObject(elem.data, stats);
           this.setPropertyValueFromServer(obj, elem.name, value);
 
           // An on demand server property value changed, clear the cache
         } else if (type == "expire") {
-          var obj = this.readProxyObject(elem.object);
+          var obj = this.readProxyObject(elem.object, stats);
           var upname = qx.lang.String.firstUp(elem.name);
           obj["expire" + upname](false);
 
           // A server property value changed, update the client
         } else if (type == "edit-array") {
           (function() {
-            var serverObject = t.readProxyObject(elem.object);
+            var serverObject = t.readProxyObject(elem.object, stats);
             var savePropertyObject = t.__setPropertyObject;
             var savePropertyName = t.__setPropertyName;
             t.__setPropertyObject = serverObject;
@@ -612,19 +722,19 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               elem.data.forEach(function(data) {
                 if (data.removed)
                   data.removed.forEach(function(item) {
-                    var obj = t.readProxyObject(item);
+                    var obj = t.readProxyObject(item, stats);
                     serverObject.remove(obj);
                   });
                 if (data.added) {
                   data.added.forEach(function(item) {
-                    var obj = t.readProxyObject(item);
+                    var obj = t.readProxyObject(item, stats);
                     serverObject.push(obj);
                   });
                 }
                 if (data.put) {
                   data.put.forEach(function(entry) {
-                    var key = t.readProxyObject(entry.key);
-                    var value = t.readProxyObject(entry.value);
+                    var key = t.readProxyObject(entry.key, stats);
+                    var value = t.readProxyObject(entry.value, stats);
                     serverObject.put(key, value);
                   });
                 }
@@ -637,17 +747,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
           // The server has sent a class definition
         } else if (type == "define") {
-          this.getClassOrCreate(elem.object);
+          this.getClassOrCreate(elem.object, stats);
 
           // An event was fired on the server
         } else if (type == "fire") {
-          var obj = this.readProxyObject(elem.object);
-          var eventData = elem.data ? this.readProxyObject(elem.data) : null;
+          var obj = this.readProxyObject(elem.object, stats);
+          var eventData = elem.data ? this.readProxyObject(elem.data, stats) : null;
           obj.fireDataEvent(elem.name, eventData);
 
           // Explicitly load a type onto the client
         } else if (type == "load-type") {
-          var clazz = this.getClassOrCreate(elem.object);
+          var clazz = this.getClassOrCreate(elem.object, stats);
 
           // Unknown!
         } else
@@ -664,6 +774,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }.bind(this), 1);
       }
 
+      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+        stats.end();
+        // Only report stats that were at least 100ms
+        if (stats.totalTime >= 100)
+          stats.dumpStats();
+      }
       return result;
     },
 
@@ -681,7 +797,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Reads a proxy object from the server and either creates a new object
      * (creating classes as required) or returns an existing one
      */
-    readProxyObject: function(data) {
+    readProxyObject: function(data, stats) {
       if (typeof data == "undefined" || data === null)
         return null;
       var result = null;
@@ -704,7 +820,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         else {
           result = [];
           for (var i = 0; i < data.length; i++)
-            result[i] = t.readProxyObject(data[i]);
+            result[i] = t.readProxyObject(data[i], stats);
         }
 
         return result;
@@ -736,7 +852,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           for ( var propName in data) {
             var propValue = data[propName];
             if (propValue)
-              propValue = t.readProxyObject(propValue);
+              propValue = t.readProxyObject(propValue, stats);
             result[propName] = propValue;
           }
         }
@@ -747,18 +863,26 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       function readServerObject(data) {
         var result;
         var serverId = data.serverId;
-
+        
         // Get or create it
         result = t.getServerObject(serverId);
         if (!result && data.clazz) {
-          var clazz = t.getClassOrCreate(data.clazz);
+          var clazz = t.getClassOrCreate(data.clazz, stats);
           if (!clazz) {
             t.error("Cannot find class for " + data.clazz);
             throw new Error("Cannot find class for " + data.clazz);
           }
 
+          var startTime;
           if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
-            var startTime = new Date().getTime();
+            startTime = new Date().getTime();
+            
+            // Collects stats
+            if (stats) {
+              stats.numObjects++;
+              var classStats = stats.forClass(data.clazz);
+              classStats.numObjects++;
+            }
           }
 
           // Collect constructor args now in case they refer to a Proxied object
@@ -785,9 +909,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           t.__inConstructor = false;
           qx.core.Assert.assertEquals(serverId, result.getServerId());
           t.__serverObjects[serverId] = result;
+          
           if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
             var ms = new Date().getTime() - startTime;
-            console.log("new " + data.clazz + " : took " + ms + "ms");
+            if (stats) {
+              classStats.constructorTime += ms;
+            }
           }
         } else if (!result) {
           throw new Error("Cannot find serverId " + serverId + ", probable recursion in loading");
@@ -795,6 +922,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
           var startTime = new Date().getTime();
+          var classStats = stats.forClass(data.clazz);
         }
 
         // Assign any values
@@ -802,38 +930,60 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           for (var i = 0; i < data.order.length; i++) {
             var propName = data.order[i];
             var propValue = data.values[propName];
+            
+            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+              if (stats) {
+                var propStartTime = new Date().getTime();
+              }
+            }
+            
             if (propValue)
-              propValue = t.readProxyObject(propValue);
+              propValue = t.readProxyObject(propValue, stats);
             t.setPropertyValueFromServer(result, propName, propValue);
+            
+            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+              if (stats) {
+                var ms = new Date().getTime() - propStartTime;
+                var propStats = classStats.forProperty(propName);
+                propStats.numSets++;
+                propStats.time += ms;
+              }
+            }
           }
         }
-
-        /*
-         * Cannot cycle through the names in "values" because the order is not
-         * guaranteed, and ordering is important if we're going to be able to
-         * recreate the objects because only the first reference contains the
-         * class and object definition - thereafter, just a serverId is sent if
-         * (data.values) { for (var propName in data.values) { var propValue =
-         * data.values[propName]; if (propValue) propValue =
-         * t.readProxyObject(propValue); t.setPropertyValueFromServer(result,
-         * propName, propValue); } }
-         */
 
         // Prefetched method return values
         if (data.prefetch) {
           for ( var methodName in data.prefetch) {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+              if (stats) {
+                var prefetchStartTime = new Date().getTime();
+              }
+            }
+            
             var value = data.prefetch[methodName];
             if (!result.$$proxy.cachedResults)
               result.$$proxy.cachedResults = {};
             if (value)
-              value = t.readProxyObject(value);
+              value = t.readProxyObject(value, stats);
             result.$$proxy.cachedResults[methodName] = value;
+            
+            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+              if (stats) {
+                var ms = new Date().getTime() - prefetchStartTime;
+                var prefetchStats = classStats.forPrefetch(methodName);
+                prefetchStats.numSets++;
+                prefetchStats.time += ms;
+              }
+            }
           }
         }
 
         if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
-          var ms = new Date().getTime() - startTime;
-          console.log("setValues " + data.clazz + " : took " + ms + "ms");
+          if (stats) {
+            var ms = new Date().getTime() - startTime;
+            classStats.propertiesTime += ms;
+          }
         }
         return result;
       }
@@ -864,7 +1014,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * 
      * @lint ignoreDeprecated(eval)
      */
-    getClassOrCreate: function(data) {
+    getClassOrCreate: function(data, stats) {
       var t = this;
 
       // If it's a string, then it's an existing class we need to create
@@ -882,8 +1032,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return data;
       }
 
-      // Types are not created when encountered because thatr can lead to
-      // unsolvable recursive
+      var startTime = 0;
+      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+        startTime = new Date().getTime();
+      }
+      
+      // Types are not created when encountered because that can lead to unsolvable recursive
       // problems; definitions are queued here instead
       var deferredTypes = [];
 
@@ -910,7 +1064,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               statics: {}
           };
           if (data.extend) {
-            def.extend = this.getClassOrCreate(data.extend);
+            def.extend = this.getClassOrCreate(data.extend, stats);
           } else {
             def.extend = qx.core.Object;
           }
@@ -920,7 +1074,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (data.interfaces) {
           var interfaces = data.interfaces;
           for (var i = 0; i < data.interfaces.length; i++)
-            interfaces[i] = this.getClassOrCreate(interfaces[i]);
+            interfaces[i] = this.getClassOrCreate(interfaces[i], stats);
           if (interfaces.length) {
             if (data.isInterface)
               def.extend = interfaces;
@@ -1129,7 +1283,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       // Create dependent classes
       for (var i = 0; i < deferredTypes.length; i++)
-        this.getClassOrCreate(deferredTypes[i]);
+        this.getClassOrCreate(deferredTypes[i], stats);
+      
+      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+        if (stats) {
+          var ms = new Date().getTime() - startTime;
+          stats.forClass(data.className).defineTime = ms;
+        }
+      }
 
       // Done
       return clazz;
