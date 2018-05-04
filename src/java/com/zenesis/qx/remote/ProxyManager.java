@@ -36,6 +36,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
@@ -303,6 +304,37 @@ public class ProxyManager implements EventListener {
 			((AutoAttach)newValue).setProxyProperty(keyObject, property);
 	}
 	
+	private static boolean same(Object left, Object right) {
+        if (left == right)
+            return true;
+        if (left == null || right == null)
+            return false;
+        
+        Class type = left.getClass();
+        
+        // Primitive types
+        if (type == Boolean.TYPE ||
+                type == Character.TYPE || 
+                type == Byte.TYPE || 
+                type == Short.TYPE || 
+                type == Integer.TYPE || 
+                type == Long.TYPE || 
+                type == Float.TYPE || 
+                type == Double.TYPE ||
+                left instanceof Boolean ||
+                left instanceof Character ||
+                left instanceof Number ||
+                left instanceof String) {
+            if (left.equals(right))
+                return true;
+        }
+        if (left instanceof Date && right instanceof Date) {
+            return ((Date)left).getTime() == ((Date)right).getTime();
+        }
+	    
+        return false;
+	}
+	
 	/**
 	 * Changes a value, but only fires the event if the value is changed 
 	 * @param <T>
@@ -321,8 +353,15 @@ public class ProxyManager implements EventListener {
 			if (((String) oldValue).trim().length() == 0)
 				oldValue = null;
 		}
-		if (newValue == oldValue)// || (newValue != null && oldValue != null && newValue.equals(oldValue)))
-			return oldValue;
+		
+		/*
+		 * Don't know why `.equal()` was completely switched off before, but this is now expanded to do 
+		 * .equal for primitive types in `same()`
+		 * 
+		 * // if (newValue == oldValue)// || (newValue != null && oldValue != null && newValue.equals(oldValue)))
+		 */
+        if (same(newValue, oldValue))
+			return oldValue; // Make sure that the oldValue is returned
 		propertyChanged(keyObject, propertyName, newValue, oldValue);
 		return newValue;
 	}
@@ -344,6 +383,8 @@ public class ProxyManager implements EventListener {
 		}
 		attach(keyObject, property, newValue, oldValue);
 		propertyChanged(property, keyObject, newValue, oldValue);
+        if (keyObject instanceof PropertyChangeListener)
+            ((PropertyChangeListener)keyObject).propertyChanged(property, newValue, oldValue);
 	}
 	
 	/**
@@ -604,7 +645,7 @@ public class ProxyManager implements EventListener {
 	
 	/***
 	 * Searches for classes - there is no way to get the list of classes in a package so the only
-	 * way to do it is to search for .class files on the classpath
+	 * way to do it is to search for .class files on )the classpath
 	 * @param list
 	 * @param dir
 	 * @param packageName
