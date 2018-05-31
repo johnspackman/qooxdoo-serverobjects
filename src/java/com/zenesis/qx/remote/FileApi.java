@@ -395,9 +395,29 @@ public class FileApi implements Proxied {
 		} else {
 			uploadFolder = "";
 		}
-		
+
 		File src = upfile.getFile();
 		File dest = getFile(uploadFolder + "/" + upfile.getOriginalName());
+		
+        obj = upfile.getParams().get("uploadUnique");
+        if (obj != null && obj instanceof String && obj.toString().equals("true")) {
+            int index = 0;
+            File tmp = dest;
+            String name = tmp.getName();
+            int pos = name.lastIndexOf('.');
+            String ext;
+            if (pos > -1) {
+                ext = name.substring(pos);
+                name = name.substring(0, pos);
+            } else
+                ext = "";
+            while (tmp.exists()) {
+                index++;
+                tmp = new File(dest.getParentFile(), name + "-" + index + ext);
+            }
+            dest = tmp;
+        }
+
 		dest = copyTo(src, dest, true, false);
 		src.delete();
 		onChange(ChangeType.MOVE, dest, src);
