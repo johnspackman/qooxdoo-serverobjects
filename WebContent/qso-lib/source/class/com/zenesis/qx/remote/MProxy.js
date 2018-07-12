@@ -51,6 +51,24 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
         this.$$proxy = {};
         this.setServerId(com.zenesis.qx.remote.ProxyManager.getInstance().getCurrentNewServerId());
       }
+      if (this.__initialisers !== undefined) {
+        this.__initialisers.forEach(function(cb) {
+          cb.call(this, this);
+        });
+        delete this.__initialisers;
+      }
+    },
+    
+    proxyAddInitialiser: function(cb, context) {
+      if (context)
+        cb = qx.lang.Function.bind(cb, context);
+      if (this.__serverId !== null) {
+        cb.call(this, this);
+      } else {
+        if (this.__initialisers === undefined)
+          this.__initialisers = [];
+        this.__initialisers.push(cb);
+      }
     },
 
     /**
