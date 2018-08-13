@@ -714,16 +714,15 @@ public class EventManager {
 		if (System.currentTimeMillis() - COMPACT_FREQUENCY_MS > lastCompacted)
 		    compact();
 		
-	    int index = 0;
-		for (Binding bind : bindings) {
-			if (bind.getTarget() == target) {
-				if (index > 1) {
-					bindings.remove(bind);
-					bindings.add(index / 2, bind);
-				}
-				return bind;
-			}
-			index++;
+		for (int index = 0; index < bindings.size(); index++) {
+		    Binding bind = bindings.get(index);
+            if (bind.getTarget() == target) {
+                if (index > 1) {
+                    bindings.remove(index);
+                    bindings.add(index / 2, bind);
+                }
+                return bind;
+            }
 		}
 		return null;
 	}
