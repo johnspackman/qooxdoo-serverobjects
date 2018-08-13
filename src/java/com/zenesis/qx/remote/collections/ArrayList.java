@@ -2,13 +2,13 @@ package com.zenesis.qx.remote.collections;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.zenesis.qx.event.EventManager;
+import com.zenesis.qx.event.Eventable;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
@@ -22,10 +22,11 @@ import com.zenesis.qx.remote.annotations.Properties;
  */
 @SuppressWarnings("serial")
 @Properties(extend="qx.data.Array")
-public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied {
+public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied, Eventable {
 	
 	private final int hashCode;
 	private boolean sorting;
+	private int eventsDisabled;
 	
 	public ArrayList() {
 		super();
@@ -42,7 +43,29 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied {
 		hashCode = new Object().hashCode();
 	}
 
-	@SerializeConstructorArgs
+	@Override
+    public boolean supportsEvent(String eventName) {
+        return true;
+    }
+
+    @Override
+    public void disableEvents() {
+        eventsDisabled++;
+    }
+
+    @Override
+    public void enableEvents() {
+        if (eventsDisabled < 1)
+            throw new IllegalArgumentException("Cannot enable events more than they have been enabled");
+        eventsDisabled--;
+    }
+
+    @Override
+    public boolean eventsEnabled() {
+        return eventsDisabled != 0;
+    }
+
+    @SerializeConstructorArgs
 	public void serializeConstructorArgs(JsonGenerator jgen) throws IOException {
 		jgen.writeStartArray();
 		Object[] arr;
@@ -266,7 +289,8 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied {
 	 * @param event
 	 */
 	private void fire(ArrayChangeData event) {
-		EventManager.fireDataEvent(this, "change", event);
+		if (eventsEnabled())
+		    EventManager.fireDataEvent(this, "change", event);
 		ProxyManager.collectionChanged(this, event);
 	}
 	

@@ -7,11 +7,11 @@ import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.zenesis.qx.event.EventManager;
+import com.zenesis.qx.event.Eventable;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxiedContainerAware;
 import com.zenesis.qx.remote.ProxyManager;
@@ -21,7 +21,7 @@ import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
 import com.zenesis.qx.utils.ArrayUtils;
 
 @Properties(extend="com.zenesis.qx.remote.Map")
-public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, ProxiedContainerAware {
+public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, ProxiedContainerAware, Eventable {
 	
 	private static final long serialVersionUID = -7803265903489114209L;
 
@@ -30,8 +30,10 @@ public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, Pro
 	private Values values;
 	private EntrySet entrySet;
 	
-	private Proxied container;
+	@SuppressWarnings("unused")
+    private Proxied container;
 	private ProxyProperty property;
+    private int eventsDisabled;
 
 	public HashMap() {
 		super();
@@ -57,6 +59,28 @@ public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, Pro
     public void setProxiedContainer(Proxied container, ProxyProperty property) {
 	    this.container = container;
 	    this.property = property;
+    }
+
+    @Override
+    public boolean supportsEvent(String eventName) {
+        return true;
+    }
+
+    @Override
+    public void disableEvents() {
+        eventsDisabled++;
+    }
+
+    @Override
+    public void enableEvents() {
+        if (eventsDisabled < 1)
+            throw new IllegalArgumentException("Cannot enable events more than they have been enabled");
+        eventsDisabled--;
+    }
+
+    @Override
+    public boolean eventsEnabled() {
+        return eventsDisabled != 0;
     }
 
     @SerializeConstructorArgs

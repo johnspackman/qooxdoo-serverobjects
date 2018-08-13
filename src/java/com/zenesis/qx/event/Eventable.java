@@ -28,7 +28,7 @@
 package com.zenesis.qx.event;
 
 /**
- * Objects which supprot events can optionally implement this interface to provide
+ * Objects which support events can optionally implement this interface to provide
  * better control over the event process.  If this is not implemented, the object
  * will be considered to throw events without any checks on validity
  * 
@@ -42,4 +42,19 @@ public interface Eventable {
 	 * @return
 	 */
 	public boolean supportsEvent(String eventName);
+	
+	/**
+	 * Called to suppress events (eg during loading)
+	 */
+	public void disableEvents();
+	
+    /**
+     * Called to reenable events (eg during loading)
+     */
+	public void enableEvents();
+	
+    /**
+     * Called to detect whether events are suppressed
+     */
+	public boolean eventsEnabled();
 }
