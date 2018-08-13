@@ -63,20 +63,24 @@ public class EventManager {
 	
 	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(EventManager.class);
 	
+	/** The size of arrays (as opposed to HashMaps) for lists of listeners on the same object */
 	private static final int TINY_ARRAY_SIZE = 5;
+	
+	/** How often to compact the bindings (in milliseconds) */
+	private static final long COMPACT_FREQUENCY_MS = 5 * 60 * 1000;
 	
 	/*
 	 * Links an event name with a listener; the listener is actually either a) null,
-	 * b) an EventListener, c) and array of EventListeners, or d) a ArrayList of EventListeners.
+	 * b) an EventListener, c) an array of EventListeners, or d) a ArrayList of EventListeners.
 	 */
 	private static final class NamedEventListener {
 		public final String eventName;
-		public Object listener;
+		public WeakReference<Object> listenerRef;
 
 		public NamedEventListener(String eventName, EventListener listener) {
 			super();
 			this.eventName = eventName;
-			this.listener = listener;
+			this.listenerRef = new WeakReference(listener);
 		}
 		
 		/**
@@ -85,9 +89,11 @@ public class EventManager {
 		 * @throws IllegalArgumentException if the listener is added twice
 		 */
 		public void addListener(EventListener newListener) throws IllegalArgumentException{
+		    final Object listener = listenerRef != null ? listenerRef.get() : null;
+		    
 			// Nothing so far? Easy.
 			if (listener == null) {
-				listener = newListener;
+				listenerRef = new WeakReference(newListener);
 				return;
 			}
 			
@@ -113,7 +119,7 @@ public class EventManager {
 				for (int i = 0; i < TINY_ARRAY_SIZE; i++)
 					set.add(list[i]);
 				set.add(newListener);
-				listener = set;
+				this.listenerRef = new WeakReference(set);
 				
 			// Already a ArrayList - add to it
 			} else if (clazz == ArrayList.class) {
@@ -139,7 +145,7 @@ public class EventManager {
 				EventListener[] list = new EventListener[TINY_ARRAY_SIZE];
 				list[0] = (EventListener)listener;
 				list[1] = newListener;
-				this.listener = list;
+                this.listenerRef = new WeakReference(list);
 			}
 		}
 		
@@ -149,6 +155,7 @@ public class EventManager {
 		 * @return true if the listener existed and was removed
 		 */
 		public boolean removeListener(EventListener oldListener) {
+            final Object listener = listenerRef != null ? listenerRef.get() : null;
 			if (listener == null)
 				return false;
 			
@@ -184,7 +191,7 @@ public class EventManager {
 			if (listener != oldListener)
 				return false;
 			
-			listener = null;
+			listenerRef = null;
 			return true;
 		}
 		
@@ -194,6 +201,7 @@ public class EventManager {
 		 * @return true if the listener existed and was removed
 		 */
 		public boolean hasListener(EventListener oldListener) {
+            final Object listener = listenerRef != null ? listenerRef.get() : null;
 			if (listener == null)
 				return false;
 			
@@ -228,6 +236,8 @@ public class EventManager {
 		 * Fires an event on the listener(s)
 		 */
 		public void fireEvent(Event event) {
+		    final Object listener = listenerRef != null ? listenerRef.get() : null;
+
 			if (listener == null)
 				return;
 			
@@ -238,9 +248,9 @@ public class EventManager {
 				EventListener[] list = (EventListener[])listener;
 				for (int i = 0; i < TINY_ARRAY_SIZE; i++)
 					if (list[i] != null) {
-						EventListener listener = list[i];
-						if (listener != null)
-							listener.handleEvent(event);
+						EventListener entry = list[i];
+						if (entry != null)
+						    entry.handleEvent(event);
 					}
 				return;
 			}
@@ -248,21 +258,23 @@ public class EventManager {
 			// Already a ArrayList
 			if (clazz == ArrayList.class) {
 				ArrayList<EventListener> set = (ArrayList<EventListener>)listener;
-				for (EventListener listener : set) {
-					if (listener != null)
-						listener.handleEvent(event);
+				for (EventListener entry : set) {
+					if (entry != null)
+					    entry.handleEvent(event);
 				}
 				return;
 			}
 				
 			// Must be an EventListener instance, convert to an array 
 			assert(clazz == EventListener.class);
-			EventListener listener = (EventListener)this.listener;
-			if (listener != null)
-				listener.handleEvent(event);
+			EventListener entry = (EventListener)listener;
+			if (entry != null)
+			    entry.handleEvent(event);
 		}
 		
 		public boolean isEmpty() {
+		    final Object listener = listenerRef != null ? listenerRef.get() : null;
+		    
 			if (listener == null)
 				return true;
 			
@@ -294,7 +306,7 @@ public class EventManager {
 	
 	/*
 	 * Records the binding between a target object and the listeners; listener is either
-	 * a NamedEventyListener, an array of NamedEventListeners, or a Map indexed by name
+	 * a NamedEventListener, an array of NamedEventListeners, or a Map indexed by name
 	 */
 	private static final class Binding {
 		public WeakReference targetRef;
@@ -335,6 +347,9 @@ public class EventManager {
 	// Linked list of bindings - note this cannot be a map because maps require the 
 	//	target to be immutable (Collections change their hashCode as they are modified)
 	private LinkedList<Binding> bindings = new LinkedList<Binding>();
+	
+	// When the bindings were last compacted
+	private long lastCompacted;
 	
 	private static EventManager s_instance;
 	
@@ -696,7 +711,10 @@ public class EventManager {
 	 * @return
 	 */
 	private synchronized Binding getBinding(Object target) {
-		int index = 0;
+		if (System.currentTimeMillis() - COMPACT_FREQUENCY_MS > lastCompacted)
+		    compact();
+		
+	    int index = 0;
 		for (Binding bind : bindings) {
 			if (bind.getTarget() == target) {
 				if (index > 1) {
@@ -776,6 +794,7 @@ public class EventManager {
 					bindings.remove(binding);
 			}
 		}
+        lastCompacted = System.currentTimeMillis();
 		return bindings.isEmpty();
 	}
 	
