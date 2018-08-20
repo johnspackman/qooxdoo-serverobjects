@@ -477,11 +477,10 @@ public class ProxySessionTracker implements UploadInterceptor {
 	}
 
 	@Override
-	public File interceptUpload(File file) {
+	public void interceptUpload(UploadingFile upfile) {
 		if (bootstrap != null && bootstrap instanceof UploadInterceptor) {
-			file = ((UploadInterceptor)bootstrap).interceptUpload(file);
+			((UploadInterceptor)bootstrap).interceptUpload(upfile);
 		}
-		return file;
 	}
 
 	/**

@@ -9,5 +9,5 @@ import java.io.File;
  */
 public interface UploadInterceptor {
 
-	public File interceptUpload(File file);
+	public void interceptUpload(UploadingFile upfile);
 }

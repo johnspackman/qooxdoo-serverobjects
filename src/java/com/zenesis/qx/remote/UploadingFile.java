@@ -32,11 +32,17 @@ public class UploadingFile implements Proxied {
 	// Where the file is being uploaded to; temporary file initially
 	private File file;
 	
+	// Whether the upload has been aborted
+	private boolean aborted;
+	
 	// The name on the users PC
 	private String originalName;
 	
 	// Number of bytes to go
 	private long bytesUploaded;
+	
+	// What the URL is to download the file
+	private String downloadUrl;
 	
 	/**
 	 * @param uploadId
@@ -48,6 +54,21 @@ public class UploadingFile implements Proxied {
 		this.file = file;
 		this.originalName = originalName;
 		this.params = params;
+	}
+	
+	public boolean isAborted() {
+	    return aborted;
+	}
+	
+	public void abort() {
+	    aborted = true;
+	}
+	
+	public FileApi.FileInfo getFileInfo(FileApi api) {
+	    FileApi.FileInfo info = api.getFileInfo(file);
+	    if (info != null && downloadUrl != null)
+	        info.absolutePath = downloadUrl;
+	    return info;
 	}
 
 	/**
@@ -72,7 +93,11 @@ public class UploadingFile implements Proxied {
 		return file;
 	}
 
-	/**
+	public void setFile(File file) {
+        this.file = ProxyManager.changeProperty(this, "file", file, this.file);
+    }
+
+    /**
 	 * @return the bytesUploaded
 	 */
 	public long getBytesUploaded() {
@@ -93,7 +118,15 @@ public class UploadingFile implements Proxied {
 		return params;
 	}
 
-	/* (non-Javadoc)
+    public String getDownloadUrl() {
+        return downloadUrl;
+    }
+
+    public void setDownloadUrl(String downloadUrl) {
+        this.downloadUrl = ProxyManager.changeProperty(this, "downloadUrl", downloadUrl, this.downloadUrl);
+    }
+
+    /* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
 	@Override

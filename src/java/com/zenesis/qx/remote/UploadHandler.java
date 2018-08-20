@@ -163,15 +163,16 @@ public class UploadHandler {
 		File file = ProxyManager.getInstance().createTemporaryFile(filename);
 		UploadingFile uploading = new UploadingFile("0", file, filename, Collections.EMPTY_MAP);
         ArrayList<FileApi.FileInfo> files = new ArrayList<FileApi.FileInfo>();
-        file = receiveFile(api, request.getInputStream(), uploading);
-		if (file != null)
-			file = tracker.interceptUpload(file);
-		if (file != null) {
-	        FileApi.FileInfo info = api.getFileInfo(file);
-	        if (info != null)
-	        	files.add(info);
-			tracker.getQueue().queueCommand(CommandId.CommandType.UPLOAD, null, null, files);
-		}
+        receiveFile(api, request.getInputStream(), uploading);
+        if (!uploading.isAborted()) {
+            tracker.interceptUpload(uploading);
+            if (!uploading.isAborted()) {
+                FileApi.FileInfo info = uploading.getFileInfo(api);
+                if (info != null)
+                    files.add(info);
+                tracker.getQueue().queueCommand(CommandId.CommandType.UPLOAD, null, null, files);
+            }
+        }
     }
     
     /**
@@ -230,11 +231,11 @@ public class UploadHandler {
 				log.info("Starting receive of " + file.getAbsolutePath());
 				UploadingFile uploading = new UploadingFile(uploadId, file, fileName, params);
 				
-				File receivedFile = receiveFile(api, filePart.getInputStream(), uploading);
-				if (receivedFile != null)
-					receivedFile = tracker.interceptUpload(receivedFile);
-				if (receivedFile != null) {
-					FileInfo info = api.getFileInfo(receivedFile);
+				receiveFile(api, filePart.getInputStream(), uploading);
+				if (!uploading.isAborted())
+				    tracker.interceptUpload(uploading);
+				if (!uploading.isAborted()) {
+					FileInfo info = uploading.getFileInfo(api);
 					if (info != null) {
 						files.add(info);
 						info.uploadId = uploadId;
@@ -252,7 +253,7 @@ public class UploadHandler {
      * @return
      * @throws IOException
      */
-    protected File receiveFile(FileApi api, InputStream is, UploadingFile uploading) throws IOException {
+    protected void receiveFile(FileApi api, InputStream is, UploadingFile uploading) throws IOException {
 		api.beginUploadingFile(uploading);
 		
 		FileOutputStream os = null;
@@ -270,7 +271,7 @@ public class UploadHandler {
 			os.close();
 			os = null;
 			log.info("Receive complete");
-			return api.endUploadingFile(uploading, true);
+			api.endUploadingFile(uploading, true);
 		}catch(IOException e) {
 			log.error("Failed to upload " + file.getName() + ": " + e.getMessage(), e);
 			
