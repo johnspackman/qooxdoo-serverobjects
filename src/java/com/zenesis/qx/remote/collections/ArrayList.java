@@ -7,7 +7,10 @@ import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
+import com.zenesis.qx.event.EventStore;
+import com.zenesis.qx.event.EventVerifiable;
 import com.zenesis.qx.event.Eventable;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
@@ -22,11 +25,11 @@ import com.zenesis.qx.remote.annotations.Properties;
  */
 @SuppressWarnings("serial")
 @Properties(extend="qx.data.Array")
-public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied, Eventable {
+public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied, Eventable, EventVerifiable {
 	
+    private final EventStore eventStore = new EventStore(this);
 	private final int hashCode;
 	private boolean sorting;
-	private int eventsDisabled;
 	
 	public ArrayList() {
 		super();
@@ -45,24 +48,47 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied, Eve
 
 	@Override
     public boolean supportsEvent(String eventName) {
-        return true;
+        return eventName.equals("change");
     }
 
     @Override
     public void disableEvents() {
-        eventsDisabled++;
+        eventStore.disableEvents();
     }
 
     @Override
     public void enableEvents() {
-        if (eventsDisabled < 1)
-            throw new IllegalArgumentException("Cannot enable events more than they have been enabled");
-        eventsDisabled--;
+        eventStore.enableEvents();
     }
 
     @Override
     public boolean eventsEnabled() {
-        return eventsDisabled != 0;
+        return eventStore.eventsEnabled();
+    }
+
+    @Override
+    public boolean addListener(String eventName, EventListener listener) throws IllegalArgumentException {
+        return eventStore.addListener(eventName, listener);
+    }
+
+    @Override
+    public boolean removeListener(String eventName, EventListener listener) {
+        return eventStore.removeListener(eventName, listener);
+    }
+
+    @Override
+    public boolean hasListener(String eventName, EventListener listener) {
+        return eventStore.hasListener(eventName, listener);
+    }
+
+    @Override
+    public void fireEvent(String eventName) {
+        eventStore.fireEvent(eventName);
+    }
+
+    @Override
+    public void fireDataEvent(String eventName, Object data) {
+        eventStore.fireDataEvent(eventName, data);
     }
 
     @SerializeConstructorArgs

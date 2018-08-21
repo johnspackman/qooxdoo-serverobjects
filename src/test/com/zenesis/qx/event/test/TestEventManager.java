@@ -33,7 +33,10 @@ import java.io.StringWriter;
 import com.zenesis.qx.event.Event;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
+import com.zenesis.qx.event.EventVerifiable;
 import com.zenesis.qx.event.Eventable;
+import com.zenesis.qx.remote.collections.ArrayList;
+import com.zenesis.qx.remote.collections.ArrayList.ArrayChangeData;
 import com.zenesis.qx.test.AbstractTestCase;
 
 public class TestEventManager extends AbstractTestCase {
@@ -146,9 +149,54 @@ public class TestEventManager extends AbstractTestCase {
 		
 		assertFalse(EventManager.addListener(testObject, "noSuchEvent", listener));
 	}
+	
+	private class OnEventChangeListener implements EventListener {
+        int numAddedEvents = 0;
+        int numRemovedEvents = 0;
+        
+        @Override
+        public void handleEvent(com.zenesis.qx.event.Event changeEvt) {
+            ArrayChangeData data = (ArrayChangeData)changeEvt.getData();
+            if (data.removed != null) {
+                for (Object obj : data.removed) {
+                    numRemovedEvents++;
+                }
+            }
+            if (data.added != null) {
+                for (Object obj : data.added) {
+                    numAddedEvents++;
+                }
+            }
+        }
+	}
+	
+	public void test4() {
+	    
+	    OnEventChangeListener ON_EVENTS_CHANGE = new OnEventChangeListener();
+
+	    ArrayList<String> stringArray = new ArrayList();
+        int size = EventManager.getInstance().size();
+        EventManager.addListener(stringArray, "change", ON_EVENTS_CHANGE);
+        assert(size == EventManager.getInstance().size());
+        stringArray.add("alpha");
+        assert(ON_EVENTS_CHANGE.numAddedEvents == 1);
+        assert(ON_EVENTS_CHANGE.numRemovedEvents == 0);
+        stringArray.add("bravo");
+        stringArray.add("charlie");
+        stringArray.add("delta");
+        stringArray.add("echo");
+        assert(size == EventManager.getInstance().size());
+        assert(ON_EVENTS_CHANGE.numAddedEvents == 5);
+        assert(ON_EVENTS_CHANGE.numRemovedEvents == 0);
+        stringArray.remove("charlie");
+        assert(ON_EVENTS_CHANGE.numAddedEvents == 5);
+        assert(ON_EVENTS_CHANGE.numRemovedEvents == 1);
+        EventManager.removeListener(stringArray, "change", ON_EVENTS_CHANGE);
+        assert(size == EventManager.getInstance().size());
+	}
 }
 
-class TestObject implements Eventable {
+class TestObject implements EventVerifiable {
 
 	/* (non-Javadoc)
 	 * @see com.zenesis.qx.event.Eventable#supportsEvent(java.lang.String)

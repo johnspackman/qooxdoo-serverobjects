@@ -10,7 +10,10 @@ import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
+import com.zenesis.qx.event.EventStore;
+import com.zenesis.qx.event.EventVerifiable;
 import com.zenesis.qx.event.Eventable;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxiedContainerAware;
@@ -21,7 +24,7 @@ import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
 import com.zenesis.qx.utils.ArrayUtils;
 
 @Properties(extend="com.zenesis.qx.remote.Map")
-public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, ProxiedContainerAware, Eventable {
+public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, ProxiedContainerAware, Eventable, EventVerifiable {
 	
 	private static final long serialVersionUID = -7803265903489114209L;
 
@@ -33,7 +36,7 @@ public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, Pro
 	@SuppressWarnings("unused")
     private Proxied container;
 	private ProxyProperty property;
-    private int eventsDisabled;
+    private final EventStore eventStore = new EventStore(this);
 
 	public HashMap() {
 		super();
@@ -63,24 +66,47 @@ public class HashMap<K,V> extends java.util.HashMap<K,V> implements Proxied, Pro
 
     @Override
     public boolean supportsEvent(String eventName) {
-        return true;
+        return eventName.equals("change");
     }
 
     @Override
     public void disableEvents() {
-        eventsDisabled++;
+        eventStore.disableEvents();
     }
 
     @Override
     public void enableEvents() {
-        if (eventsDisabled < 1)
-            throw new IllegalArgumentException("Cannot enable events more than they have been enabled");
-        eventsDisabled--;
+        eventStore.enableEvents();
     }
 
     @Override
     public boolean eventsEnabled() {
-        return eventsDisabled != 0;
+        return eventStore.eventsEnabled();
+    }
+
+    @Override
+    public boolean addListener(String eventName, EventListener listener) throws IllegalArgumentException {
+        return eventStore.addListener(eventName, listener);
+    }
+
+    @Override
+    public boolean removeListener(String eventName, EventListener listener) {
+        return eventStore.removeListener(eventName, listener);
+    }
+
+    @Override
+    public boolean hasListener(String eventName, EventListener listener) {
+        return eventStore.hasListener(eventName, listener);
+    }
+
+    @Override
+    public void fireEvent(String eventName) {
+        eventStore.fireEvent(eventName);
+    }
+
+    @Override
+    public void fireDataEvent(String eventName, Object data) {
+        eventStore.fireDataEvent(eventName, data);
     }
 
     @SerializeConstructorArgs

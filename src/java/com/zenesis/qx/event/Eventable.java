@@ -37,13 +37,6 @@ package com.zenesis.qx.event;
 public interface Eventable {
 
 	/**
-	 * Detects whether this object supports a given event
-	 * @param eventName
-	 * @return
-	 */
-	public boolean supportsEvent(String eventName);
-	
-	/**
 	 * Called to suppress events (eg during loading)
 	 */
 	public void disableEvents();
@@ -57,4 +50,43 @@ public interface Eventable {
      * Called to detect whether events are suppressed
      */
 	public boolean eventsEnabled();
+	
+    /**
+     * Adds an event listener
+     * @param eventName
+     * @param listener
+     * @throws {@link IllegalArgumentException} if a listener is added twice
+     * @return true if the event was added
+     */
+    public boolean addListener(String eventName, EventListener listener) throws IllegalArgumentException;
+    
+    /**
+     * Removes a listener from an object and eventName
+     * @param eventName
+     * @param listener
+     * @return
+     */
+    public boolean removeListener(String eventName, EventListener listener);
+
+    /**
+     * Tests whether a listener exists
+     * @param eventName
+     * @param listener
+     * @return
+     */
+    public boolean hasListener(String eventName, EventListener listener);
+    
+    /**
+     * Fires an event on the object
+     * @param eventName
+     */
+    public void fireEvent(String eventName);
+
+    /**
+     * Fires a data event on the object
+     * @param eventName
+     * @param data
+     */
+    public void fireDataEvent(String eventName, Object data);
+
 }
