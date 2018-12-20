@@ -91,7 +91,7 @@ public class ProxyObjectMapper extends BasicObjectMapper {
 	 * @param tracker
 	 */
 	public ProxyObjectMapper(ProxySessionTracker tracker) {
-		this(tracker, true, new File("."));
+		this(tracker, true, null);
 	}
 	
 	/**
@@ -110,7 +110,7 @@ public class ProxyObjectMapper extends BasicObjectMapper {
 	 * @param rootDir root directory to serialise all File's as relative to
 	 */
 	public ProxyObjectMapper(ProxySessionTracker tracker, boolean indent, File rootDir) {
-		super(indent, rootDir == null ? new File(".") : null);
+		super(indent, rootDir);
 		this.tracker = tracker;
 	}
 	

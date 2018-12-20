@@ -207,9 +207,10 @@ public class BasicObjectMapper extends ObjectMapper {
 				jgen.writeNull();
 			else {
 				String str = value.getAbsolutePath();
-				if (localPrefix == null)
+				if (localPrefix == null) {
 					jgen.writeString(str);
-				else {
+					log.warn("Serialising absolute path to client: " + str);
+				} else {
 					int len = localPrefix.length();
 					if (len < str.length() && str.substring(0, len).equalsIgnoreCase(localPrefix))
 						jgen.writeString(str.substring(len));
@@ -239,8 +240,10 @@ public class BasicObjectMapper extends ObjectMapper {
 			String value = jp.getText();
 			if (value == null || value.length() == 0)
 				return null;
-			if (localDir == null)
-				return new File(value);
+			if (localDir == null) {
+                log.error("Refusing to Deserialise absolute path from client: " + value);
+				throw new IOException("Refusing to Deserialise absolute path from client: " + value);
+			}
 			if (File.separatorChar == '/' && value.charAt(0) == '/')
 				return new File(value);
 			if (File.separatorChar == '\\' && value.length() > 1 && value.charAt(1) == ':')
@@ -286,10 +289,8 @@ public class BasicObjectMapper extends ObjectMapper {
 		
 		module = new SimpleModule("ProxyObjectMapper2", Version.unknownVersion());
 		module.addSerializer(String.class, new StringSerializer());
-		if (rootDir != null) {
-    		module.addSerializer(File.class, new FileSerializer(rootDir));
-    		module.addDeserializer(File.class, new FileDeserializer(rootDir));
-		}
+		module.addSerializer(File.class, new FileSerializer(rootDir));
+		module.addDeserializer(File.class, new FileDeserializer(rootDir));
 		module.addSerializer(Map.class, new MapSerializer());
 		module.addSerializer(Proxied.class, new ProxiedSerializer());
 		module.addDeserializer(Proxied.class, new ProxiedDeserializer());
