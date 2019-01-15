@@ -43,12 +43,12 @@ public class FileApi implements Proxied {
 	 * the duration of the session)
 	 */
 	public static final class FileInfo {
-		public String name;
-		public String absolutePath;
-		public FileType type;
-		public long size;
-		public long lastModified;
-		public boolean exists;
+		public final String name;
+		public final String absolutePath;
+		public final FileType type;
+		public final long size;
+		public final long lastModified;
+		public final boolean exists;
 		public String uploadId;
 		
 		public FileInfo(File file, String rootAbsPath) {
@@ -378,50 +378,27 @@ public class FileApi implements Proxied {
 	 * @return
 	 * @throws IOException
 	 */
-	public void endUploadingFile(UploadingFile upfile, boolean success) throws IOException {
+	public File endUploadingFile(UploadingFile upfile, boolean success) throws IOException {
 		if (!success) {
 			uploading.remove(upfile.getUploadId());
-			return;
+			return null;
+		}
+
+		String uploadFolder = null;
+		Object obj = upfile.getParams().get("uploadFolder");
+		if (obj instanceof String) {
+			uploadFolder = (String)obj;
+			if (uploadFolder.length() == 0)
+				uploadFolder = "";
+			else if (uploadFolder.charAt(uploadFolder.length() - 1) == '/')
+				uploadFolder = uploadFolder.substring(0, uploadFolder.length() - 1);
+		} else {
+			uploadFolder = "";
 		}
 
 		File src = upfile.getFile();
-		updateUploadedFileDest(upfile);
-		File dest = upfile.getFile();
-		if (dest == src || dest.getAbsolutePath().equals(src.getAbsolutePath()))
-		    return;
+		File dest = getFile(uploadFolder + "/" + upfile.getOriginalName());
 		
-		if (dest == null) {
-		    src.delete();
-		    return;
-		}
-		
-		dest = copyTo(src, dest, true, false);
-		src.delete();
-		onChange(ChangeType.MOVE, dest, src);
-		onChange(ChangeType.UPLOAD, upfile.getOriginalName(), null);
-		upfile.setFile(dest);
-	}
-	
-	/**
-	 * Called to determine where the uploaded file is to be copied to
-	 * 
-	 * @param upfile
-	 */
-	protected void updateUploadedFileDest(UploadingFile upfile) {
-        String uploadFolder = null;
-        Object obj = upfile.getParams().get("uploadFolder");
-        if (obj instanceof String) {
-            uploadFolder = (String)obj;
-            if (uploadFolder.length() == 0)
-                uploadFolder = "";
-            else if (uploadFolder.charAt(uploadFolder.length() - 1) == '/')
-                uploadFolder = uploadFolder.substring(0, uploadFolder.length() - 1);
-        } else {
-            uploadFolder = "";
-        }
-        
-        File dest = getFile(uploadFolder + "/" + upfile.getOriginalName());
-        
         obj = upfile.getParams().get("uploadUnique");
         if (obj != null && obj instanceof String && obj.toString().equals("true")) {
             int index = 0;
@@ -440,8 +417,12 @@ public class FileApi implements Proxied {
             }
             dest = tmp;
         }
-        
-        upfile.setFile(dest);
+
+		dest = copyTo(src, dest, true, false);
+		src.delete();
+		onChange(ChangeType.MOVE, dest, src);
+		onChange(ChangeType.UPLOAD, uploadFolder + "/" + upfile.getOriginalName(), null);		
+		return dest;
 	}
 
 	/**
