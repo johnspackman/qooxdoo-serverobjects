@@ -1216,6 +1216,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               def.members["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
               def.members["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
               def.members["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
+              def.members["get" + upname + "Async"] = new Function("async", "return this._getPropertyOnDemandAsync('" + propName + "');");
               def.members["get" + upname + "Async"] = new Function(
                   "return new qx.Promise(function(resolve) {" +
                   "  this._getPropertyOnDemand('" + propName + "', function(result) {" +
@@ -1709,8 +1710,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               // edit the existing object if there is one.
               var current = undefined;
               if (def.onDemand === true) {
-                if (serverObject.$$proxyUser)
-                  current = serverObject.$$proxyUser[propertyName];
+                if (serverObject.$$proxy.onDemand)
+                  current = serverObject.$$proxy.onDemand[propertyName];
               } else {
                 try {
                   current = serverObject["get" + upname]();

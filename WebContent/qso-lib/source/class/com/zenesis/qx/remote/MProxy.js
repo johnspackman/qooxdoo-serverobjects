@@ -194,6 +194,18 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       if (ex)
         throw ex;
     },
+    
+    _getPropertyOnDemandAsync: function(propName) {
+      if (this.$$proxy.onDemandPromise === undefined)
+        this.$$proxy.onDemandPromise = {};
+      var promise = this.$$proxy.onDemandPromise[propName];
+      if (promise)
+        return promise;
+      
+      return this.$$proxy.onDemandPromise[propName] = new qx.Promise(function(resolve) {
+        this._getPropertyOnDemand(propName, resolve);
+      }, this);
+    },
 
     /**
      * Called when an on-demand property's get method is called
@@ -202,15 +214,15 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      */
     _getPropertyOnDemand: function(propName, async) {
       // Check the cache
-      if (this.$$proxyUser) {
-        var value = this.$$proxyUser[propName];
+      if (this.$$proxy.onDemand) {
+        var value = this.$$proxy.onDemand[propName];
         if (value !== undefined) {
           if (typeof async == "function")
             async.call(this, value);
           return value;
         }
       } else
-        this.$$proxyUser = {};
+        this.$$proxy.onDemand = {};
       
       if (qx.core.Environment.get("com.zenesis.qx.remote.traceOnDemandSync")) {
         if (async === undefined) {
@@ -258,12 +270,12 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      */
     __storePropertyOnDemand: function(propDef, value) {
       var oldValue;
-      if (this.$$proxyUser && (oldValue = this.$$proxyUser[propDef.name])) {
+      if (this.$$proxy.onDemand && (oldValue = this.$$proxy.onDemand[propDef.name])) {
         if (propDef.array == "wrap" && propDef.changeListenerId) {
           oldValue.removeListenerById(propDef.changeListenerId);
           propDef.changeListenerId = null;
         }
-        delete this.$$proxyUser[propDef.name];
+        delete this.$$proxy.onDemand[propDef.name];
       }
       if (value !== undefined) {
         if (value && propDef.array == "wrap") {
@@ -278,7 +290,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
             PM.onWrappedArrayChange(evt, this, propDef);
           }, this);
         }
-        this.$$proxyUser[propDef.name] = value;
+        this.$$proxy.onDemand[propDef.name] = value;
       }
       return value;
     },
@@ -287,7 +299,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      * Called when an on-demand property's expire method is called
      */
     _expirePropertyOnDemand: function(propName, sendToServer) {
-      if (this.$$proxyUser && this.$$proxyUser[propName]) {
+      if (this.$$proxy.onDemand && this.$$proxy.onDemand[propName]) {
         var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
         this.__storePropertyOnDemand(propDef, undefined);
       }
@@ -304,17 +316,17 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     _setPropertyOnDemand: function(propName, value) {
       // Update the cache
       var oldValue;
-      if (!this.$$proxyUser)
-        this.$$proxyUser = {};
+      if (!this.$$proxy.onDemand)
+        this.$$proxy.onDemand = {};
       else
-        oldValue = this.$$proxyUser[propName];
+        oldValue = this.$$proxy.onDemand[propName];
 
       // Don't use __storePropertyOnDemand here - use _applyProperty instead
       var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
       if (propDef.array == "wrap" && !(value instanceof qx.data.Array))
         value = new qx.data.Array(value);
 
-      this.$$proxyUser[propName] = value;
+      this.$$proxy.onDemand[propName] = value;
       this._applyProperty(propName, value, oldValue);
     },
 

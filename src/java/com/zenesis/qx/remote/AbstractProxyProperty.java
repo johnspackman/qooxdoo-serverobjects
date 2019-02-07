@@ -297,12 +297,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 			cw.member("get" + upname, new Function("async", "return this._getPropertyOnDemand('" + name + "', async);"));
 			cw.member("expire" + upname, new Function("sendToServer", "return this._expirePropertyOnDemand('" + name + "', sendToServer);"));
 			cw.member("set" + upname, new Function("value", "async", "return this._setPropertyOnDemand('" + name + "', value, async);"));
-			cw.member("get" + upname + "Async", new Function(
-		          "return new qx.Promise(function(resolve) {\n" +
-		          "  this._getPropertyOnDemand('" + name + "', function(result) {\n" +
-		          "    resolve(result);\n" + 
-		          "  });\n" +
-		          "}, this);"));
+			cw.member("get" + upname + "Async", new Function("return this._getPropertyOnDemandAsync('" + name + "');"));
 		} else
 		    cw.member("get" + upname + "Async", new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"));
 		
