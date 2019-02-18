@@ -116,6 +116,8 @@ public class ProxyObjectMapper extends BasicObjectMapper {
 	
 	@Override
 	protected void addToModule(SimpleModule module) {
+        module.addSerializer(Proxied.class, new ProxiedSerializer());
+        module.addDeserializer(Proxied.class, new ProxiedDeserializer());
         module.addSerializer(Date.class, new DateSerializer());
 	}
 	

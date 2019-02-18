@@ -292,8 +292,6 @@ public class BasicObjectMapper extends ObjectMapper {
 		module.addSerializer(File.class, new FileSerializer(rootDir));
 		module.addDeserializer(File.class, new FileDeserializer(rootDir));
 		module.addSerializer(Map.class, new MapSerializer());
-		module.addSerializer(Proxied.class, new ProxiedSerializer());
-		module.addDeserializer(Proxied.class, new ProxiedDeserializer());
 		addToModule(module);
 		registerModule(module);
 	}
