@@ -15,6 +15,7 @@ import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.AbstractProxyProperty.Spec;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
+import com.zenesis.qx.remote.annotations.PropertyDate;
 import com.zenesis.qx.remote.annotations.Remote;
 import com.zenesis.qx.remote.annotations.Remote.Toggle;
 
@@ -56,11 +57,15 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 	 * Creates a ProxyProperty from a Property annotation
 	 * @param anno
 	 */
-	public ProxyPropertyImpl(Class clazz, String name, Property anno, Properties annoProperties) {
+	public ProxyPropertyImpl(Class clazz, String name, Property anno, PropertyDate annoDate, Properties annoProperties) {
 		super(name);
 		create = anno.create();
 		changeEventName = "change" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
 		this.anno = anno;
+		if (annoDate != null) {
+		    dateValues = annoDate.value();
+		    zeroTime = annoDate.zeroTime();
+		}
 		this.clazz = clazz;
 		sync = anno.sync();
 		if (anno.event().length() == 0) {

@@ -27,10 +27,14 @@
  */
 package com.zenesis.qx.remote.test.properties;
 
+import java.util.Date;
+
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
+import com.zenesis.qx.remote.annotations.PropertyDate;
+import com.zenesis.qx.remote.annotations.PropertyDate.DateValues;
 
 public class TestProperties implements ITestProperties {
 	
@@ -39,6 +43,11 @@ public class TestProperties implements ITestProperties {
 	private String onDemandString = "MyOnDemandString";
 	private String changeLog = "";
 	private String watchedString;
+	
+	@Property private Date dateTime = new Date();
+    @Property @PropertyDate(DateValues.DATE) private Date dateStartOfDay = new Date();
+    @Property @PropertyDate(value=DateValues.DATE, zeroTime=false) private Date dateEndOfDay = new Date();
+    
 	private int triggers = 0;
 	
 	@Property(onDemand=true)
@@ -121,5 +130,29 @@ public class TestProperties implements ITestProperties {
 	public void triggerSomeEvent() {
 		EventManager.fireEvent(this, "someEvent");
 	}
+
+    public Date getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(Date dateTime) {
+        this.dateTime = ProxyManager.changeProperty(this, "dateTime", dateTime, this.dateTime);
+    }
+
+    public Date getDateStartOfDay() {
+        return dateStartOfDay;
+    }
+
+    public void setDateStartOfDay(Date dateStartOfDay) {
+        this.dateStartOfDay = ProxyManager.changeProperty(this, "dateStartOfDay", dateStartOfDay, this.dateStartOfDay);
+    }
+
+    public Date getDateEndOfDay() {
+        return dateEndOfDay;
+    }
+
+    public void setDateEndOfDay(Date dateEndOfDay) {
+        this.dateEndOfDay = ProxyManager.changeProperty(this, "dateEndOfDay", dateEndOfDay, this.dateEndOfDay);
+    }
 	
 }

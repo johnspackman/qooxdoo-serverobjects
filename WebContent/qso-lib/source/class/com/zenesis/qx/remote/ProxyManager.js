@@ -1166,6 +1166,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               toDef.event = fromDef.event;
 
             var arrayClassName = null;
+            var needsTransform = false;
             if ((fromDef.map || fromDef.array) && fromDef.arrayClass) {
               arrayClassName = fromDef.arrayClass.className;
               deferredTypes.push(fromDef.arrayClass);
@@ -1206,10 +1207,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               strDestructorCode += "this.set" + upname + "(null);\n";
             }
 
+            // Annotations
+            if (fromDef.anno) {
+              fromDef.anno.forEach(anno => toDef["@"].push(eval(anno)));
+            }
+            if (toDef.check === "Date")
+              needsTransform = true;
+
             // Create an apply method
-            var applyName = "_apply" + upname;
-            toDef.apply = applyName;
-            def.members[applyName] = new Function('value', 'oldValue', 'name', 'this._applyProperty("' + propName + '", value, oldValue, name);');
+            toDef.apply = "_apply" + upname;
+            def.members["_apply" + upname] = new Function('value', 'oldValue', 'name', 'this._applyProperty("' + propName + '", value, oldValue, name);');
+            if (needsTransform) {
+              toDef.apply = "_transform" + upname;
+              def.members["_transform" + upname] = new Function('value', 'oldValue', 'this._transformProperty("' + propName + '", value, oldValue);');
+            }
 
             // onDemand properties - patch it later
             if (fromDef.onDemand) {
@@ -1225,14 +1236,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               "}, this);");
             } else {
               def.members["get" + upname + "Async"] = new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"); 
-            }
-
-            // Annotations
-            if (fromDef.anno) {
-              fromDef.anno.forEach(function(anno) {
-                var result = eval(anno);
-                toDef["@"].push(result);
-              });
             }
 
             // Meta data
@@ -1629,7 +1632,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     setPropertyValue: function(serverObject, propertyName, value, oldValue) {
       if (this.__inConstructor)
         return;
-      var pd = qx.Class.getPropertyDefinition(serverObject.constructor, propertyName);
 
       if (!this.isSettingProperty(serverObject, propertyName)) {
         // Skip changing date instances if they are equivalent
@@ -1640,7 +1642,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             cmd: "set",
             serverId: serverObject.getServerId(),
             propertyName: propertyName,
-            value: this.serializeValue(value)
+            value: this.serializeValue(value, {
+                date: {
+                  value: annoDate.getValue(),
+                  zeroTime: annoDate.isZeroTime()
+                })
         };
 
         if (pd.sync == "queue") {

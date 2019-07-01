@@ -146,6 +146,34 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
         throw ex;
       return result;
     },
+    
+    _transformProperty(propertyName, value, oldValue) {
+      // Skip changing date instances if they are equivalent
+      if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime())
+        return oldValue;
+      
+      var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
+      var pd = qx.Class.getPropertyDefinition(this.constructor, propertyName);
+      
+      if (value && pd.check === "Date") {
+        qx.Annotation.getProperty(serverObject.constructor, propertyName, "com.zenesis.qx.remote.annotations.PropertyDate")
+          .forEach(annoDate => {
+            if (annoDate.getValue() == "date") {
+              if (annoDate.isZeroTime()) {
+                if (value.getHour() != 0 || value.getMinute() != 0 || value.getSecond() != 0 || value.getMilliseconds() != 0) {
+                  value = new Date(value.getFullYear(), value.getMonth(), value.getDate());
+                }
+              } else {
+                if (value.getHour() != 23 || value.getMinute() != 59 || value.getSecond() != 59 || value.getMilliseconds() != 0) {
+                  value = new Date(value.getFullYear(), value.getMonth(), value.getDate(), 23, 59, 59, 0);
+                }
+              }
+            }
+          });
+      }
+      
+      return value;
+    },
 
     /**
      * Called when a property value is applied

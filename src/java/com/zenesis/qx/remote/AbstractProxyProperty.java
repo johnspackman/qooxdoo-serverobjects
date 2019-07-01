@@ -14,6 +14,7 @@ import com.zenesis.qx.remote.ClassWriter.Function;
 import com.zenesis.qx.remote.ClassWriter.RawValue;
 import com.zenesis.qx.remote.annotations.Annotation;
 import com.zenesis.qx.remote.annotations.Annotations;
+import com.zenesis.qx.remote.annotations.PropertyDate;
 import com.zenesis.qx.remote.annotations.Remote;
 import com.zenesis.qx.remote.collections.HashMap;
 
@@ -52,6 +53,9 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 
 	// ProxyType this is attached to
 	private ProxyType proxyType;
+	
+	protected PropertyDate.DateValues dateValues;
+	protected boolean zeroTime;
 	
 	public AbstractProxyProperty(String name) {
 		super();
@@ -219,6 +223,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		    System.out.println(this);
 		
 		Spec spec = analyse();
+		boolean needsTransform = false;
 		pdef.put("nullable", spec.nullable);
 		HashMap<String, Object> annoSets = new HashMap<>();
 		if (isReadOnly())
@@ -243,6 +248,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 				break;
 			}
 		}
+		    
 		if (event != null)
 			pdef.put("event", event.getName());
 		
@@ -301,17 +307,25 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		} else
 		    cw.member("get" + upname + "Async", new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"));
 		
-		if (!annoSets.isEmpty() || clientAnno != null) {
-			ArrayList<RawValue> arr = new ArrayList<>();
+        ArrayList<RawValue> arr = new ArrayList<>();
+		if (!annoSets.isEmpty()) {
 			if (!annoSets.isEmpty())
 				arr.add(new RawValue("new com.zenesis.qx.remote.annotations.Property().set(" + cw.objectToString(annoSets) + ")"));
-			if (clientAnno != null) {
-				for (int i = 0; i < clientAnno.size(); i++) {
-					arr.add(new RawValue(clientAnno.get(i)));
-				}
-			}
-			pdef.put("@", arr);
 		}
+        if (clientAnno != null) {
+            for (int i = 0; i < clientAnno.size(); i++) {
+                arr.add(new RawValue(clientAnno.get(i)));
+            }
+        }
+        if (spec.check != null && spec.check.equals("Date")) {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("value", dateValues);
+            map.put("zeroTime", zeroTime);
+            arr.add(new RawValue("new com.zenesis.qx.remote.annotations.PropertyDate().set(" + cw.objectToString(map) + ")"));
+            needsTransform = true;
+        }
+		if (!arr.isEmpty())
+		    pdef.put("@", arr);
 		
 		if (!cw.isInterface()) {
     		HashMap<String, Object> meta = new HashMap<>();
@@ -330,6 +344,12 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
                 meta.put("nativeKeyType", true);
     
     		cw.method("defer").code += "qx.lang.Object.mergeWith(clazz.$$properties." + name + ", " + cw.objectToString(meta) + ");\n";
+		}
+		
+		if (needsTransform) {
+            pdef.put("transform", "_transform" + upname);
+            cw.member("_transform" + upname, new Function("value", "oldValue", 
+                    "this._transformProperty(\"" + name + "\", value, oldValue);"));
 		}
 	}
 	private static final HashSet<String> NATIVE_KEY_TYPES;
@@ -461,5 +481,13 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 	public void setProxyType(ProxyType proxyType) {
 		this.proxyType = proxyType;
 	}
+
+    public PropertyDate.DateValues getDateValues() {
+        return dateValues;
+    }
+
+    public boolean isZeroTime() {
+        return zeroTime;
+    }
 
 }
