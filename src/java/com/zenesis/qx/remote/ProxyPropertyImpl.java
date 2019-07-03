@@ -4,6 +4,8 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
@@ -433,8 +435,20 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 	public Object deserialize(Proxied proxied, Object value) {
 		try {
 			if (value != null && propertyClass.isSubclassOf(Date.class)) {
-				long millis = ((Number)value).longValue();
-				value = new Date(millis);
+			    if (value instanceof Number) {
+    				long millis = ((Number)value).longValue();
+    				value = new Date(millis);
+    				
+			    } else if (value instanceof String) {
+			        try {
+			            value = new SimpleDateFormat("yyyy-MM-dd").parse(value.toString());
+			        }catch(ParseException e) {
+	                    throw new IllegalArgumentException("Cannot write property " + name + " in class " + clazz + " in object " + proxied + " because value '" + value + "' is not a valid string");
+			        }
+			        
+			    } else {
+			        throw new IllegalArgumentException("Cannot write property " + name + " in class " + clazz + " in object " + proxied + " because value '" + value + "' is not compatible");
+			    }
 			}
 			if (deserializeMethod != null)
 				value = deserializeMethod.invoke(proxied, this, value);

@@ -1303,9 +1303,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Serialises a value for sending to the server
      */
-    serializeValue: function(value) {
+    serializeValue: function(value, opts) {
       if (!value)
         return value;
+      opts = opts||{};
       var to = typeof value;
       if ([ "boolean", "number", "string" ].indexOf(to) > -1)
         return value;
@@ -1350,7 +1351,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       if (qx.lang.Type.isDate(value)) {
-        return value.getTime();
+        if (opts.dateValue !== "date")
+          return value.getTime();
+        return com.zenesis.qx.remote.ProxyManager.__DF_NO_TIME.format(value);
       }
 
       if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
@@ -1634,6 +1637,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return;
 
       if (!this.isSettingProperty(serverObject, propertyName)) {
+        let annoDate = null;
+        if (value) {
+          let pd = qx.Class.getPropertyDefinition(this.constructor, propertyName);
+          if (pd.check === "Date") {
+            annoDate = qx.Annotation.getProperty(serverObject.constructor, propertyName, "com.zenesis.qx.remote.annotations.PropertyDate")[0]||null;
+          }
+        }
+        
         // Skip changing date instances if they are equivalent
         if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime())
           return;
@@ -1643,9 +1654,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             serverId: serverObject.getServerId(),
             propertyName: propertyName,
             value: this.serializeValue(value, {
-                date: {
-                  value: annoDate.getValue(),
-                  zeroTime: annoDate.isZeroTime()
+                dateValue: annoDate ? annoDate.getValue() : null
                 })
         };
 
@@ -1704,7 +1713,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         // otherwise the server instance changes an object that the client is not using 
         if (def && (!value || value.$$proxy === undefined)) {
           if (def.check && def.check == "Date") {
-            value = value !== null ? new Date(value) : null;
+            if (value !== null) {
+              if (typeof value == "string")
+                value = new Date(com.zenesis.qx.remote.ProxyManager.__DF_NO_TIME.parse(value));
+              else
+                value = new Date(value);
+            }
 
           } else if (def.array && def.array == "wrap") {
             if (value == null) {
@@ -2265,6 +2279,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   statics: {
     __initialised: false,
     __instance: null,
+    __DF_NO_TIME: new qx.util.format.DateFormat("yyyy-MM-dd"),
 
     __NON_NULLABLE_DEFAULTS: {
       "Boolean": false,
