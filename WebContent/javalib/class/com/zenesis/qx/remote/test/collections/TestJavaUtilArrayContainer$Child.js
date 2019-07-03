@@ -14,9 +14,9 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContain
   "properties" : {
     "name" : {
       "nullable" : true,
-      "apply" : "_applyName",
-      "check" : "String",
-      "event" : "changeName"
+      "apply":"_applyName",
+      "check":"String",
+      "event":"changeName"
     }
   },
   "members" : {
@@ -31,7 +31,16 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContain
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    qx.lang.Object.mergeWith(clazz.$$properties.name, {"onDemand":false,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeName = {"isServer":true,"isProperty":true};
+    qx.lang.Object.mergeWith(clazz.$$properties.name, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeName = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

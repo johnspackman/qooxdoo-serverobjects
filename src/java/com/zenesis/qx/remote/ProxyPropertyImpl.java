@@ -18,6 +18,7 @@ import com.zenesis.qx.remote.AbstractProxyProperty.Spec;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.PropertyDate;
+import com.zenesis.qx.remote.annotations.PropertyDate.DateValues;
 import com.zenesis.qx.remote.annotations.Remote;
 import com.zenesis.qx.remote.annotations.Remote.Toggle;
 
@@ -423,6 +424,9 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 			throw new IllegalArgumentException("Cannot write property " + name + " in class " + clazz + " in object " + proxied + ": " + e.getMessage(), e);
 		} catch(IllegalArgumentException e) {
 			throw new IllegalArgumentException("Failed to set value for property " + name + " in class " + clazz + " to value " + value, e);
+		}
+		if (value instanceof Date && dateValues == DateValues.DATE) {
+		    value = new SimpleDateFormat("yyyy-MM-dd").format((Date)value);
 		}
 		return value;
 	}

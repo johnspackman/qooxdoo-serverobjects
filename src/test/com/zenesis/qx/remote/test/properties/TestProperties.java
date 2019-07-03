@@ -45,10 +45,28 @@ public class TestProperties implements ITestProperties {
 	private String watchedString;
 	
 	@Property private Date dateTime = new Date();
-    @Property @PropertyDate(DateValues.DATE) private Date dateStartOfDay = new Date();
-    @Property @PropertyDate(value=DateValues.DATE, zeroTime=false) private Date dateEndOfDay = new Date();
+    @Property @PropertyDate(DateValues.DATE) private Date dateStartOfDay = new Date(110, 1, 2);
+    @Property @PropertyDate(value=DateValues.DATE, zeroTime=false) private Date dateEndOfDay = new Date(110, 1, 5);
     
 	private int triggers = 0;
+	
+	@Method
+	public void doStuff() {
+	    
+	}
+	
+	@Method
+	public void checkDateStartOfDay() {
+	    Date dt = new Date();
+	    if (dateStartOfDay.getDate() != dt.getDate() ||
+	            dateStartOfDay.getMonth() != dt.getMonth() ||
+	            dateStartOfDay.getYear() != dt.getYear() ||
+	            dateStartOfDay.getHours() != 0 ||
+	            dateStartOfDay.getMinutes() != 0 ||
+	            dateStartOfDay.getSeconds() != 0)
+	        throw new IllegalStateException("dateStartOfDay has an invalid value");
+	        
+	}
 	
 	@Property(onDemand=true)
 	private String onDemandPreload = "MyOnDemandPreload";

@@ -15,44 +15,55 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestArrays", {
  },
   "properties" : {
     "objectArrayList" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"componentTypeName":"com.zenesis.qx.remote.test.properties.ITestValue"}) ],
-      "transform" : "__transformObjectArrayList",
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "componentTypeName":"com.zenesis.qx.remote.test.properties.ITestValue"
+}) ],
+      "transform":"__transformObjectArrayList",
       "nullable" : true,
-      "apply" : "_applyObjectArrayList",
-      "check" : "qx.data.Array",
-      "event" : "changeObjectArrayList"
+      "apply":"_applyObjectArrayList",
+      "check":"qx.data.Array",
+      "event":"changeObjectArrayList"
     },
     "objectArray" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"componentTypeName":"com.zenesis.qx.remote.test.properties.ITestValue"}) ],
-      "transform" : "__transformObjectArray",
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "componentTypeName":"com.zenesis.qx.remote.test.properties.ITestValue"
+}) ],
+      "transform":"__transformObjectArray",
       "nullable" : true,
-      "apply" : "_applyObjectArray",
-      "check" : "qx.data.Array",
-      "event" : "changeObjectArray"
+      "apply":"_applyObjectArray",
+      "check":"qx.data.Array",
+      "event":"changeObjectArray"
     },
     "scalarArray" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"componentTypeName":"String"}) ],
-      "transform" : "__transformScalarArray",
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "componentTypeName":"String"
+}) ],
+      "transform":"__transformScalarArray",
       "nullable" : true,
-      "apply" : "_applyScalarArray",
-      "check" : "qx.data.Array",
-      "event" : "changeScalarArray"
+      "apply":"_applyScalarArray",
+      "check":"qx.data.Array",
+      "event":"changeScalarArray"
     },
     "scalarArrayList" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"componentTypeName":"String"}) ],
-      "transform" : "__transformScalarArrayList",
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "componentTypeName":"String"
+}) ],
+      "transform":"__transformScalarArrayList",
       "nullable" : true,
-      "apply" : "_applyScalarArrayList",
-      "check" : "qx.data.Array",
-      "event" : "changeScalarArrayList"
+      "apply":"_applyScalarArrayList",
+      "check":"qx.data.Array",
+      "event":"changeScalarArrayList"
     },
     "readOnlyArray" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true,"componentTypeName":"String"}) ],
-      "transform" : "__transformReadOnlyArray",
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true,
+  "componentTypeName":"String"
+}) ],
+      "transform":"__transformReadOnlyArray",
       "nullable" : true,
-      "apply" : "_applyReadOnlyArray",
-      "check" : "qx.data.Array",
-      "event" : "changeReadOnlyArray"
+      "apply":"_applyReadOnlyArray",
+      "check":"qx.data.Array",
+      "event":"changeReadOnlyArray"
     }
   },
   "members" : {
@@ -166,20 +177,80 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestArrays", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.checkReadOnlyArray = {"isServer":true};
-    clazz.$$methodMeta.testObjectArray = {"isServer":true};
-    clazz.$$methodMeta.testObjectArrayList = {"isServer":true};
-    clazz.$$methodMeta.testScalarArray = {"isServer":true};
-    clazz.$$methodMeta.testScalarArrayList = {"isServer":true};
-    qx.lang.Object.mergeWith(clazz.$$properties.objectArrayList, {"onDemand":false,"isServer":true,"array":"wrap","readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.objectArray, {"onDemand":false,"isServer":true,"array":"wrap","readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.scalarArray, {"onDemand":false,"isServer":true,"array":"wrap","readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.scalarArrayList, {"onDemand":false,"isServer":true,"array":"wrap","readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.readOnlyArray, {"onDemand":false,"isServer":true,"array":"wrap","readOnly":true,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeReadOnlyArray = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeScalarArray = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeObjectArray = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeObjectArrayList = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeScalarArrayList = {"isServer":true,"isProperty":true};
+    clazz.$$methodMeta.checkReadOnlyArray = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.testObjectArray = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.testObjectArrayList = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.testScalarArray = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.testScalarArrayList = {
+      "isServer" : true
+    };
+    qx.lang.Object.mergeWith(clazz.$$properties.objectArrayList, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"wrap",
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.objectArray, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"wrap",
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.scalarArray, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"wrap",
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.scalarArrayList, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"wrap",
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.readOnlyArray, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"wrap",
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeReadOnlyArray = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeScalarArray = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeObjectArray = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeObjectArrayList = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeScalarArrayList = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

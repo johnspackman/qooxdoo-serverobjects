@@ -13,62 +13,165 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestProperties", {
     this.initialiseProxy();
  },
   "properties" : {
+    "dateTime" : {
+      "@" : [ new com.zenesis.qx.remote.annotations.PropertyDate().set({
+  "zeroTime" : false
+}) ],
+      "transform":"_transformDateTime",
+      "nullable" : true,
+      "apply":"_applyDateTime",
+      "check":"Date",
+      "event":"changeDateTime"
+    },
     "watchedString" : {
       "nullable" : true,
-      "apply" : "_applyWatchedString",
-      "check" : "String",
-      "event" : "changeWatchedString"
+      "apply":"_applyWatchedString",
+      "check":"String",
+      "event":"changeWatchedString"
     },
     "onDemandString" : {
       "nullable" : true,
-      "apply" : "_applyOnDemandString",
-      "check" : "String",
-      "event" : "changeDemandString"
+      "apply":"_applyOnDemandString",
+      "check":"String",
+      "event":"changeDemandString"
     },
     "readOnlyString" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true
+}) ],
       "nullable" : true,
-      "apply" : "_applyReadOnlyString",
-      "check" : "String",
-      "event" : "changeReadOnlyString"
+      "apply":"_applyReadOnlyString",
+      "check":"String",
+      "event":"changeReadOnlyString"
     },
     "immediate" : {
       "nullable" : true,
-      "apply" : "_applyImmediate",
-      "check" : "String",
-      "event" : "changeImmediate"
+      "apply":"_applyImmediate",
+      "check":"String",
+      "event":"changeImmediate"
+    },
+    "dateStartOfDay" : {
+      "@" : [ new com.zenesis.qx.remote.annotations.PropertyDate().set({
+  "zeroTime" : true,
+  "value" : "date"
+}) ],
+      "transform":"_transformDateStartOfDay",
+      "nullable" : true,
+      "apply":"_applyDateStartOfDay",
+      "check":"Date",
+      "event":"changeDateStartOfDay"
+    },
+    "dateEndOfDay" : {
+      "@" : [ new com.zenesis.qx.remote.annotations.PropertyDate().set({
+  "zeroTime" : false,
+  "value" : "date"
+}) ],
+      "transform":"_transformDateEndOfDay",
+      "nullable" : true,
+      "apply":"_applyDateEndOfDay",
+      "check":"Date",
+      "event":"changeDateEndOfDay"
     },
     "queued" : {
       "nullable" : true,
-      "apply" : "_applyQueued",
-      "check" : "String",
-      "event" : "changeQueued"
+      "apply":"_applyQueued",
+      "check":"String",
+      "event":"changeQueued"
     },
     "onDemandPreload" : {
       "nullable" : true,
-      "apply" : "_applyOnDemandPreload",
-      "check" : "String",
-      "event" : "changeOnDemandPreload"
+      "apply":"_applyOnDemandPreload",
+      "check":"String",
+      "event":"changeOnDemandPreload"
     }
   },
   "members" : {
     "getImmediateAsync" : function() {
     return qx.Promise.resolve(this.getImmediate()).bind(this);
  },
+    "checkDateStartOfDay" : function() {
+    return this._callServer("checkDateStartOfDay", qx.lang.Array.fromArguments(arguments));
+ },
     "getReadOnlyStringAsync" : function() {
     return qx.Promise.resolve(this.getReadOnlyString()).bind(this);
+ },
+    "_transformDateEndOfDay" : function(value, oldValue) {
+    return this._transformProperty("dateEndOfDay", value, oldValue);
  },
     "_applyWatchedString" : function(value, oldValue, name) {
     this._applyProperty("watchedString", value, oldValue, name);
  },
     "getOnDemandStringAsync" : function() {
-    return qx.Promise.resolve(this.getOnDemandString()).bind(this);
+    return this._getPropertyOnDemandAsync('onDemandString');
+ },
+    "setOnDemandPreload" : function(value, async) {
+    return this._setPropertyOnDemand('onDemandPreload', value, async);
+ },
+    "doStuff" : function() {
+    return this._callServer("doStuff", qx.lang.Array.fromArguments(arguments));
+ },
+    "_applyOnDemandString" : function(value, oldValue, name) {
+    this._applyProperty("onDemandString", value, oldValue, name);
+ },
+    "doStuffAsync" : function() {
+    var args = qx.lang.Array.fromArguments(arguments);
+    return new qx.Promise(function(resolve, reject) {
+      args.push(function() {
+        resolve.apply(this, qx.lang.Array.fromArguments(arguments));
+      });
+      this._callServer("doStuff", args);
+    }, this);
+ },
+    "_applyDateStartOfDay" : function(value, oldValue, name) {
+    this._applyProperty("dateStartOfDay", value, oldValue, name);
+ },
+    "triggerChangeWatchedString" : function() {
+    return this._callServer("triggerChangeWatchedString", qx.lang.Array.fromArguments(arguments));
+ },
+    "triggerSomeEventAsync" : function() {
+    var args = qx.lang.Array.fromArguments(arguments);
+    return new qx.Promise(function(resolve, reject) {
+      args.push(function() {
+        resolve.apply(this, qx.lang.Array.fromArguments(arguments));
+      });
+      this._callServer("triggerSomeEvent", args);
+    }, this);
+ },
+    "_applyQueued" : function(value, oldValue, name) {
+    this._applyProperty("queued", value, oldValue, name);
+ },
+    "getChangeLog" : function() {
+    return this._callServer("getChangeLog", qx.lang.Array.fromArguments(arguments));
+ },
+    "getQueuedAsync" : function() {
+    return qx.Promise.resolve(this.getQueued()).bind(this);
+ },
+    "getDateEndOfDayAsync" : function() {
+    return qx.Promise.resolve(this.getDateEndOfDay()).bind(this);
+ },
+    "getDateTimeAsync" : function() {
+    return qx.Promise.resolve(this.getDateTime()).bind(this);
+ },
+    "_applyReadOnlyString" : function(value, oldValue, name) {
+    this._applyProperty("readOnlyString", value, oldValue, name);
+ },
+    "checkDateStartOfDayAsync" : function() {
+    var args = qx.lang.Array.fromArguments(arguments);
+    return new qx.Promise(function(resolve, reject) {
+      args.push(function() {
+        resolve.apply(this, qx.lang.Array.fromArguments(arguments));
+      });
+      this._callServer("checkDateStartOfDay", args);
+    }, this);
  },
     "getOnDemandString" : function(async) {
     return this._getPropertyOnDemand('onDemandString', async);
  },
-    "setOnDemandPreload" : function(value, async) {
-    return this._setPropertyOnDemand('onDemandPreload', value, async);
+    "_transformDateStartOfDay" : function(value, oldValue) {
+    return this._transformProperty("dateStartOfDay", value, oldValue);
+ },
+    "_applyDateTime" : function(value, oldValue, name) {
+    this._applyProperty("dateTime", value, oldValue, name);
  },
     "getOnDemandPreload" : function(async) {
     return this._getPropertyOnDemand('onDemandPreload', async);
@@ -85,9 +188,6 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestProperties", {
       this._callServer("getChangeLog", args);
     }, this);
  },
-    "_applyOnDemandString" : function(value, oldValue, name) {
-    this._applyProperty("onDemandString", value, oldValue, name);
- },
     "triggerChangeWatchedStringAsync" : function() {
     var args = qx.lang.Array.fromArguments(arguments);
     return new qx.Promise(function(resolve, reject) {
@@ -100,35 +200,20 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestProperties", {
     "setOnDemandString" : function(value, async) {
     return this._setPropertyOnDemand('onDemandString', value, async);
  },
-    "triggerChangeWatchedString" : function() {
-    return this._callServer("triggerChangeWatchedString", qx.lang.Array.fromArguments(arguments));
- },
     "triggerSomeEvent" : function() {
     return this._callServer("triggerSomeEvent", qx.lang.Array.fromArguments(arguments));
  },
-    "triggerSomeEventAsync" : function() {
-    var args = qx.lang.Array.fromArguments(arguments);
-    return new qx.Promise(function(resolve, reject) {
-      args.push(function() {
-        resolve.apply(this, qx.lang.Array.fromArguments(arguments));
-      });
-      this._callServer("triggerSomeEvent", args);
-    }, this);
- },
-    "_applyQueued" : function(value, oldValue, name) {
-    this._applyProperty("queued", value, oldValue, name);
+    "_transformDateTime" : function(value, oldValue) {
+    return this._transformProperty("dateTime", value, oldValue);
  },
     "_applyOnDemandPreload" : function(value, oldValue, name) {
     this._applyProperty("onDemandPreload", value, oldValue, name);
  },
-    "getChangeLog" : function() {
-    return this._callServer("getChangeLog", qx.lang.Array.fromArguments(arguments));
- },
-    "getQueuedAsync" : function() {
-    return qx.Promise.resolve(this.getQueued()).bind(this);
- },
     "expireOnDemandString" : function(sendToServer) {
     return this._expirePropertyOnDemand('onDemandString', sendToServer);
+ },
+    "getDateStartOfDayAsync" : function() {
+    return qx.Promise.resolve(this.getDateStartOfDay()).bind(this);
  },
     "getWatchedStringAsync" : function() {
     return qx.Promise.resolve(this.getWatchedString()).bind(this);
@@ -136,35 +221,137 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestProperties", {
     "expireOnDemandPreload" : function(sendToServer) {
     return this._expirePropertyOnDemand('onDemandPreload', sendToServer);
  },
-    "_applyReadOnlyString" : function(value, oldValue, name) {
-    this._applyProperty("readOnlyString", value, oldValue, name);
+    "_applyDateEndOfDay" : function(value, oldValue, name) {
+    this._applyProperty("dateEndOfDay", value, oldValue, name);
  },
     "getOnDemandPreloadAsync" : function() {
-    return qx.Promise.resolve(this.getOnDemandPreload()).bind(this);
+    return this._getPropertyOnDemandAsync('onDemandPreload');
  }
   },
   "defer" : function(clazz) {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.getChangeLog = {"isServer":true};
-    clazz.$$methodMeta.triggerChangeWatchedString = {"isServer":true};
-    clazz.$$methodMeta.triggerSomeEvent = {"isServer":true};
-    qx.lang.Object.mergeWith(clazz.$$properties.watchedString, {"onDemand":false,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.onDemandString, {"onDemand":true,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.readOnlyString, {"onDemand":false,"isServer":true,"readOnly":true,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.immediate, {"onDemand":false,"isServer":true,"readOnly":false,"sync":"immediate","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.queued, {"onDemand":false,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.onDemandPreload, {"onDemand":true,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeOnDemandPreload = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeReadOnlyString = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.someEvent = {"isServer":true,"isProperty":false};
-    clazz.$$eventMeta.changeImmediate = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeDemandString = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeWatchedString = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeQueued = {"isServer":true,"isProperty":true};
+    clazz.$$methodMeta.checkDateStartOfDay = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.doStuff = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getChangeLog = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.triggerChangeWatchedString = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.triggerSomeEvent = {
+      "isServer" : true
+    };
+    qx.lang.Object.mergeWith(clazz.$$properties.dateTime, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.watchedString, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.onDemandString, {
+      "onDemand" : true,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.readOnlyString, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.immediate, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"immediate",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.dateStartOfDay, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.dateEndOfDay, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.queued, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.onDemandPreload, {
+      "onDemand" : true,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeDateStartOfDay = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeOnDemandPreload = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeReadOnlyString = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.someEvent = {
+      "isServer" : true,
+      "isProperty" : false
+    };
+    clazz.$$eventMeta.changeImmediate = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeDemandString = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeDateEndOfDay = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeWatchedString = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeQueued = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeDateTime = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  },
   "events" : {
-    "someEvent" : "qx.event.type.Data"
+    "someEvent":"qx.event.type.Data"
   }
 });

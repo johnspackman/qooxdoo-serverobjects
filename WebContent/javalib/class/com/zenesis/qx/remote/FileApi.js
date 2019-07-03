@@ -13,17 +13,21 @@ qx.Class.define("com.zenesis.qx.remote.FileApi", {
  },
   "properties" : {
     "mimeTypes" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"keyTypeName":"String"}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "keyTypeName":"String"
+}) ],
       "nullable" : true,
-      "apply" : "_applyMimeTypes",
-      "event" : "changeMimeTypes"
+      "apply":"_applyMimeTypes",
+      "event":"changeMimeTypes"
     },
     "rootUrl" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true
+}) ],
       "nullable" : true,
-      "apply" : "_applyRootUrl",
-      "check" : "String",
-      "event" : "changeRootUrl"
+      "apply":"_applyRootUrl",
+      "check":"String",
+      "event":"changeRootUrl"
     }
   },
   "members" : {
@@ -188,21 +192,67 @@ qx.Class.define("com.zenesis.qx.remote.FileApi", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.copyTo = {"isServer":true};
-    clazz.$$methodMeta.copyToUnique = {"isServer":true};
-    clazz.$$methodMeta.createFolder = {"isServer":true};
-    clazz.$$methodMeta.deleteFile = {"isServer":true};
-    clazz.$$methodMeta.deleteRecursive = {"isServer":true};
-    clazz.$$methodMeta.exists = {"isServer":true};
-    clazz.$$methodMeta.getFileInfo = {"isServer":true};
-    clazz.$$methodMeta.getType = {"isServer":true};
-    clazz.$$methodMeta.listFileInfos = {"isServer":true,"returnArray":"native"};
-    clazz.$$methodMeta.listFilenames = {"isServer":true,"returnArray":"native"};
-    clazz.$$methodMeta.moveTo = {"isServer":true};
-    clazz.$$methodMeta.renameTo = {"isServer":true};
-    qx.lang.Object.mergeWith(clazz.$$properties.mimeTypes, {"onDemand":false,"isServer":true,"array":"native","readOnly":false,"sync":"queue","map":true,"nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.rootUrl, {"onDemand":false,"isServer":true,"readOnly":true,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeMimeTypes = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeRootUrl = {"isServer":true,"isProperty":true};
+    clazz.$$methodMeta.copyTo = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.copyToUnique = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.createFolder = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.deleteFile = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.deleteRecursive = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.exists = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getFileInfo = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getType = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.listFileInfos = {
+      "isServer" : true,
+      "returnArray":"native"
+    };
+    clazz.$$methodMeta.listFilenames = {
+      "isServer" : true,
+      "returnArray":"native"
+    };
+    clazz.$$methodMeta.moveTo = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.renameTo = {
+      "isServer" : true
+    };
+    qx.lang.Object.mergeWith(clazz.$$properties.mimeTypes, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"native",
+      "readOnly" : false,
+      "sync":"queue",
+      "map" : true,
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.rootUrl, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeMimeTypes = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeRootUrl = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

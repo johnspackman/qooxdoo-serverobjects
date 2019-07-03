@@ -30,6 +30,8 @@ qx.Class.define("com.zenesis.qx.remote.test.serialisation.TestAlwaysProxy", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.additionalMethod = {"isServer":true};
+    clazz.$$methodMeta.additionalMethod = {
+      "isServer" : true
+    };
  }
 });

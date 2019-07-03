@@ -14,11 +14,13 @@ qx.Class.define("com.zenesis.qx.remote.test.simple.TestScalars", {
  },
   "properties" : {
     "nullBooleanProperty" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true
+}) ],
       "nullable" : true,
-      "apply" : "_applyNullBooleanProperty",
-      "check" : "Boolean",
-      "event" : "changeNullBooleanProperty"
+      "apply":"_applyNullBooleanProperty",
+      "check":"Boolean",
+      "event":"changeNullBooleanProperty"
     }
   },
   "members" : {
@@ -141,16 +143,44 @@ qx.Class.define("com.zenesis.qx.remote.test.simple.TestScalars", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.addUp = {"isServer":true};
-    clazz.$$methodMeta.getFalse = {"isServer":true};
-    clazz.$$methodMeta.getFourtyThree = {"isServer":true};
-    clazz.$$methodMeta.getHelloWorld = {"isServer":true};
-    clazz.$$methodMeta.getNames = {"isServer":true,"returnArray":"native"};
-    clazz.$$methodMeta.getNullBoolean = {"isServer":true};
-    clazz.$$methodMeta.getSixPointSeven = {"isServer":true};
-    clazz.$$methodMeta.getTrue = {"isServer":true};
-    clazz.$$methodMeta.getZero = {"isServer":true};
-    qx.lang.Object.mergeWith(clazz.$$properties.nullBooleanProperty, {"onDemand":false,"isServer":true,"readOnly":true,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeNullBooleanProperty = {"isServer":true,"isProperty":true};
+    clazz.$$methodMeta.addUp = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getFalse = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getFourtyThree = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getHelloWorld = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getNames = {
+      "isServer" : true,
+      "returnArray":"native"
+    };
+    clazz.$$methodMeta.getNullBoolean = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getSixPointSeven = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getTrue = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getZero = {
+      "isServer" : true
+    };
+    qx.lang.Object.mergeWith(clazz.$$properties.nullBooleanProperty, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeNullBooleanProperty = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

@@ -349,7 +349,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 		if (needsTransform) {
             pdef.put("transform", "_transform" + upname);
             cw.member("_transform" + upname, new Function("value", "oldValue", 
-                    "this._transformProperty(\"" + name + "\", value, oldValue);"));
+                    "return this._transformProperty(\"" + name + "\", value, oldValue);"));
 		}
 	}
 	private static final HashSet<String> NATIVE_KEY_TYPES;

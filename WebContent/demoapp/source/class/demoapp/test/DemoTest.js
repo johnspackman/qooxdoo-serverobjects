@@ -111,6 +111,26 @@ qx.Class.define("demoapp.test.DemoTest", {
       t.assertEquals(true, obj.isDirty());
 		},
 		
+		testDate() {
+      var boot = com.zenesis.qx.remote.ProxyManager.getInstance().getBootstrapObject();
+      var tp = boot.getMainTests().getTestProperties();
+      const addUp = dt => dt.getHours() + dt.getMinutes() + dt.getSeconds();
+      
+      this.assertTrue(addUp(tp.getDateTime()) != 0);
+      this.assertTrue(addUp(tp.getDateStartOfDay()) == 0);
+      this.assertTrue(addUp(tp.getDateEndOfDay()) == 23 + 59 + 59);
+      
+      let dt1 = new Date();
+      tp.setDateStartOfDay(dt1);
+      tp.doStuff();
+      let dt2 = tp.getDateStartOfDay();
+      this.assertTrue(addUp(dt2) == 0);
+      this.assertEquals(dt2.getFullYear(), dt1.getFullYear());
+      this.assertEquals(dt2.getMonth(), dt1.getMonth());
+      this.assertEquals(dt2.getDate(), dt1.getDate());
+      tp.checkDateStartOfDay();
+		},
+		
 		assertEquivalent: function(expected, actual, msg) {
 			if (qx.lang.Type.isArray(expected)) {
 				this.assertTrue(qx.lang.Type.isArray(actual), msg);

@@ -15,11 +15,14 @@ qx.Class.define("com.zenesis.qx.remote.test.serialisation.EightC", {
  },
   "properties" : {
     "eightB" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true,"componentTypeName":"com.zenesis.qx.remote.test.serialisation.IEightB"}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true,
+  "componentTypeName":"com.zenesis.qx.remote.test.serialisation.IEightB"
+}) ],
       "nullable" : true,
-      "apply" : "_applyEightB",
-      "check" : "Array",
-      "event" : "changeEightB"
+      "apply":"_applyEightB",
+      "check":"Array",
+      "event":"changeEightB"
     }
   },
   "members" : {
@@ -34,7 +37,17 @@ qx.Class.define("com.zenesis.qx.remote.test.serialisation.EightC", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    qx.lang.Object.mergeWith(clazz.$$properties.eightB, {"onDemand":false,"isServer":true,"array":"native","readOnly":true,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeEightB = {"isServer":true,"isProperty":true};
+    qx.lang.Object.mergeWith(clazz.$$properties.eightB, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"native",
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeEightB = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

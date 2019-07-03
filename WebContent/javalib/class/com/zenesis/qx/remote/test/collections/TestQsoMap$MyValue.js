@@ -14,9 +14,9 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestQsoMap$MyValue", {
   "properties" : {
     "valueId" : {
       "nullable" : true,
-      "apply" : "_applyValueId",
-      "check" : "String",
-      "event" : "changeValueId"
+      "apply":"_applyValueId",
+      "check":"String",
+      "event":"changeValueId"
     }
   },
   "members" : {
@@ -31,7 +31,16 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestQsoMap$MyValue", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    qx.lang.Object.mergeWith(clazz.$$properties.valueId, {"onDemand":false,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeValueId = {"isServer":true,"isProperty":true};
+    qx.lang.Object.mergeWith(clazz.$$properties.valueId, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeValueId = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

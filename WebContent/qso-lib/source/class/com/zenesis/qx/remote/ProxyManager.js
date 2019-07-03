@@ -1635,13 +1635,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     setPropertyValue: function(serverObject, propertyName, value, oldValue) {
       if (this.__inConstructor)
         return;
+      let pd = qx.Class.getPropertyDefinition(serverObject.constructor, propertyName);
 
       if (!this.isSettingProperty(serverObject, propertyName)) {
         let annoDate = null;
         if (value) {
-          let pd = qx.Class.getPropertyDefinition(this.constructor, propertyName);
           if (pd.check === "Date") {
-            annoDate = qx.Annotation.getProperty(serverObject.constructor, propertyName, "com.zenesis.qx.remote.annotations.PropertyDate")[0]||null;
+            annoDate = qx.Annotation.getProperty(serverObject.constructor, propertyName, com.zenesis.qx.remote.annotations.PropertyDate)[0]||null;
           }
         }
         

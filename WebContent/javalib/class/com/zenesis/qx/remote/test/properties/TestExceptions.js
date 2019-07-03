@@ -15,9 +15,9 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestExceptions", {
   "properties" : {
     "string" : {
       "nullable" : true,
-      "apply" : "_applyString",
-      "check" : "String",
-      "event" : "changeString"
+      "apply":"_applyString",
+      "check":"String",
+      "event":"changeString"
     }
   },
   "members" : {
@@ -32,7 +32,16 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestExceptions", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    qx.lang.Object.mergeWith(clazz.$$properties.string, {"onDemand":false,"isServer":true,"readOnly":false,"sync":"immediate","nativeKeyType":true});
-    clazz.$$eventMeta.changeString = {"isServer":true,"isProperty":true};
+    qx.lang.Object.mergeWith(clazz.$$properties.string, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"immediate",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeString = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

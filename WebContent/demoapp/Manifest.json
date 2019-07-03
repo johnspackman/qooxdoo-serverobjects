@@ -1,34 +1,23 @@
 {
-  "info" : 
-  {
-    "name" : "demoapp",
-
-    "summary" : "Demo application for testing Qooxdoo Server Objects",
-    "description" : "Demo application for testing Qooxdoo Server Objects",
-    
-    "homepage" : "https://github.com/johnspackman/qooxdoo-serverobjects",
-
-    "license" : "Same as Qooxdoo",
-    "authors" : 
-    [
-      {
-        "name" : "John Spackman (johnspackman)",
-        "email" : "john.spackman@zenesis.com"
-      }
-    ],
-
-    "version" : "trunk",
-    "qooxdoo-versions": [ "6.0" ]
+  "info": {
+    "name": "demoapp",
+    "summary": "Demo application for testing Qooxdoo Server Objects",
+    "description": "Demo application for testing Qooxdoo Server Objects",
+    "homepage": "https://github.com/johnspackman/qooxdoo-serverobjects",
+    "license": "Same as Qooxdoo",
+    "authors": [],
+    "version": "1.0.0"
   },
-  
-  "provides" : 
-  {
-    "namespace"   : "demoapp",
-    "encoding"    : "utf-8",
-    "class"       : "source/class",
-    "resource"    : "source/resource",
-    "translation" : "source/translation",
-    "type"        : "application"
+  "provides": {
+    "namespace": "demoapp",
+    "encoding": "utf-8",
+    "class": "source/class",
+    "resource": "source/resource",
+    "translation": "source/translation"
+  },
+  "$schema": "https://raw.githubusercontent.com/qooxdoo/qooxdoo-compiler/master/source/resource/qx/tool/schema/Manifest-1-0-0.json",
+  "requires": {
+    "@qooxdoo/compiler": "^1.0.0-beta",
+    "@qooxdoo/framework": "^6.0.0-beta"
   }
 }
-

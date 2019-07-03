@@ -13,17 +13,21 @@ qx.Class.define("com.zenesis.qx.remote.UploadingFile", {
  },
   "properties" : {
     "bytesUploaded" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true
+}) ],
       "nullable" : false,
-      "apply" : "_applyBytesUploaded",
-      "event" : "changeBytesUploaded"
+      "apply":"_applyBytesUploaded",
+      "event":"changeBytesUploaded"
     },
     "uploadId" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true
+}) ],
       "nullable" : true,
-      "apply" : "_applyUploadId",
-      "check" : "String",
-      "event" : "changeUploadId"
+      "apply":"_applyUploadId",
+      "check":"String",
+      "event":"changeUploadId"
     }
   },
   "members" : {
@@ -34,7 +38,7 @@ qx.Class.define("com.zenesis.qx.remote.UploadingFile", {
     return this._setPropertyOnDemand('bytesUploaded', value, async);
  },
     "getBytesUploadedAsync" : function() {
-    return qx.Promise.resolve(this.getBytesUploaded()).bind(this);
+    return this._getPropertyOnDemandAsync('bytesUploaded');
  },
     "_applyUploadId" : function(value, oldValue, name) {
     this._applyProperty("uploadId", value, oldValue, name);
@@ -53,9 +57,27 @@ qx.Class.define("com.zenesis.qx.remote.UploadingFile", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    qx.lang.Object.mergeWith(clazz.$$properties.bytesUploaded, {"onDemand":true,"isServer":true,"readOnly":true,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.uploadId, {"onDemand":false,"isServer":true,"readOnly":true,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeBytesUploaded = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeUploadId = {"isServer":true,"isProperty":true};
+    qx.lang.Object.mergeWith(clazz.$$properties.bytesUploaded, {
+      "onDemand" : true,
+      "isServer" : true,
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.uploadId, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeBytesUploaded = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeUploadId = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

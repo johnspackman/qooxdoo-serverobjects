@@ -54,8 +54,16 @@ qx.Class.define("com.zenesis.qx.remote.test.multiuser.TestThreading", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.resetSerial = {"isServer":true};
-    clazz.$$methodMeta.tryThis = {"isServer":true,"returnArray":"native","returnType":"com.zenesis.qx.remote.test.properties.TestProperties"};
-    clazz.$$methodMeta.waitFor = {"isServer":true};
+    clazz.$$methodMeta.resetSerial = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.tryThis = {
+      "isServer" : true,
+      "returnArray":"native",
+      "returnType":"com.zenesis.qx.remote.test.properties.TestProperties"
+    };
+    clazz.$$methodMeta.waitFor = {
+      "isServer" : true
+    };
  }
 });

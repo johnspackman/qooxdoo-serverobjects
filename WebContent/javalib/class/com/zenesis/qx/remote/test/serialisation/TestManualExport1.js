@@ -29,6 +29,8 @@ qx.Class.define("com.zenesis.qx.remote.test.serialisation.TestManualExport1", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.manualExportMethod = {"isServer":true};
+    clazz.$$methodMeta.manualExportMethod = {
+      "isServer" : true
+    };
  }
 });

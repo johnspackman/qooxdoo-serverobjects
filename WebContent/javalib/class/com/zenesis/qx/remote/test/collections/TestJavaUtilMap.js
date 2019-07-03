@@ -15,29 +15,35 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestJavaUtilMap", {
   "properties" : {
     "enumMap" : {
       "nullable" : true,
-      "apply" : "_applyEnumMap",
-      "check" : "com.zenesis.qx.remote.Map",
-      "event" : "changeEnumMap"
+      "apply":"_applyEnumMap",
+      "check":"com.zenesis.qx.remote.Map",
+      "event":"changeEnumMap"
     },
     "unwrappedStringMap" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"componentTypeName":"String"}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "componentTypeName":"String"
+}) ],
       "nullable" : true,
-      "apply" : "_applyUnwrappedStringMap",
-      "event" : "changeUnwrappedStringMap"
+      "apply":"_applyUnwrappedStringMap",
+      "event":"changeUnwrappedStringMap"
     },
     "wrappedStringMap" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"componentTypeName":"String"}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "componentTypeName":"String"
+}) ],
       "nullable" : true,
-      "apply" : "_applyWrappedStringMap",
-      "check" : "com.zenesis.qx.remote.Map",
-      "event" : "changeWrappedStringMap"
+      "apply":"_applyWrappedStringMap",
+      "check":"com.zenesis.qx.remote.Map",
+      "event":"changeWrappedStringMap"
     },
     "objectMap" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"componentTypeName":"com.zenesis.qx.remote.test.collections.TestJavaUtilMap"}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "componentTypeName":"com.zenesis.qx.remote.test.collections.TestJavaUtilMap"
+}) ],
       "nullable" : true,
-      "apply" : "_applyObjectMap",
-      "check" : "com.zenesis.qx.remote.Map",
-      "event" : "changeObjectMap"
+      "apply":"_applyObjectMap",
+      "check":"com.zenesis.qx.remote.Map",
+      "event":"changeObjectMap"
     }
   },
   "members" : {
@@ -118,17 +124,71 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestJavaUtilMap", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.checkEnumMap = {"isServer":true};
-    clazz.$$methodMeta.checkMapUpdated = {"isServer":true};
-    clazz.$$methodMeta.checkObjectMap = {"isServer":true};
-    clazz.$$methodMeta.getWrappedStringMapMethod = {"isServer":true,"returnArray":"wrap","map":true};
-    qx.lang.Object.mergeWith(clazz.$$properties.enumMap, {"onDemand":false,"isServer":true,"array":"wrap","readOnly":false,"sync":"queue","map":true,"nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.unwrappedStringMap, {"onDemand":false,"isServer":true,"array":"native","readOnly":false,"sync":"queue","map":true,"nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.wrappedStringMap, {"onDemand":false,"isServer":true,"array":"wrap","readOnly":false,"sync":"queue","map":true,"nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.objectMap, {"onDemand":false,"isServer":true,"array":"wrap","readOnly":false,"sync":"queue","map":true,"nativeKeyType":true});
-    clazz.$$eventMeta.changeObjectMap = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeEnumMap = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeUnwrappedStringMap = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeWrappedStringMap = {"isServer":true,"isProperty":true};
+    clazz.$$methodMeta.checkEnumMap = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.checkMapUpdated = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.checkObjectMap = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getWrappedStringMapMethod = {
+      "isServer" : true,
+      "returnArray":"wrap",
+      "map" : true
+    };
+    qx.lang.Object.mergeWith(clazz.$$properties.enumMap, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"wrap",
+      "readOnly" : false,
+      "sync":"queue",
+      "map" : true,
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.unwrappedStringMap, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"native",
+      "readOnly" : false,
+      "sync":"queue",
+      "map" : true,
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.wrappedStringMap, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"wrap",
+      "readOnly" : false,
+      "sync":"queue",
+      "map" : true,
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.objectMap, {
+      "onDemand" : false,
+      "isServer" : true,
+      "array":"wrap",
+      "readOnly" : false,
+      "sync":"queue",
+      "map" : true,
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeObjectMap = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeEnumMap = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeUnwrappedStringMap = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeWrappedStringMap = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

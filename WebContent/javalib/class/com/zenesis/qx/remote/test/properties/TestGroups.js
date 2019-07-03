@@ -14,33 +14,33 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestGroups", {
   "properties" : {
     "bravo" : {
       "nullable" : true,
-      "apply" : "_applyBravo",
-      "check" : "String",
-      "event" : "changeBravo"
+      "apply":"_applyBravo",
+      "check":"String",
+      "event":"changeBravo"
     },
     "alpha" : {
       "nullable" : true,
-      "apply" : "_applyAlpha",
-      "check" : "String",
-      "event" : "changeAlpha"
+      "apply":"_applyAlpha",
+      "check":"String",
+      "event":"changeAlpha"
     },
     "delta" : {
       "nullable" : true,
-      "apply" : "_applyDelta",
-      "check" : "String",
-      "event" : "changeDelta"
+      "apply":"_applyDelta",
+      "check":"String",
+      "event":"changeDelta"
     },
     "echo" : {
       "nullable" : true,
-      "apply" : "_applyEcho",
-      "check" : "String",
-      "event" : "changeEcho"
+      "apply":"_applyEcho",
+      "check":"String",
+      "event":"changeEcho"
     },
     "charlie" : {
       "nullable" : true,
-      "apply" : "_applyCharlie",
-      "check" : "String",
-      "event" : "changeCharlie"
+      "apply":"_applyCharlie",
+      "check":"String",
+      "event":"changeCharlie"
     }
   },
   "members" : {
@@ -66,7 +66,7 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestGroups", {
     this._applyProperty("alpha", value, oldValue, name);
  },
     "getDeltaAsync" : function() {
-    return qx.Promise.resolve(this.getDelta()).bind(this);
+    return this._getPropertyOnDemandAsync('delta');
  },
     "expireCharlie" : function(sendToServer) {
     return this._expirePropertyOnDemand('charlie', sendToServer);
@@ -78,7 +78,7 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestGroups", {
     return this._getPropertyOnDemand('delta', async);
  },
     "getCharlieAsync" : function() {
-    return qx.Promise.resolve(this.getCharlie()).bind(this);
+    return this._getPropertyOnDemandAsync('charlie');
  },
     "setBravo" : function(value, async) {
     return this._setPropertyOnDemand('bravo', value, async);
@@ -90,7 +90,7 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestGroups", {
     this._applyProperty("charlie", value, oldValue, name);
  },
     "getBravoAsync" : function() {
-    return qx.Promise.resolve(this.getBravo()).bind(this);
+    return this._getPropertyOnDemandAsync('bravo');
  },
     "_applyEcho" : function(value, oldValue, name) {
     this._applyProperty("echo", value, oldValue, name);
@@ -108,22 +108,67 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestGroups", {
     return this._expirePropertyOnDemand('echo', sendToServer);
  },
     "getEchoAsync" : function() {
-    return qx.Promise.resolve(this.getEcho()).bind(this);
+    return this._getPropertyOnDemandAsync('echo');
  }
   },
   "defer" : function(clazz) {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    qx.lang.Object.mergeWith(clazz.$$properties.bravo, {"onDemand":true,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.alpha, {"onDemand":false,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.delta, {"onDemand":true,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.echo, {"onDemand":true,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.charlie, {"onDemand":true,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeCharlie = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeBravo = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeEcho = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeAlpha = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeDelta = {"isServer":true,"isProperty":true};
+    qx.lang.Object.mergeWith(clazz.$$properties.bravo, {
+      "onDemand" : true,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.alpha, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.delta, {
+      "onDemand" : true,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.echo, {
+      "onDemand" : true,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.charlie, {
+      "onDemand" : true,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeCharlie = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeBravo = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeEcho = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeAlpha = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeDelta = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

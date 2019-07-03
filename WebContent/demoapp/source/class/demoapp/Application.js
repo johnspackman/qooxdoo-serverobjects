@@ -26,17 +26,7 @@
  * @require(qx.Promise)
  * @use(com.zenesis.qx.remote.test.simple.TestBootstrap)
  * @asset(demoapp/*)
- * @ignore(com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer)
- * @ignore(com.zenesis.qx.remote.test.collections.TestJavaUtilArrayContainer$Child)
- * @ignore(com.zenesis.qx.remote.test.simple.Pippo)
- * @ignore(com.zenesis.qx.remote.test.properties.TestProperties)
  * @ignore(alert)
- * @ignore(com.zenesis.qx.remote.test.simple.Pippo)
- * @ignore(com.zenesis.qx.remote.test.properties.TestProperties)
- * @ignore(com.zenesis.qx.remote.test.properties.TestValue)
- * @ignore(com.zenesis.qx.remote.test.collections.TestRecursiveArray)
- * @ignore(com.zenesis.qx.remote.test.collections.TestQsoMap$MyKey)
- * @ignore(com.zenesis.qx.remote.test.collections.TestQsoMap$MyValue)
  * 
  */
 qx.Class.define("demoapp.Application", {
@@ -91,6 +81,7 @@ qx.Class.define("demoapp.Application", {
         }, t);
         
         unitTest.testObserver();
+        unitTest.testDate();
         
         t.log("Testing main");
         t.testMain();

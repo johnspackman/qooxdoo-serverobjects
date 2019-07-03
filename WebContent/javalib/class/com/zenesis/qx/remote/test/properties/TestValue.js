@@ -14,12 +14,14 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestValue", {
  },
   "properties" : {
     "value" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true
+}) ],
       "init" : 0,
       "nullable" : false,
-      "apply" : "_applyValue",
-      "check" : "Integer",
-      "event" : "changeValue"
+      "apply":"_applyValue",
+      "check":"Integer",
+      "event":"changeValue"
     }
   },
   "members" : {
@@ -34,7 +36,16 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestValue", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    qx.lang.Object.mergeWith(clazz.$$properties.value, {"onDemand":false,"isServer":true,"readOnly":true,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeValue = {"isServer":true,"isProperty":true};
+    qx.lang.Object.mergeWith(clazz.$$properties.value, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeValue = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

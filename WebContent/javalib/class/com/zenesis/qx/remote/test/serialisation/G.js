@@ -13,11 +13,13 @@ qx.Class.define("com.zenesis.qx.remote.test.serialisation.G", {
  },
   "properties" : {
     "stringProperty" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true
+}) ],
       "nullable" : true,
-      "apply" : "_applyStringProperty",
-      "check" : "String",
-      "event" : "changeStringProperty"
+      "apply":"_applyStringProperty",
+      "check":"String",
+      "event":"changeStringProperty"
     }
   },
   "members" : {
@@ -32,7 +34,16 @@ qx.Class.define("com.zenesis.qx.remote.test.serialisation.G", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    qx.lang.Object.mergeWith(clazz.$$properties.stringProperty, {"onDemand":false,"isServer":true,"readOnly":true,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeStringProperty = {"isServer":true,"isProperty":true};
+    qx.lang.Object.mergeWith(clazz.$$properties.stringProperty, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeStringProperty = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

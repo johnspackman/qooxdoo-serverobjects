@@ -14,18 +14,20 @@ qx.Class.define("com.zenesis.qx.remote.test.simple.Pippo", {
  },
   "properties" : {
     "collezioni" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"componentTypeName":"com.zenesis.qx.remote.test.simple.Pippo"}) ],
-      "transform" : "__transformCollezioni",
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "componentTypeName":"com.zenesis.qx.remote.test.simple.Pippo"
+}) ],
+      "transform":"__transformCollezioni",
       "nullable" : true,
-      "apply" : "_applyCollezioni",
-      "check" : "qx.data.Array",
-      "event" : "changeCollezioni"
+      "apply":"_applyCollezioni",
+      "check":"qx.data.Array",
+      "event":"changeCollezioni"
     },
     "name" : {
       "nullable" : true,
-      "apply" : "_applyName",
-      "check" : "String",
-      "event" : "changeName"
+      "apply":"_applyName",
+      "check":"String",
+      "event":"changeName"
     }
   },
   "members" : {
@@ -36,7 +38,7 @@ qx.Class.define("com.zenesis.qx.remote.test.simple.Pippo", {
     this._applyProperty("collezioni", value, oldValue, name);
  },
     "getCollezioniAsync" : function() {
-    return qx.Promise.resolve(this.getCollezioni()).bind(this);
+    return this._getPropertyOnDemandAsync('collezioni');
  },
     "getExampleCodeAsync" : function() {
     var args = qx.lang.Array.fromArguments(arguments);
@@ -70,10 +72,32 @@ qx.Class.define("com.zenesis.qx.remote.test.simple.Pippo", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.getExampleCode = {"isServer":true,"returnArray":"wrap"};
-    qx.lang.Object.mergeWith(clazz.$$properties.collezioni, {"onDemand":true,"isServer":true,"array":"wrap","readOnly":false,"sync":"queue","nativeKeyType":true});
-    qx.lang.Object.mergeWith(clazz.$$properties.name, {"onDemand":false,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeName = {"isServer":true,"isProperty":true};
-    clazz.$$eventMeta.changeCollezioni = {"isServer":true,"isProperty":true};
+    clazz.$$methodMeta.getExampleCode = {
+      "isServer" : true,
+      "returnArray":"wrap"
+    };
+    qx.lang.Object.mergeWith(clazz.$$properties.collezioni, {
+      "onDemand" : true,
+      "isServer" : true,
+      "array":"wrap",
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    qx.lang.Object.mergeWith(clazz.$$properties.name, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeName = {
+      "isServer" : true,
+      "isProperty" : true
+    };
+    clazz.$$eventMeta.changeCollezioni = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

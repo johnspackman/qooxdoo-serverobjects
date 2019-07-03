@@ -15,11 +15,13 @@ qx.Class.define("com.zenesis.qx.remote.BasicBootstrap", {
  },
   "properties" : {
     "fileApi" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"readOnly":true}) ],
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "readOnly" : true
+}) ],
       "nullable" : true,
-      "apply" : "_applyFileApi",
-      "check" : "com.zenesis.qx.remote.FileApi",
-      "event" : "changeFileApi"
+      "apply":"_applyFileApi",
+      "check":"com.zenesis.qx.remote.FileApi",
+      "event":"changeFileApi"
     }
   },
   "members" : {
@@ -46,8 +48,19 @@ qx.Class.define("com.zenesis.qx.remote.BasicBootstrap", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.loadProxyType = {"isServer":true};
-    qx.lang.Object.mergeWith(clazz.$$properties.fileApi, {"onDemand":false,"isServer":true,"readOnly":true,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeFileApi = {"isServer":true,"isProperty":true};
+    clazz.$$methodMeta.loadProxyType = {
+      "isServer" : true
+    };
+    qx.lang.Object.mergeWith(clazz.$$properties.fileApi, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : true,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeFileApi = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

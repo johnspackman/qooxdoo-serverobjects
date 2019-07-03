@@ -156,15 +156,15 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       var pd = qx.Class.getPropertyDefinition(this.constructor, propertyName);
       
       if (value && pd.check === "Date") {
-        qx.Annotation.getProperty(serverObject.constructor, propertyName, "com.zenesis.qx.remote.annotations.PropertyDate")
+        qx.Annotation.getProperty(this.constructor, propertyName, com.zenesis.qx.remote.annotations.PropertyDate)
           .forEach(annoDate => {
             if (annoDate.getValue() == "date") {
               if (annoDate.isZeroTime()) {
-                if (value.getHour() != 0 || value.getMinute() != 0 || value.getSecond() != 0 || value.getMilliseconds() != 0) {
+                if (value.getHours() != 0 || value.getMinutes() != 0 || value.getSeconds() != 0 || value.getMilliseconds() != 0) {
                   value = new Date(value.getFullYear(), value.getMonth(), value.getDate());
                 }
               } else {
-                if (value.getHour() != 23 || value.getMinute() != 59 || value.getSecond() != 59 || value.getMilliseconds() != 0) {
+                if (value.getHours() != 23 || value.getMinutes() != 59 || value.getSeconds() != 59 || value.getMilliseconds() != 0) {
                   value = new Date(value.getFullYear(), value.getMonth(), value.getDate(), 23, 59, 59, 0);
                 }
               }

@@ -14,12 +14,14 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestQsoArrayList", {
  },
   "properties" : {
     "stringArray" : {
-      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({"componentTypeName":"String"}) ],
-      "transform" : "__transformStringArray",
+      "@" : [ new com.zenesis.qx.remote.annotations.Property().set({
+  "componentTypeName":"String"
+}) ],
+      "transform":"__transformStringArray",
       "nullable" : true,
-      "apply" : "_applyStringArray",
-      "check" : "com.zenesis.qx.remote.collections.ArrayList",
-      "event" : "changeStringArray"
+      "apply":"_applyStringArray",
+      "check":"com.zenesis.qx.remote.collections.ArrayList",
+      "event":"changeStringArray"
     }
   },
   "members" : {
@@ -49,8 +51,21 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestQsoArrayList", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    clazz.$$methodMeta.makeChanges = {"isServer":true};
-    qx.lang.Object.mergeWith(clazz.$$properties.stringArray, {"onDemand":false,"isServer":true,"arrayClass":"com.zenesis.qx.remote.collections.ArrayList","array":"wrap","readOnly":false,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeStringArray = {"isServer":true,"isProperty":true};
+    clazz.$$methodMeta.makeChanges = {
+      "isServer" : true
+    };
+    qx.lang.Object.mergeWith(clazz.$$properties.stringArray, {
+      "onDemand" : false,
+      "isServer" : true,
+      "arrayClass":"com.zenesis.qx.remote.collections.ArrayList",
+      "array":"wrap",
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeStringArray = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

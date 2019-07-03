@@ -23,7 +23,7 @@ public class ClassWriter {
 
 	private final ProxyType proxyType;
 	private final HashMap<String, Object> def;
-	private final ObjectMapper objectMapper;
+	private final BasicObjectMapper objectMapper;
 	private final HashSet<ProxyType> use;
 
 	/**
@@ -33,7 +33,7 @@ public class ClassWriter {
 	public ClassWriter(ProxyType proxyType) {
 		this.proxyType = proxyType;
 		
-		this.objectMapper = new ObjectMapper();
+		this.objectMapper = new BasicObjectMapper();
 		SimpleModule module = new SimpleModule();
 		module.addSerializer(RawValue.class, new RawValueSerializer());
 		module.addSerializer(Function.class, new FunctionSerializer());

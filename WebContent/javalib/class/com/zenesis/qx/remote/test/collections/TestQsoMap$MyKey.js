@@ -14,9 +14,9 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestQsoMap$MyKey", {
   "properties" : {
     "keyId" : {
       "nullable" : true,
-      "apply" : "_applyKeyId",
-      "check" : "String",
-      "event" : "changeKeyId"
+      "apply":"_applyKeyId",
+      "check":"String",
+      "event":"changeKeyId"
     }
   },
   "members" : {
@@ -31,7 +31,16 @@ qx.Class.define("com.zenesis.qx.remote.test.collections.TestQsoMap$MyKey", {
     clazz.$$eventMeta = {};
     clazz.$$methodMeta = {};
     com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);
-    qx.lang.Object.mergeWith(clazz.$$properties.keyId, {"onDemand":false,"isServer":true,"readOnly":false,"sync":"queue","nativeKeyType":true});
-    clazz.$$eventMeta.changeKeyId = {"isServer":true,"isProperty":true};
+    qx.lang.Object.mergeWith(clazz.$$properties.keyId, {
+      "onDemand" : false,
+      "isServer" : true,
+      "readOnly" : false,
+      "sync":"queue",
+      "nativeKeyType" : true
+    });
+    clazz.$$eventMeta.changeKeyId = {
+      "isServer" : true,
+      "isProperty" : true
+    };
  }
 });

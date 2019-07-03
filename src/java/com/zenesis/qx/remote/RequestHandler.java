@@ -1111,7 +1111,9 @@ public class RequestHandler {
 	        ProxiedObserver observer = getObserver(proxied);
 	        if (observer != null) {
 	            Object setValue = property.getValue(proxied);
-	            if (setValue != oldValue && (setValue == null || !setValue.equals(setValue))) {
+	            if ((setValue != null && oldValue == null) ||
+	                    (setValue == null && oldValue != null) ||
+	                    (setValue != null && oldValue != null && !setValue.equals(oldValue))) {
 	                observer.observeSetProperty(proxied, property, value, oldValue);
 	            }
 	        }
