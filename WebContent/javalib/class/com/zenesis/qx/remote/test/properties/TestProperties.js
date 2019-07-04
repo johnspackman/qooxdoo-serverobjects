@@ -101,6 +101,15 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestProperties", {
     "_applyWatchedString" : function(value, oldValue, name) {
     this._applyProperty("watchedString", value, oldValue, name);
  },
+    "getDateTimeGmtAsync" : function() {
+    var args = qx.lang.Array.fromArguments(arguments);
+    return new qx.Promise(function(resolve, reject) {
+      args.push(function() {
+        resolve.apply(this, qx.lang.Array.fromArguments(arguments));
+      });
+      this._callServer("getDateTimeGmt", args);
+    }, this);
+ },
     "getOnDemandStringAsync" : function() {
     return this._getPropertyOnDemandAsync('onDemandString');
  },
@@ -221,6 +230,9 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestProperties", {
     "expireOnDemandPreload" : function(sendToServer) {
     return this._expirePropertyOnDemand('onDemandPreload', sendToServer);
  },
+    "getDateTimeGmt" : function() {
+    return this._callServer("getDateTimeGmt", qx.lang.Array.fromArguments(arguments));
+ },
     "_applyDateEndOfDay" : function(value, oldValue, name) {
     this._applyProperty("dateEndOfDay", value, oldValue, name);
  },
@@ -239,6 +251,9 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestProperties", {
       "isServer" : true
     };
     clazz.$$methodMeta.getChangeLog = {
+      "isServer" : true
+    };
+    clazz.$$methodMeta.getDateTimeGmt = {
       "isServer" : true
     };
     clazz.$$methodMeta.triggerChangeWatchedString = {

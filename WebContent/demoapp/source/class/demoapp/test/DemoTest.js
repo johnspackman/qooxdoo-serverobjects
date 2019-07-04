@@ -129,6 +129,18 @@ qx.Class.define("demoapp.test.DemoTest", {
       this.assertEquals(dt2.getMonth(), dt1.getMonth());
       this.assertEquals(dt2.getDate(), dt1.getDate());
       tp.checkDateStartOfDay();
+      
+      let now = new Date();
+      tp.setDateTime(now);
+      let gmt = tp.getDateTimeGmt();
+      let lgmt = new Date(now.getTime() + now.getTimezoneOffset() * 60 * 1000);
+      this.assertEquals(gmt.getFullYear(), lgmt.getFullYear());
+      this.assertEquals(gmt.getMonth(), lgmt.getMonth());
+      this.assertEquals(gmt.getDate(), lgmt.getDate());
+      this.assertEquals(gmt.getHours(), lgmt.getHours());
+      this.assertEquals(gmt.getMinutes(), lgmt.getMinutes());
+      this.assertEquals(gmt.getSeconds(), lgmt.getSeconds());
+      
 		},
 		
 		assertEquivalent: function(expected, actual, msg) {
