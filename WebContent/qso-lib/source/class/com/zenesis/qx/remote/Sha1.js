@@ -1,13 +1,3 @@
-/**
- * @ignore(global)
- * @ignore(global.Buffer)
- * @ignore(global.Buffer.isBuffer)
- * @ignore(reader.readAsArrayBuffer)
- * @ignore(Uint8Array)
- * @ignore(Int32Array)
- * @ignore(DataView)
- * @ignore(Int8Array)
- */
 qx.Class.define("com.zenesis.qx.remote.Sha1", {
   extend: qx.core.Object,
   
@@ -105,6 +95,15 @@ qx.Class.define("com.zenesis.qx.remote.Sha1", {
 });
 
 /*
+ * @ignore(global)
+ * @ignore(global.Buffer)
+ * @ignore(global.Buffer.isBuffer)
+ * @ignore(reader.readAsArrayBuffer)
+ * @ignore(Uint8Array)
+ * @ignore(Int32Array)
+ * @ignore(DataView)
+ * @ignore(Int8Array)
+ * 
  * Rusha, a JavaScript implementation of the Secure Hash Algorithm, SHA-1,
  * as defined in FIPS PUB 180-1, tuned for high performance with large inputs.
  * (http://github.com/srijs/rusha)
