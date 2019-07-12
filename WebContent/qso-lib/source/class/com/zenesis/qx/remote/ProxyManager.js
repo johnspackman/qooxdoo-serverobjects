@@ -533,7 +533,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   
           forPrefetch(methodName) {
             var prefetchStats = this.prefetch[methodName];
-            if (!propStats)
+            if (!prefetchStats)
               prefetchStats = this.prefetch[methodName] = { name: methodName, numSets: 0, time: 0 };
             return prefetchStats;
           }
