@@ -29,6 +29,7 @@ package com.zenesis.qx.remote;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
@@ -37,6 +38,7 @@ import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonStreamContext;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.io.CharTypes;
 import com.fasterxml.jackson.core.json.JsonWriteContext;
@@ -47,6 +49,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.zenesis.core.helpers.Reflect2;
+import com.zenesis.qx.remote.BasicObjectMapper.EnumDeserializer;
+import com.zenesis.qx.remote.BasicObjectMapper.EnumSerializer;
 
 /**
  * Simple wrapper for Jackson ObjectMapper that uses our custom de/serialisation factories and adds a few helper
@@ -125,7 +130,7 @@ public class BasicObjectMapper extends ObjectMapper {
 	/*
 	 * Serialises enums in camelCase
 	 */
-	protected static final class EnumSerializer extends JsonSerializer<Enum> {
+	public static final class EnumSerializer extends JsonSerializer<Enum> {
 		/* (non-Javadoc)
 		 * @see org.codehaus.jackson.map.JsonSerializer#serialize(java.lang.Object, org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
 		 */
@@ -139,19 +144,33 @@ public class BasicObjectMapper extends ObjectMapper {
 
 	};
 	
-/*	
-	protected static final class EnumDeserializer extends JsonDeserializer<Enum> {
+	public static final class EnumDeserializer extends JsonDeserializer<Enum> {
 
 		@Override
 		public Enum deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
 			String value = jp.getText();
 			if (value == null || value.length() == 0)
 				return null;
+			JsonStreamContext parsingContext = jp.getParsingContext();
+			JsonStreamContext parent = parsingContext.getParent();
+			Object currentValue = parsingContext.getCurrentValue();
+			String name = parsingContext.getCurrentName();
+			Field field = new Reflect2<IllegalStateException>(IllegalStateException.class).findField(currentValue.getClass(), name);
+			if (field != null) {
+	            String str = Helpers.deserialiseEnum(value);
+	            try {
+	                Enum result = Enum.valueOf((Class)field.getType(), str);
+	                return result;
+	            }catch(IllegalArgumentException e) {
+	                log.fatal("Cannot decode enum value " + value + " for " + field.getType() + " in " + currentValue);
+	            }
+			} else {
+                log.fatal("Cannot find enum type for " + value + " in " + currentValue);
+			}
 			return null;
 		}
 		
 	}
-*/
 	
 	/*
 	 * Serialises Maps
@@ -281,31 +300,39 @@ public class BasicObjectMapper extends ObjectMapper {
 		super();
 		if (indent)
 			this.enable(SerializationFeature.INDENT_OUTPUT);
-		SimpleModule module;
 		
-		module = new SimpleModule("ProxyObjectMapper1", Version.unknownVersion());
-		module.addSerializer(Enum.class, new EnumSerializer());
-		registerModule(module);
+		createEnumModule();
 		
-		module = new SimpleModule("ProxyObjectMapper2", Version.unknownVersion());
+		SimpleModule module = new SimpleModule("ProxyObjectMapper2", Version.unknownVersion());
 		module.addSerializer(String.class, new StringSerializer());
 		module.addSerializer(File.class, new FileSerializer(rootDir));
 		module.addDeserializer(File.class, new FileDeserializer(rootDir));
 		module.addSerializer(Map.class, new MapSerializer());
 		module.addSerializer(Proxied.class, new ProxiedSerializer());
 		module.addDeserializer(Proxied.class, new ProxiedDeserializer());
-		addToModule(module);
+		addToModule2(module);
 		registerModule(module);
 	}
     
-	/**
-	 * Called to add to the module
-	 * @param module
-	 */
-    protected void addToModule(SimpleModule module) {
+    protected void createEnumModule() {
+        SimpleModule module = new SimpleModule("ProxyObjectMapper1", Version.unknownVersion());
+        module.addSerializer(Enum.class, new EnumSerializer());
+        
+        // This DeSerializer is beta because of difficulties finding out what enum to deserialise
+        //    as; that problem may have been solved, but RequestHandler still has the code that
+        //    figures it out, so it is not on by default here.
+        //module.addDeserializer(Enum.class, new EnumDeserializer());
+        registerModule(module);
+    }
+    
+    /**
+     * Called to add to the module
+     * @param module
+     */
+    protected void addToModule2(SimpleModule module) {
         // Nothing
     }
-	
+    
 	/**
 	 * Enables or disabled quoted field names
 	 * @param set
