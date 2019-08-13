@@ -310,7 +310,7 @@ public class BasicObjectMapper extends ObjectMapper {
 		module.addSerializer(Map.class, new MapSerializer());
 		module.addSerializer(Proxied.class, new ProxiedSerializer());
 		module.addDeserializer(Proxied.class, new ProxiedDeserializer());
-		addToModule2(module);
+		addToModule(module);
 		registerModule(module);
 	}
     
@@ -329,7 +329,7 @@ public class BasicObjectMapper extends ObjectMapper {
      * Called to add to the module
      * @param module
      */
-    protected void addToModule2(SimpleModule module) {
+    protected void addToModule(SimpleModule module) {
         // Nothing
     }
     
