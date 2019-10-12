@@ -121,7 +121,7 @@ public abstract class AbstractProxyType implements ProxyType {
 			if (getMixins() != null) {
 				for (Mixin mixin : getMixins())
 					if (mixin.patch()) {
-						fn.code += "qx.Class.patch(clazz, " + mixin.value() + ");\n";
+						fn.code += "clazz = qx.Class.patch(clazz, " + mixin.value() + ");\n";
 					}
 				ArrayList<String> arr = new ArrayList<>();
 				for (Mixin mixin : getMixins())
@@ -130,7 +130,7 @@ public abstract class AbstractProxyType implements ProxyType {
 				if (!arr.isEmpty())
 					cw.include(arr);
 			}
-			fn.code += "com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);\n";
+			fn.code += "clazz = com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);\n";
 		}
 		
 		if (getUses() != null) {

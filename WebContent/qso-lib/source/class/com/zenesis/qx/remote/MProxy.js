@@ -429,8 +429,10 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     deferredClassInitialisation: function(clazz) {
     	// Make sure it has this mixin - but check first because a super class may have already
     	//	included it
-      if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy))
+      if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy)) {
     	  qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
+    	  clazz = qx.Class.getByName(clazz.classname);
+      }
     	
     	for (var name in clazz.$$properties) {
     		var def = clazz.$$properties[name];
@@ -449,6 +451,8 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
           window.Packages = {};
         window.Packages[tld] = window[tld];
       }
+      
+      return clazz;
     },
     
     /**
