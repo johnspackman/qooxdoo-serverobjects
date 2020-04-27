@@ -49,7 +49,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.zenesis.core.helpers.Reflect2;
 import com.zenesis.qx.remote.BasicObjectMapper.EnumDeserializer;
 import com.zenesis.qx.remote.BasicObjectMapper.EnumSerializer;
 
@@ -152,10 +151,14 @@ public class BasicObjectMapper extends ObjectMapper {
 			if (value == null || value.length() == 0)
 				return null;
 			JsonStreamContext parsingContext = jp.getParsingContext();
-			JsonStreamContext parent = parsingContext.getParent();
 			Object currentValue = parsingContext.getCurrentValue();
 			String name = parsingContext.getCurrentName();
-			Field field = new Reflect2<IllegalStateException>(IllegalStateException.class).findField(currentValue.getClass(), name);
+			Field field = null;
+	        try {
+	            field= currentValue.getClass().getField(name);
+	        }catch(NoSuchFieldException e) {
+	            // Nothing
+	        }
 			if (field != null) {
 	            String str = Helpers.deserialiseEnum(value);
 	            try {
