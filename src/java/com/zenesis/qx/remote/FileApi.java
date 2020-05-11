@@ -50,8 +50,9 @@ public class FileApi implements Proxied {
 		public long lastModified;
 		public boolean exists;
 		public String uploadId;
+        public String downloadUrl;
 		
-		public FileInfo(File file, String rootAbsPath) {
+		private FileInfo(File file, String rootAbsPath) {
 			this.type = file.isDirectory() ? FileType.FOLDER : FileType.FILE;
 			this.size = file.length();
 			this.lastModified = file.lastModified();
@@ -68,7 +69,7 @@ public class FileApi implements Proxied {
 			} else {
 				this.name = file.getName();
 			}
-			this.absolutePath= absolutePath;
+			this.absolutePath = absolutePath;
 		}
 	}
 
@@ -104,8 +105,7 @@ public class FileApi implements Proxied {
 	 * @throws IOException
 	 */
 	public FileApi(File rootDir, String rootUrl) {
-		rootDir.mkdirs();
-		if (!rootDir.exists() || !rootDir.isDirectory())
+		if (rootDir.exists() && !rootDir.isDirectory())
 			throw new IllegalArgumentException("FileApi must have a root directory, not " + rootDir.getAbsolutePath());
 		this.rootDir = rootDir.getAbsoluteFile();
 		rootAbsPath = this.rootDir.getAbsolutePath();
@@ -163,7 +163,7 @@ public class FileApi implements Proxied {
 			return null;
 		ArrayList<FileInfo> result = new ArrayList<FileInfo>();
 		for (File file : dir.listFiles(LIST_FILES_FILTER))
-			result.add(new FileInfo(file, rootAbsPath));
+			result.add(createFileInfo(file, rootAbsPath));
 		return result.toArray(new FileInfo[result.size()]);
 	}
 	
@@ -193,7 +193,7 @@ public class FileApi implements Proxied {
 		File file = getFile(path);
 		if (file == null)
 			return null;
-		return new FileInfo(file, rootAbsPath);
+		return createFileInfo(file, rootAbsPath);
 	}
 	
 	/**
@@ -204,7 +204,27 @@ public class FileApi implements Proxied {
 	public FileInfo getFileInfo(File file) {
 		if (!isValidFile(file))
 			return null;
-		return new FileInfo(file, rootAbsPath);
+		return createFileInfo(file, rootAbsPath);
+	}
+	
+	/**
+	 * Overridable method for creating a new file
+	 * 
+	 * @param file
+	 * @param rootAbsPath
+	 * @return
+	 */
+	protected FileInfo createFileInfo(File file, String rootAbsPath) {
+	    FileInfo info = new FileInfo(file, rootAbsPath);
+	    String str = rootUrl;
+	    if (str.length() > 0 && str.charAt(str.length() - 1) != '/')
+	        str += "/";
+	    if (info.absolutePath.charAt(0) == '/')
+	        str += info.absolutePath.substring(1);
+	    else
+	        str += info.absolutePath;
+	    info.downloadUrl = str;
+	    return info;
 	}
 	
 	/**
@@ -217,6 +237,8 @@ public class FileApi implements Proxied {
 	@Method
 	public boolean renameTo(String strSrc, String strDest) {
 		File src = getFile(strSrc);
+		if (!src.exists())
+		    return false;
 		File dest = getFile(strDest);
 		if (src == null || dest == null)
 			return false;
@@ -239,6 +261,8 @@ public class FileApi implements Proxied {
 	@Method
 	public boolean moveTo(String strSrc, String strDest) throws IOException {
 		File src = getFile(strSrc);
+        if (!src.exists())
+            return false;
 		File dest = getFile(strDest);
 		if (src == null || dest == null)
 			return false;
@@ -257,6 +281,8 @@ public class FileApi implements Proxied {
 	@Method
 	public FileInfo copyTo(String strSrc, String strDest) throws IOException {
 		File src = getFile(strSrc);
+        if (!src.exists())
+            return null;
 		File dest = getFile(strDest);
 		if (src == null || dest == null)
 			return null;
@@ -275,6 +301,8 @@ public class FileApi implements Proxied {
 	@Method
 	public FileInfo copyToUnique(String strSrc, String strDest) throws IOException {
 		File src = getFile(strSrc);
+        if (!src.exists())
+            return null;
 		File dest = getFile(strDest);
 		if (src == null || dest == null)
 			return null;
@@ -390,11 +418,8 @@ public class FileApi implements Proxied {
         if (dest == src || dest.getAbsolutePath().equals(src.getAbsolutePath()))
             return;
         
-        if (dest == null) {
-            src.delete();
-            return;
-        }
-        
+        dest.getParentFile().mkdirs();
+
         dest = copyTo(src, dest, true, false);
         src.delete();
         onChange(ChangeType.MOVE, dest, src);
