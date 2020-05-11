@@ -50,6 +50,7 @@ public class FileApi implements Proxied {
 		public final long lastModified;
 		public final boolean exists;
 		public String uploadId;
+        public String downloadUrl;
 		
 		private FileInfo(File file, String rootAbsPath) {
 			this.type = file.isDirectory() ? FileType.FOLDER : FileType.FILE;
@@ -68,7 +69,7 @@ public class FileApi implements Proxied {
 			} else {
 				this.name = file.getName();
 			}
-			this.absolutePath= absolutePath;
+			this.absolutePath = absolutePath;
 		}
 	}
 
@@ -214,7 +215,16 @@ public class FileApi implements Proxied {
 	 * @return
 	 */
 	protected FileInfo createFileInfo(File file, String rootAbsPath) {
-	    return new FileInfo(file, rootAbsPath);
+	    FileInfo info = new FileInfo(file, rootAbsPath);
+	    String str = rootUrl;
+	    if (str.length() > 0 && str.charAt(str.length() - 1) != '/')
+	        str += "/";
+	    if (info.absolutePath.charAt(0) == '/')
+	        str += info.absolutePath.substring(1);
+	    else
+	        str += info.absolutePath;
+	    info.downloadUrl = str;
+	    return info;
 	}
 	
 	/**
