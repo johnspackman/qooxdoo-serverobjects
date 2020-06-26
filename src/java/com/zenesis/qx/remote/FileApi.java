@@ -406,17 +406,17 @@ public class FileApi implements Proxied {
 	 * @return
 	 * @throws IOException
 	 */
-    public void endUploadingFile(UploadingFile upfile, boolean success) throws IOException {
+    public File endUploadingFile(UploadingFile upfile, boolean success) throws IOException {
         if (!success) {
             uploading.remove(upfile.getUploadId());
-            return;
+            return null;
         }
 
         File src = upfile.getFile();
         updateUploadedFileDest(upfile);
         File dest = upfile.getFile();
         if (dest == src || dest.getAbsolutePath().equals(src.getAbsolutePath()))
-            return;
+            return dest;
         
         dest.getParentFile().mkdirs();
 
@@ -425,6 +425,7 @@ public class FileApi implements Proxied {
         onChange(ChangeType.MOVE, dest, src);
         onChange(ChangeType.UPLOAD, upfile.getOriginalName(), null);
         upfile.setFile(dest);
+        return dest;
     }
     
     /**
