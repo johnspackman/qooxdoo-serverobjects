@@ -9,12 +9,9 @@ import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
-
 import org.apache.logging.log4j.Logger;
 
 import com.zenesis.qx.event.EventManager;
-import com.zenesis.qx.remote.AbstractProxyProperty.Spec;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.PropertyDate;

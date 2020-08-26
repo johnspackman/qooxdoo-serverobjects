@@ -49,8 +49,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.zenesis.qx.remote.BasicObjectMapper.EnumDeserializer;
-import com.zenesis.qx.remote.BasicObjectMapper.EnumSerializer;
 
 /**
  * Simple wrapper for Jackson ObjectMapper that uses our custom de/serialisation factories and adds a few helper
@@ -61,7 +59,6 @@ import com.zenesis.qx.remote.BasicObjectMapper.EnumSerializer;
 @SuppressWarnings("serial")
 public class BasicObjectMapper extends ObjectMapper {
 	
-	@SuppressWarnings("unused")
 	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(BasicObjectMapper.class);
 	
 	/*

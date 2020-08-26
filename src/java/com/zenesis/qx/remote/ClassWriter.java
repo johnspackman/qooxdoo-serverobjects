@@ -123,7 +123,6 @@ public class ClassWriter {
 	}
 	
 	public void event(String name, String type) {
-		@SuppressWarnings("unchecked")
 		HashMap<String, Object> map = (HashMap<String,Object>)def.get("events");
 		if (map == null) {
 			map = new HashMap<>();
@@ -133,7 +132,6 @@ public class ClassWriter {
 	}
 	
 	public void member(String name, Object obj) {
-		@SuppressWarnings("unchecked")
 		HashMap<String, Object> map = (HashMap<String,Object>)def.get("members");
 		if (map == null) {
 			map = new HashMap<>();
@@ -143,7 +141,6 @@ public class ClassWriter {
 	}
 
 	public void statics(String name, Object obj) {
-		@SuppressWarnings("unchecked")
 		HashMap<String, Object> map = (HashMap<String,Object>)def.get("statics");
 		if (map == null) {
 			map = new HashMap<>();
@@ -153,7 +150,6 @@ public class ClassWriter {
 	}
 
 	public void property(String name, Object obj) {
-		@SuppressWarnings("unchecked")
 		HashMap<String, Object> map = (HashMap<String,Object>)def.get("properties");
 		if (map == null) {
 			map = new HashMap<>();

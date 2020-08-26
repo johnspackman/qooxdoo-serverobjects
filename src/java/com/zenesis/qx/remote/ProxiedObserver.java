@@ -1,9 +1,5 @@
 package com.zenesis.qx.remote;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 public interface ProxiedObserver {
 
     public enum ObservationType {

@@ -27,9 +27,6 @@
  */
 package com.zenesis.qx.remote;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
 /**
  * Interfaces which extend this can to be sent to the client as an RMI definition;
  * note that classes should not implement this interface directly because only

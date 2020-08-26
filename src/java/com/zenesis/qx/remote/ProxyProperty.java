@@ -27,8 +27,6 @@
  */
 package com.zenesis.qx.remote;
 
-import java.util.HashMap;
-
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.zenesis.qx.remote.annotations.Remote;
 

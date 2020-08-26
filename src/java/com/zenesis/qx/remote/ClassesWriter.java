@@ -59,19 +59,6 @@ public class ClassesWriter {
         return str;
     }
     
-    private static String pathToClass(String path) {
-        if (path.endsWith(".class"))
-            path = path.substring(0, path.length() - 6);
-        String[] segs = path.split("\\" + File.separatorChar);
-        String str = "";
-        for (int i = 0; i < segs.length; i++) {
-            if (i != 0)
-                str += ".";
-            str += segs[i];
-        }
-        return str;
-    }
-    
     public static void main(String[] args) {
         if (args.length < 2) {
             System.err.println("Usage: ClassesWriter classes-directory output-to");

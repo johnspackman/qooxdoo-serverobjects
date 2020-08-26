@@ -199,7 +199,6 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
 			else
 				gen.writeStringField("array", "wrap");
 			if (spec.arrayClass != null) {
-				ProxyType type = ProxyTypeManager.INSTANCE.getProxyType((Class<? extends Proxied>)propertyClass.getCollectionClass());
 				gen.writeObjectField("arrayClass", spec.arrayClass);
 			}
 			gen.writeStringField("componentTypeName", spec.componentTypeName);

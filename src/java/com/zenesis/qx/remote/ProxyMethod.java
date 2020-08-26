@@ -43,7 +43,6 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.remote.annotations.Remote;
-import com.zenesis.qx.remote.collections.ArrayList;
 import com.zenesis.qx.remote.ClassWriter.Function;
 
 /**
