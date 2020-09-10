@@ -236,7 +236,8 @@ public class ProxyTypeImpl extends AbstractProxyType {
 	 * @param className
 	 * @param methods
 	 */
-	public ProxyTypeImpl(ProxyType superType, Class clazz, Set<ProxyType> interfaces) {
+	@SuppressWarnings("unused")
+    public ProxyTypeImpl(ProxyType superType, Class clazz, Set<ProxyType> interfaces) {
 		super();
 		if (interfaces == null)
 			interfaces = Collections.EMPTY_SET;

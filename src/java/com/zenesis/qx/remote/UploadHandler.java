@@ -195,9 +195,7 @@ public class UploadHandler {
 				Object value = paramPart.getStringValue();
 				
 				/*
-				 * TODO/HACK
 				 * This is a quick hack for getting server objects passed as parameters
-				 * 
 				 */
 				if (value != null) {
 					try {
