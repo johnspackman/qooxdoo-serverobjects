@@ -1095,7 +1095,7 @@ public class RequestHandler {
 		tracker.beginMutate(proxied, propertyName);
 		try {
 			ProxyProperty property = getProperty(type, propertyName);
-			
+
 			value = coerce(property.getPropertyClass().getJavaType(), value);
 			
             Object oldValue = property.getValue(proxied);
@@ -1129,30 +1129,50 @@ public class RequestHandler {
 	 * @param value
 	 * @return
 	 */
-	protected Object coerce(Class clazz, Object value) {
+	protected Object coerce(Class targetClass, Object value) {
 		if (value == null)
 			return null;
-		if (value.getClass() == clazz)
+		
+		Class vClazz = value.getClass();
+		if (vClazz == targetClass)
 			return value;
 		
-		if (value.getClass() == Double.class) {
-			double val = (Double)value;
-			if (clazz == float.class)
-				value = (float)val;
-			else if (clazz == int.class)
-				value = (int)val;
-			else if (clazz == long.class)
-				value = (long)val;
-			
-		} else if (value.getClass() == Long.class) {
+		if (vClazz == double.class || vClazz == Double.class) {
+            double val = (Double)value;
+            if (targetClass == float.class || targetClass == Float.class)
+                value = (float)val;
+            else if (targetClass == int.class || targetClass == Integer.class)
+                value = (int)val;
+            else if (targetClass == long.class || targetClass == Long.class)
+                value = (long)val;
+            
+        } else if (vClazz == float.class || vClazz == Float.class) {
+            float val = (Float)value;
+            if (targetClass == double.class || targetClass == Double.class)
+                value = (double)val;
+            else if (targetClass == int.class || targetClass == Integer.class)
+                value = (int)Math.round(val);
+            else if (targetClass == long.class || targetClass == Long.class)
+                value = (long)Math.round(val);
+            
+        } else if (vClazz == long.class || vClazz == Long.class) {
 			long val = (Long)value;
-			if (clazz == float.class)
+			if (targetClass == float.class || targetClass == Float.class)
 				value = (float)val;
-			else if (clazz == int.class)
+            else if (targetClass == double.class || targetClass == Double.class)
+                value = (double)val;
+			else if (targetClass == int.class || targetClass == Integer.class)
 				value = (int)val;
-			else if (clazz == long.class)
-				value = (long)val;
-		} 
+			
+		} else if (vClazz == int.class || vClazz == Integer.class) {
+		    int val = (Integer)value;
+		    if (targetClass == float.class || targetClass == Float.class)
+		        value = (float)val;
+            else if (targetClass == double.class || targetClass == Double.class)
+                value = (double)val;
+            else if (targetClass == long.class || targetClass == Long.class)
+                value = (long)val;
+		}
 		
 		return value;
 	}
