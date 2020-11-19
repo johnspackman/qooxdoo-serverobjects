@@ -32,7 +32,8 @@
  * @ignore(com.zenesis.qx.remote.LogEntrySink)
  */
 /*
- * @require(qx.core.Aspect) @ignore(auto-require)
+ * @require(qx.core.Aspect
+ * @ignore(auto-require)
  */
 qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   extend: qx.core.Object,
@@ -40,11 +41,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   /**
    * Constructor
    * 
-   * @param proxyUrl
-   *          {String} the URL for communicating with the server
+   * @param proxyIo {IProxyIO} the instance for communicating with the server
    * @ignore(qx.util.Json)
    */
-  construct: function(proxyUrl) {
+  construct: function(proxyIo) {
     this.base(arguments);
     this.__unprocessedResponses = [];
     if (!com.zenesis.qx.remote.ProxyManager.__initialised) {
@@ -58,17 +58,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     this.__onPollTimeoutBinding = qx.lang.Function.bind(this.__onPollTimeout, this);
 
     this.__serverObjects = [];
-    this.setProxyUrl(proxyUrl);
+    this.__proxyIo = proxyIo;
   },
 
   properties: {
-    /** URL to connect to */
-    proxyUrl: {
-      init: null,
-      nullable: false,
-      check: "String"
-    },
-
     /**
      * Whether to poll the server periodically for updates, even if there is
      * nothing to send
@@ -224,6 +217,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     hasConnected: function() {
       return this.__serverObjects.length > 0;
     },
+    
+    /**
+     * Returns the IProxyIo instance
+     *
+     * @return {IProxyIo}
+     */
+    getProxyIo() {
+      return this.__proxyIo;
+    },
 
     /**
      * Shutsdown the connection, and cannot be undone.  Returns a promise which
@@ -280,13 +282,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     __expectedRequestIndex: 0,
     __unprocessedResponses: null,
-    __onResponseReceived: function(evt) {
+    __onResponseReceived(ioData) {
       this.__numActiveRequests--;
-      var txt = evt.getContent();
-      var statusCode = evt.getStatusCode();
-      var req = evt.getTarget();
-
-      var proxyData = req.getUserData("proxyData");
+      var txt = ioData.content;
+      var statusCode = ioData.statusCode;
+      var proxyData = ioData.proxyData;
+      
       if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
         proxyData.receivedTime = new Date().getTime();
       }
@@ -298,7 +299,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       this.__inProcessData++;
       try {
         if (statusCode == 200) {
-          var sessionId = evt.getResponseHeaders()["X-ProxyManager-SessionId"];
+          var sessionId = ioData.responseHeaders["x-proxymanager-sessionid"];
           if (sessionId) {
             if (qx.core.Environment.get("qx.debug")) {
               if (this.__sessionId && this.__sessionId != sessionId) {
@@ -307,26 +308,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
             this.__sessionId = sessionId;
           }
-          reqIndex = parseInt(evt.getResponseHeaders()["X-ProxyManager-RequestIndex"], 10);
+          reqIndex = parseInt(ioData.responseHeaders["x-proxymanager-requestindex"], 10);
           if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps"))
             console.log && console.log("__onResponseReceived 1: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
-          if (qx.core.Environment.get("qx.debug")) {
-            var sha = evt.getResponseHeaders()["X-ProxyManager-SHA1"];
-            if (sha) {
-              var digest = com.zenesis.qx.remote.Sha1.digest(txt);
-              if (sha != digest) {
-                throw new Error("Invalid SHA received from server, expected=" + sha + ", found=" + digest);
-              }
-            }
-          }
 
           qx.core.Assert.assertTrue(isNaN(reqIndex) || reqIndex === proxyData.reqIndex);
           result = this.__processResponse(proxyData);
 
         } else {
-          this._handleIoError(evt);
+          this._handleIoError(ioData);
           if (typeof proxyData.async == "function")
-            proxyData.async(evt);
+            proxyData.async(ioData);
         }
 
         return result;
@@ -452,11 +444,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     /**
      * Called when there is an error in the IO to the server
      */
-    _handleIoError: function(evt) {
-      var statusCode = evt.getStatusCode();
-      this.error("Error returned by server, code=" + statusCode);
-      if (this.fireDataEvent("ioError", evt)) {
-        this._setException(new Error("statusCode=" + statusCode));
+    _handleIoError: function(ioData) {
+      this.error("Error returned by server, code=" + ioData.statusCode);
+      if (this.fireDataEvent("ioError", ioData)) {
+        this._setException(new Error("statusCode=" + ioData.statusCode));
       }
     },
 
@@ -1908,7 +1899,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Boolean?} whether to make it an async call (default is synchronous)
      * @return {String} the server response
      */
-    _sendCommandToServer: function(obj, async, suppressWarnings) {
+    _sendCommandToServer(obj, async, suppressWarnings) {
       if (this.__shutdownPromise)
         throw new Error("Cannot connect to server because ProxyManager is shutdown");
 
@@ -1962,42 +1953,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return value;
       });
       this.__numActiveRequests++;
-      var req = new qx.io.remote.Request(this.getProxyUrl(), "POST", "text/plain");
-      req.setAsynchronous(!!async);
-      req.setTimeout(this.getTimeout());
+      
+      let headers = {};
       if (this.__sessionId)
-        req.setRequestHeader("X-ProxyManager-SessionId", this.__sessionId);
-      if (qx.core.Environment.get("qx.debug")) {
-        req.setRequestHeader("X-ProxyManager-SHA1", com.zenesis.qx.remote.Sha1.digest(text));
-      }
-      req.setRequestHeader("X-ProxyManager-ClientTime", new Date().getTime());
+        headers["X-ProxyManager-SessionId"] = this.__sessionId;
       var reqIndex = this.__numberOfCalls++;
-      req.setRequestHeader("X-ProxyManager-RequestIndex", reqIndex);
-      req.setData(text);
+      headers["X-ProxyManager-RequestIndex"] = reqIndex;
 
-      // You must set the character encoding explicitly; even if the page is
-      // served as UTF8 and everything else is
-      // UTF8, not specifying will lead to the server screwing up decoding
-      // (presumably the default charset for the
-      // JVM).
-      var charset = document.characterSet || document.charset || "UTF-8";
-      req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=" + charset);
-
-      // Send it
-      if (qx.core.Environment.get("com.zenesis.qx.remote.trace")) {
-        // Use console.log because LogAppender would cause recursive logging
-        console.log && console.log("Sending to server: " + text); 
-      }
-
-      req.addListener("completed", this.__onResponseReceived, this);
-      req.addListener("failed", this.__onResponseReceived, this);
-      req.addListener("timeout", this.__onResponseReceived, this);
-      req.setUserData("proxyData", { 
-        async: async,
-        startTime: startTime,
-        postTime: new Date().getTime(),
-        reqIndex: reqIndex
-      });
       if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) {
         console.log && console.log("Sending request, reqIndex=" + reqIndex + ", async=" + (!!async));
         if (!async) {
@@ -2005,15 +1967,29 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           console.log(trace.join("\n"));
         }
       }
+      
       if (this.__preRequestCallback)
-        this.__preRequestCallback.call(this, req);
+        this.__preRequestCallback.call(this, this.__proxyIo);
+        
       if (!suppressWarnings && qx.core.Environment.get("com.zenesis.qx.remote.traceRecursion")) {
         if (this.__inProcessData) {
           var trace = qx.dev.StackTrace.getStackTrace();
           this.warn(["Recursive calls to ProxyManager may cause exceptions with object references, stack trace:"].concat(trace).join("\n"));
         }
       }
-      req.send();
+      
+      this.__proxyIo.send({
+        headers: headers,
+        body: text,
+        async: !!async,
+        proxyData: { 
+          async: async,
+          startTime: startTime,
+          postTime: new Date().getTime(),
+          reqIndex: reqIndex
+        },
+        handler: evt => this.__onResponseReceived(evt)
+      });
     },
 
     /**
@@ -2161,18 +2137,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       this.__pollTimerId = null;
       if (this.__numActiveRequests == 0)
         this.flushQueue(true, true);
-    },
-
-    /**
-     * Called to apply the timeout
-     */
-    _applyTimeout: function(value) {
-      if (typeof qx.io.remote.transport.XmlHttp.setTimeout == "function") {
-        qx.io.remote.transport.XmlHttp.setTimeout(value);
-      } else {
-        this.warn("Cannot set the timeout of the underlying qx.io.remote.transport.XmlHttp transport because it does not support " +
-        "setTimeout.  Please see pull request #???");
-      }
     },
 
     /**

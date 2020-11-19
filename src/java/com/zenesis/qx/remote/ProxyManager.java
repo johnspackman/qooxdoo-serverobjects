@@ -170,33 +170,8 @@ public class ProxyManager implements EventListener {
 	        String contentType = request.getContentType();
 			if (request.getMethod().toUpperCase().equals("POST") && contentType != null && contentType.startsWith("multipart/form-data"))
 				new UploadHandler(tracker).processUpload(request, response);
-			else {
-				String enc = request.getHeader("Accept-Encoding");
-				if (!RequestHandler.log.isDebugEnabled()) {
-					response.setContentType("text/json; charset=UTF-8");
-					OutputStream os = response.getOutputStream();
-					
-					if (enc != null) {
-						/* Don't use deflate - this does not work for ajax calls on IE
-						if (enc.indexOf("deflate") > -1) {
-							enc = enc.indexOf("x-deflate") != -1 ? "x-deflate" : "deflate";
-							os = new DeflaterOutputStream(os, new Deflater(Deflater.BEST_SPEED));
-							
-						} else */ if (enc.indexOf("gzip") != -1) {
-							enc = enc.indexOf("x-gzip") != -1 ? "x-gzip" : "gzip";
-							os = new GZIPOutputStream(os);
-							
-						} else 
-							enc = null;
-					}
-					
-					if (enc != null)
-						response.addHeader("Content-Encoding", enc);
-					new RequestHandler(tracker).processRequest(request.getReader(), os);
-				} else {
-					new RequestHandler(tracker).processRequestDebug(request, response);
-				}
-			}
+			else
+				new RequestHandler(tracker).processRequest(request, response);
 		}finally {
 			// Done
 			deselectTracker(tracker);

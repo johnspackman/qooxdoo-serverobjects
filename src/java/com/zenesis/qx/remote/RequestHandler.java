@@ -45,8 +45,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Stack;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPOutputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -99,6 +102,7 @@ public class RequestHandler {
 	public static final String HEADER_SHA1 = "X-ProxyManager-SHA1";
 	public static final String HEADER_INDEX = "X-ProxyManager-RequestIndex";
 	public static final String HEADER_CLIENT_TIME = "X-ProxyManager-ClientTime";
+	public static final String HEADER_RETRY = "X-ProxyManager-Retry";
 	
 	// Maximum time to wait for a lock on the response
 	private static int s_requestLockTimeout = 2 * 60 * 1000;
@@ -231,25 +235,61 @@ public class RequestHandler {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public void processRequestDebug(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		if (!log.isDebugEnabled()) {
-			processRequest(request.getReader(), response.getWriter());
-			return;
+	public void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		String str = request.getHeader(RequestHandler.HEADER_INDEX);
+		int requestIndex = -1;
+		try {
+			requestIndex = Integer.parseInt(str);
+		} catch(NumberFormatException e) {
+			// Nothing
 		}
+		if (requestIndex < 0) {
+			log.error("Invalid requestIndex sent from client, found " + str);
+			throw new IllegalArgumentException("Invalid requestIndex sent from client, found " + str);
+		}
+		LinkedList<Integer> requestIndexes = tracker.getRequestIndexes();
+		int lowestRequestIndex = -1;
+		boolean requestAlreadySeen = false;
+		synchronized(requestIndexes) {
+			for (Integer tmp : requestIndexes) {
+				if (tmp == requestIndex) {
+					requestAlreadySeen = true;
+					break;
+				}
+				if (lowestRequestIndex == -1 || lowestRequestIndex > tmp)
+					lowestRequestIndex = tmp;
+			}
+		}
+		if (requestAlreadySeen) {
+			log.error("Duplicate request sent from client, requestIndex=" + requestIndex);
+			throw new IllegalArgumentException("Duplicate request sent from client, requestIndex=" + requestIndex);
+		}
+		if (requestIndex < lowestRequestIndex) {
+			log.error("Request sent from client is too old, requestIndex=" + requestIndex);
+			throw new IllegalArgumentException("Request sent from client is too old, requestIndex=" + requestIndex);
+		}
+		requestIndexes.add(requestIndex);
+		if (requestIndexes.size() > 30)
+			requestIndexes.removeFirst();
 		
-		String sessionId = request.getHeader(RequestHandler.HEADER_SESSION_ID);
-		String expectedSha = request.getHeader(RequestHandler.HEADER_SHA1);
-		String strIndex = request.getHeader(RequestHandler.HEADER_INDEX);
-		String strClientTime = request.getHeader(RequestHandler.HEADER_CLIENT_TIME);
+		int retryIndex = -1;
+		try {
+			retryIndex = Integer.parseInt(request.getHeader(HEADER_RETRY));
+		}catch(NumberFormatException e) {
+			// Nothing
+		}
+		String sessionId = request.getHeader(HEADER_SESSION_ID);
+		String expectedSha = request.getHeader(HEADER_SHA1);
+		String strClientTime = request.getHeader(HEADER_CLIENT_TIME);
 		try {
 			tracker.setLastClientTime(new Date(Long.parseLong(strClientTime)));
 		} catch(NumberFormatException e) {
 			log.error("Cannot parse client time " + strClientTime + " for " + requestId);
 		}
-		int index = Integer.parseInt(strIndex);
 		int actualIndex = tracker.getNextRequestIndex();
-		requestId = tracker.getSessionId().replace(':', '_') + "/" + new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
-				DiagUtils.zeroPad(index) + "-" + DiagUtils.zeroPad(actualIndex);
+		requestId = tracker.getSessionId().replace(':', '_') + "/" + 
+				new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
+				DiagUtils.zeroPad(requestIndex) + "-" + DiagUtils.zeroPad(actualIndex);
 		
 		StringWriter sw = null;
 		sw = new StringWriter();
@@ -278,7 +318,7 @@ public class RequestHandler {
 	        	throw new IllegalArgumentException("SHA1 mismatch for " + requestId + ", found " + hash + " expected " + expectedSha);
 		}
 
-		processRequest(new StringReader(sw.toString()), writer);
+		processRequestImpl(new StringReader(sw.toString()), writer);
 		
 		String out = writer.toString();
 		if (s_traceLogDir != null) {
@@ -286,14 +326,32 @@ public class RequestHandler {
 		}
 		String hash = DiagUtils.getSha1(out);
 		response.setHeader(HEADER_SHA1, hash);
-		response.setHeader(HEADER_INDEX, Integer.toString(index));
+		response.setHeader(HEADER_INDEX, Integer.toString(requestIndex));
         if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
             response.setHeader(HEADER_SESSION_ID, tracker.getSessionId());
         }
-		response.getWriter().write(out);
+        if (retryIndex > -1)
+        	response.setHeader(HEADER_RETRY, Integer.toString(retryIndex));
+        
+        OutputStream os = response.getOutputStream();
+        /*
+        String enc = request.getHeader("Accept-Encoding");
+        if (enc != null) {
+            if (enc.indexOf("gzip") != -1) {
+                enc = enc.indexOf("x-gzip") != -1 ? "x-gzip" : "gzip";
+                response.addHeader("Content-Encoding", enc);
+                os = new GZIPOutputStream(os);
+            } else
+                enc = null;
+        }
+        */
+        Writer outputWriter = new OutputStreamWriter(os);
+		
+		outputWriter.write(out);
+		outputWriter.flush();
 	}
 	
-	public void processRequest(Reader request, Writer response) throws ServletException, IOException {
+	protected void processRequestImpl(Reader request, Writer response) throws ServletException, IOException {
 		try {
 			if (!tracker.getRequestLock().tryLock(s_requestLockTimeout, TimeUnit.MILLISECONDS))
 				throw new ServletException("Timeout while waiting for request lock for " + requestId);
@@ -304,6 +362,7 @@ public class RequestHandler {
 			s_currentHandler.set(this);
 			ObjectMapper objectMapper = tracker.getObjectMapper();
 			try {
+				@SuppressWarnings("deprecation")
 				JsonParser jp = objectMapper.getJsonFactory().createJsonParser(request);
 				if (jp.nextToken() == JsonToken.START_ARRAY) {
 					while(jp.nextToken() != JsonToken.END_ARRAY)
@@ -344,17 +403,6 @@ public class RequestHandler {
 		}
 	}
 	
-	/**
-	 * Handles the callback from the client; expects either an object or an array of objects
-	 * @param request
-	 * @param response
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public void processRequest(Reader request, OutputStream response) throws ServletException, IOException {
-		processRequest(request, new OutputStreamWriter(response));
-	}
-
 	/**
 	 * Called to handle exceptions during processRequest
 	 * @param response

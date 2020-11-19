@@ -40,6 +40,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Stack;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -305,6 +307,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	private final HashSet<Proxied> invalidObjects = new HashSet<Proxied>();
 	private final HashSet<PropertyId> knownOnDemandProperties = new HashSet<ProxySessionTracker.PropertyId>();
 	private final HashSet<PropertyId> mutatingProperties = new HashSet<ProxySessionTracker.PropertyId>();
+	private final LinkedList<Integer> requestIndexes = new LinkedList<>();
 
 	// Client Objects, indexed by client ID (negative) 
 	private HashMap<Integer, WeakReference<Proxied>> clientObjects;
@@ -709,6 +712,10 @@ public class ProxySessionTracker implements UploadInterceptor {
 		return mutatingProperties.contains(id);
 	}
 	
+	public LinkedList<Integer> getRequestIndexes() {
+		return requestIndexes;
+	}
+
 	/**
 	 * Registers that a property has changed; this also fires a server event for
 	 * the property if an event is defined
