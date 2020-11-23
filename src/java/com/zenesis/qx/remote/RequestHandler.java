@@ -44,6 +44,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -61,6 +62,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zenesis.core.helpers.JsonHelper;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.CommandId.CommandType;
 import com.zenesis.qx.remote.annotations.EnclosingThisMethod;
@@ -98,11 +100,11 @@ public class RequestHandler {
 	private static final String CMD_UNLISTEN = "unlisten";		// Remove an event listener
 	
 	// The request header sent by the client to validate the session
-	public static final String HEADER_SESSION_ID = "X-ProxyManager-SessionId";
-	public static final String HEADER_SHA1 = "X-ProxyManager-SHA1";
-	public static final String HEADER_INDEX = "X-ProxyManager-RequestIndex";
-	public static final String HEADER_CLIENT_TIME = "X-ProxyManager-ClientTime";
-	public static final String HEADER_RETRY = "X-ProxyManager-Retry";
+	public static final String HEADER_SESSION_ID = "x-proxymanager-sessionid";
+	public static final String HEADER_SHA1 = "x-proxymanager-sha1";
+	public static final String HEADER_INDEX = "x-proxymanager-requestindex";
+	public static final String HEADER_CLIENT_TIME = "x-proxymanager-clienttime";
+	public static final String HEADER_RETRY = "x-proxymanager-retry";
 	
 	// Maximum time to wait for a lock on the response
 	private static int s_requestLockTimeout = 2 * 60 * 1000;
@@ -218,7 +220,76 @@ public class RequestHandler {
 	public static void setRequestLockTimeout(int requestLockTimeout) {
 		RequestHandler.s_requestLockTimeout = requestLockTimeout;
 	}
+	
+	/**
+	 * Returns the headers
+	 * 
+	 * @param request
+	 * @return
+	 */
+	protected HashMap<String, String> getHeaders(HttpServletRequest request) {
+		HashMap<String, String> headers = new HashMap<String, String>();
+		Enumeration<String> e = request.getHeaderNames();
+		while (e.hasMoreElements()) {
+			String name = e.nextElement();
+			String value = request.getHeader(name);
+			headers.put(name.toLowerCase(), value);
+		}
+		return headers;
+	}
+	
+	/**
+	 * Returns the body
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 */
+	protected String getBody(HttpServletRequest request) throws IOException {
+		StringWriter sw = null;
+		sw = new StringWriter();
+		Reader reader = request.getReader();
+		char[] buffer = new char[32 * 1024];
+		int length;
+		while ((length = reader.read(buffer)) > 0) {
+			sw.write(buffer, 0, length);
+		}
+		
+		return sw.toString();
+	}
 
+	/**
+	 * Writes the reponse
+	 * 
+	 * @param response
+	 * @param headers
+	 * @param body
+	 * @throws IOException
+	 */
+	protected void writeResponse(HttpServletResponse response, HashMap<String, String> headers, String body) throws IOException {
+		for (String key : headers.keySet())
+			response.setHeader(key, headers.get(key));
+		
+		String hash = DiagUtils.getSha1(body);
+		response.setHeader(HEADER_SHA1, hash);
+		
+        OutputStream os = response.getOutputStream();
+        /*
+        String enc = headers.get("Accept-Encoding");
+        if (enc != null) {
+            if (enc.indexOf("gzip") != -1) {
+                enc = enc.indexOf("x-gzip") != -1 ? "x-gzip" : "gzip";
+                response.addHeader("Content-Encoding", enc);
+                os = new GZIPOutputStream(os);
+            } else
+                enc = null;
+        }
+        */
+        Writer outputWriter = new OutputStreamWriter(os);
+		
+		outputWriter.write(body);
+		outputWriter.flush();
+	}
+	
 	/**
 	 * Handles the callback from the client; expects either an object or an array of objects
 	 * 
@@ -236,7 +307,9 @@ public class RequestHandler {
 	 * @throws IOException
 	 */
 	public void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		String str = request.getHeader(RequestHandler.HEADER_INDEX);
+		HashMap<String, String> headers = getHeaders(request);
+		
+		String str = headers.get(RequestHandler.HEADER_INDEX);
 		int requestIndex = -1;
 		try {
 			requestIndex = Integer.parseInt(str);
@@ -274,13 +347,13 @@ public class RequestHandler {
 		
 		int retryIndex = -1;
 		try {
-			retryIndex = Integer.parseInt(request.getHeader(HEADER_RETRY));
+			retryIndex = Integer.parseInt(headers.get(HEADER_RETRY));
 		}catch(NumberFormatException e) {
 			// Nothing
 		}
-		String sessionId = request.getHeader(HEADER_SESSION_ID);
-		String expectedSha = request.getHeader(HEADER_SHA1);
-		String strClientTime = request.getHeader(HEADER_CLIENT_TIME);
+		String sessionId = headers.get(HEADER_SESSION_ID);
+		String expectedSha = headers.get(HEADER_SHA1);
+		String strClientTime = headers.get(HEADER_CLIENT_TIME);
 		try {
 			tracker.setLastClientTime(new Date(Long.parseLong(strClientTime)));
 		} catch(NumberFormatException e) {
@@ -291,64 +364,41 @@ public class RequestHandler {
 				new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
 				DiagUtils.zeroPad(requestIndex) + "-" + DiagUtils.zeroPad(actualIndex);
 		
-		StringWriter sw = null;
-		sw = new StringWriter();
-		Reader reader = request.getReader();
-		char[] buffer = new char[32 * 1024];
-		int length;
-		while ((length = reader.read(buffer)) > 0) {
-			sw.write(buffer, 0, length);
-		}
+		String body = getBody(request);
 		
 		if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
-			log.error("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + sw.toString());
+			log.error("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + body);
 			throw new IllegalArgumentException("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId);
 		}
 		
 		Writer writer = new StringWriter();
 		if (s_traceLogDir != null) {
-			Object obj = tracker.getObjectMapper().readValue(sw.toString(), Object.class);
+			Object obj = tracker.getObjectMapper().readValue(body, Object.class);
 			String out = tracker.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(obj);
 			DiagUtils.writeFile(new File(s_traceLogDir, requestId + "-in.txt"), out);
 		}
 
 		if (expectedSha != null) {
-	        String hash = DiagUtils.getSha1(sw.toString());
+	        String hash = DiagUtils.getSha1(body);
 	        if (!hash.equals(expectedSha))
 	        	throw new IllegalArgumentException("SHA1 mismatch for " + requestId + ", found " + hash + " expected " + expectedSha);
 		}
 
-		processRequestImpl(new StringReader(sw.toString()), writer);
-		
+		processRequestImpl(new StringReader(body), writer);
 		String out = writer.toString();
+		
+		HashMap<String, String> respHeaders = new HashMap<String, String>();
+		
 		if (s_traceLogDir != null) {
 			DiagUtils.writeFile(new File(s_traceLogDir, requestId + "-out.txt"), out);
 		}
-		String hash = DiagUtils.getSha1(out);
-		response.setHeader(HEADER_SHA1, hash);
-		response.setHeader(HEADER_INDEX, Integer.toString(requestIndex));
-        if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
-            response.setHeader(HEADER_SESSION_ID, tracker.getSessionId());
-        }
+		respHeaders.put(HEADER_INDEX, Integer.toString(requestIndex));
+        if (sessionId != null && !tracker.getSessionId().equals(sessionId))
+        	respHeaders.put(HEADER_SESSION_ID, tracker.getSessionId());
         if (retryIndex > -1)
-        	response.setHeader(HEADER_RETRY, Integer.toString(retryIndex));
-        
-        OutputStream os = response.getOutputStream();
-        /*
-        String enc = request.getHeader("Accept-Encoding");
-        if (enc != null) {
-            if (enc.indexOf("gzip") != -1) {
-                enc = enc.indexOf("x-gzip") != -1 ? "x-gzip" : "gzip";
-                response.addHeader("Content-Encoding", enc);
-                os = new GZIPOutputStream(os);
-            } else
-                enc = null;
-        }
-        */
-        Writer outputWriter = new OutputStreamWriter(os);
-		
-		outputWriter.write(out);
-		outputWriter.flush();
+        	respHeaders.put(HEADER_RETRY, Integer.toString(retryIndex));
+
+        writeResponse(response, respHeaders, out);
 	}
 	
 	protected void processRequestImpl(Reader request, Writer response) throws ServletException, IOException {
