@@ -547,6 +547,9 @@ public class EventManager {
          * @param event
          */
         public void fireDataEvent(Event event) {
+        	if (listener == null)
+        		return;
+        	
             final Class clazz = listener.getClass();
             
             // A NamedEventListener?  Then check the eventName 
@@ -568,6 +571,7 @@ public class EventManager {
                         nels[i].fireEvent(event);
                 
                 return;
+                
             }
             
             // By elimination, it must be a HashMap
@@ -784,6 +788,10 @@ public class EventManager {
 	 * @param eventName
 	 */
 	public static void fireEvent(Object keyObject, String eventName) {
+		if (keyObject instanceof Eventable) {
+			((Eventable)keyObject).fireDataEvent(eventName, null);
+			return;
+		}
 		getInstance().fireDataEvent(new Event(keyObject, keyObject, eventName, null));
 	}
 
@@ -794,6 +802,10 @@ public class EventManager {
 	 * @param data
 	 */
 	public static void fireDataEvent(Object keyObject, String eventName, Object data) {
+		if (keyObject instanceof Eventable) {
+			((Eventable)keyObject).fireDataEvent(eventName, data);
+			return;
+		}
 		getInstance().fireDataEvent(new Event(keyObject, keyObject, eventName, data));
 	}
 

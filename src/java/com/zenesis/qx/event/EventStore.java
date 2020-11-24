@@ -33,7 +33,7 @@ public class EventStore implements Eventable {
 
     @Override
     public boolean eventsEnabled() {
-        return eventsDisabled != 0;
+        return eventsDisabled == 0;
     }
 
     @Override
