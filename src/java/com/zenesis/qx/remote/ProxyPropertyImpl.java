@@ -380,7 +380,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 	 */
 	protected void changedValue(Proxied proxied, Object value, Object oldValue) {
 		if (proxied instanceof PropertyChangeListener)
-			((PropertyChangeListener)proxied).propertyChanged(this, value, oldValue);
+			((PropertyChangeListener)proxied).propertyChanged(getName(), value, oldValue);
 		if (EventManager.hasListener(proxied, changeEventName, null))
 			EventManager.fireDataEvent(proxied, changeEventName, new EventManager.ChangeValue(value, oldValue));
 	}

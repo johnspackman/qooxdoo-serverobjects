@@ -13,5 +13,5 @@ public interface PropertyChangeListener {
 	 * @param value
 	 * @param oldValue
 	 */
-	public void propertyChanged(ProxyProperty property, Object value, Object oldValue);
+	public void propertyChanged(String propertyName, Object value, Object oldValue);
 }

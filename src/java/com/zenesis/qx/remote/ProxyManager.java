@@ -358,7 +358,7 @@ public class ProxyManager implements EventListener {
 		attach(keyObject, property, newValue, oldValue);
 		propertyChanged(property, keyObject, newValue, oldValue);
         if (keyObject instanceof PropertyChangeListener)
-            ((PropertyChangeListener)keyObject).propertyChanged(property, newValue, oldValue);
+            ((PropertyChangeListener)keyObject).propertyChanged(propertyName, newValue, oldValue);
 	}
 	
 	/**
