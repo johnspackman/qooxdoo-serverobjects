@@ -48,9 +48,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Stack;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.GZIPOutputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -62,7 +60,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zenesis.core.helpers.JsonHelper;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.CommandId.CommandType;
 import com.zenesis.qx.remote.annotations.EnclosingThisMethod;
@@ -412,7 +409,6 @@ public class RequestHandler {
       s_currentHandler.set(this);
       ObjectMapper objectMapper = tracker.getObjectMapper();
       try {
-        @SuppressWarnings("deprecation")
         JsonParser jp = objectMapper.getJsonFactory().createJsonParser(request);
         if (jp.nextToken() == JsonToken.START_ARRAY) {
           while(jp.nextToken() != JsonToken.END_ARRAY)
