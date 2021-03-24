@@ -180,9 +180,6 @@ public class RequestHandler {
   // Tracker for the session
   private final ProxySessionTracker tracker;
 
-  // Unique request identifier (debug only)
-  private String requestId = "(unnamed request)";
-
   // Where I/O log files go to, null means that they are disabled
   private static File s_traceLogDir = null;
 
@@ -283,6 +280,84 @@ public class RequestHandler {
     outputWriter.write(body);
     outputWriter.flush();
   }
+  
+  protected void checkSessionId(String sessionId) {
+    if (sessionId != null && !tracker.getSessionId().equals(sessionId))
+      onWrongSessionId(tracker.getSessionId(), sessionId);
+  }
+  
+  protected void onWrongSessionId(String expectedSessionId, String actualSessionId) {
+    log.error("Wrong session id sent from client, expected " + expectedSessionId + " found " + actualSessionId);
+    throw new IllegalArgumentException("Wrong session id sent from client, expected " + expectedSessionId + " found " + actualSessionId);
+  }
+  
+  protected void onInvalidRequestIndex(String strRequestIndex) {
+    log.error("Invalid requestIndex sent from client, found " + strRequestIndex);
+    throw new IllegalArgumentException("Invalid requestIndex sent from client, found " + strRequestIndex);
+  }
+  
+  protected void onDuplicateRequestIndex(int requestIndex) {
+    log.error("Duplicate request sent from client, requestIndex=" + requestIndex);
+    throw new IllegalArgumentException("Duplicate request sent from client, requestIndex=" + requestIndex);
+  }
+  
+  protected void onRequestIndexTooOld(int requestIndex) {
+    log.error("Request sent from client is too old, requestIndex=" + requestIndex);
+    throw new IllegalArgumentException("Request sent from client is too old, requestIndex=" + requestIndex);
+  }
+
+  protected void checkRequestIndex(int requestIndex, String strRequestIndex) {
+    if (requestIndex < 0) {
+      onInvalidRequestIndex(strRequestIndex);
+      return;
+    }
+    
+    LinkedList<Integer> requestIndexes = tracker.getRequestIndexes();
+    int lowestRequestIndex = -1;
+    boolean requestAlreadySeen = false;
+    synchronized(requestIndexes) {
+      for (Integer tmp : requestIndexes) {
+        if (tmp == requestIndex) {
+          requestAlreadySeen = true;
+          break;
+        }
+        if (lowestRequestIndex == -1 || lowestRequestIndex > tmp)
+          lowestRequestIndex = tmp;
+      }
+    }
+    if (requestAlreadySeen) {
+      onDuplicateRequestIndex(lowestRequestIndex);
+      return;
+    }
+    if (requestIndex < lowestRequestIndex) {
+      onRequestIndexTooOld(lowestRequestIndex);
+      return;
+    }
+  }
+  
+  protected void onShaMismatch(String expectedSha, String actualSha) {
+    throw new IllegalArgumentException("SHA1 mismatch, found " + actualSha + " expected " + expectedSha);
+  }
+  
+  protected void checkSha(String expectedSha, String body) {
+    if (expectedSha != null) {
+      try {
+        String hash = DiagUtils.getSha1(body);
+        if (!hash.equals(expectedSha))
+          onShaMismatch(expectedSha, hash);
+      }catch(IOException e) {
+        throw new IllegalArgumentException("Unable to check SHA1 mismatch: " + e.getMessage());
+      }
+    }
+  }
+  
+  protected String calcRequestId(int requestIndex) {
+    int actualIndex = tracker.getNextRequestIndex();
+    String str = tracker.getSessionId().replace(':', '_') + "/" + 
+        new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
+        DiagUtils.zeroPad(requestIndex) + "-" + DiagUtils.zeroPad(actualIndex);
+    return str;
+  }
 
   /**
    * Handles the callback from the client; expects either an object or an array of objects
@@ -310,31 +385,8 @@ public class RequestHandler {
     } catch(NumberFormatException e) {
       // Nothing
     }
-    if (requestIndex < 0) {
-      log.error("Invalid requestIndex sent from client, found " + str);
-      throw new IllegalArgumentException("Invalid requestIndex sent from client, found " + str);
-    }
     LinkedList<Integer> requestIndexes = tracker.getRequestIndexes();
-    int lowestRequestIndex = -1;
-    boolean requestAlreadySeen = false;
-    synchronized(requestIndexes) {
-      for (Integer tmp : requestIndexes) {
-        if (tmp == requestIndex) {
-          requestAlreadySeen = true;
-          break;
-        }
-        if (lowestRequestIndex == -1 || lowestRequestIndex > tmp)
-          lowestRequestIndex = tmp;
-      }
-    }
-    if (requestAlreadySeen) {
-      log.error("Duplicate request sent from client, requestIndex=" + requestIndex);
-      throw new IllegalArgumentException("Duplicate request sent from client, requestIndex=" + requestIndex);
-    }
-    if (requestIndex < lowestRequestIndex) {
-      log.error("Request sent from client is too old, requestIndex=" + requestIndex);
-      throw new IllegalArgumentException("Request sent from client is too old, requestIndex=" + requestIndex);
-    }
+    checkRequestIndex(requestIndex, str);
     requestIndexes.add(requestIndex);
     if (requestIndexes.size() > 30)
       requestIndexes.removeFirst();
@@ -348,22 +400,16 @@ public class RequestHandler {
     String sessionId = headers.get(HEADER_SESSION_ID);
     String expectedSha = headers.get(HEADER_SHA1);
     String strClientTime = headers.get(HEADER_CLIENT_TIME);
+    String requestId = calcRequestId(requestIndex);
     try {
       tracker.setLastClientTime(new Date(Long.parseLong(strClientTime)));
     } catch(NumberFormatException e) {
       log.error("Cannot parse client time " + strClientTime + " for " + requestId);
     }
-    int actualIndex = tracker.getNextRequestIndex();
-    requestId = tracker.getSessionId().replace(':', '_') + "/" + 
-        new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
-        DiagUtils.zeroPad(requestIndex) + "-" + DiagUtils.zeroPad(actualIndex);
 
     String body = getBody(request);
 
-    if (sessionId != null && !tracker.getSessionId().equals(sessionId)) {
-      log.error("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId + ", data=" + body);
-      throw new IllegalArgumentException("Wrong session id sent from client, expected " + tracker.getSessionId() + " found " + sessionId);
-    }
+    checkSessionId(sessionId);
 
     Writer writer = new StringWriter();
     if (s_traceLogDir != null) {
@@ -372,13 +418,9 @@ public class RequestHandler {
       DiagUtils.writeFile(new File(s_traceLogDir, requestId + "-in.txt"), out);
     }
 
-    if (expectedSha != null) {
-      String hash = DiagUtils.getSha1(body);
-      if (!hash.equals(expectedSha))
-        throw new IllegalArgumentException("SHA1 mismatch for " + requestId + ", found " + hash + " expected " + expectedSha);
-    }
+    checkSha(expectedSha, body);
 
-    processRequestImpl(new StringReader(body), writer);
+    processRequestImpl(new StringReader(body), writer, requestId);
     String out = writer.toString();
 
     HashMap<String, String> respHeaders = new HashMap<String, String>();
@@ -398,7 +440,7 @@ public class RequestHandler {
     writeResponse(response, respHeaders, out);
   }
 
-  protected void processRequestImpl(Reader request, Writer response) throws ServletException, IOException {
+  protected void processRequestImpl(Reader request, Writer response, String requestId) throws ServletException, IOException {
     try {
       if (!tracker.getRequestLock().tryLock(s_requestLockTimeout, TimeUnit.MILLISECONDS))
         throw new ServletException("Timeout while waiting for request lock for " + requestId);
@@ -636,13 +678,13 @@ public class RequestHandler {
               tracker.getQueue().queueCommand(id, new FunctionReturn(asyncId, result));
             }catch(InvocationTargetException e) {
               Throwable t = e.getCause();
-              log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + " (" + requestId + "): " + t.getMessage(), t);
-              throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + " for " + requestId + ": " + t.getMessage(), t);
+              log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + t.getMessage(), t);
+              throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + ": " + t.getMessage(), t);
             }catch(RuntimeException e) {
-              log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + " (" + requestId + "): " + e.getMessage(), e);
-              throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + " for " + requestId + ": " + e.getMessage(), e);
+              log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + e.getMessage(), e);
+              throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + ": " + e.getMessage(), e);
             }catch(IllegalAccessException e) {
-              throw new ServletException("Exception while running " + method + "(" + Helpers.toString(values) + " for " + requestId + "): " + e.getMessage(), e);
+              throw new ServletException("Exception while running " + method + "(" + Helpers.toString(values) + "): " + e.getMessage(), e);
             }
             found = true;
             break;
