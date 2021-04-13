@@ -62,6 +62,8 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.CommandId.CommandType;
+import com.zenesis.qx.remote.ProxySessionTracker.RepeatableRequest;
+import com.zenesis.qx.remote.ProxySessionTracker.RepeatableRequestData;
 import com.zenesis.qx.remote.annotations.EnclosingThisMethod;
 import com.zenesis.qx.utils.DiagUtils;
 import com.zenesis.qx.utils.ArrayUtils;
@@ -102,6 +104,9 @@ public class RequestHandler {
   public static final String HEADER_INDEX = "x-proxymanager-requestindex";
   public static final String HEADER_CLIENT_TIME = "x-proxymanager-clienttime";
   public static final String HEADER_RETRY = "x-proxymanager-retry";
+  
+  // The response codes
+  public static final int RESP_NOT_YET_READY = 100;
 
   // Maximum time to wait for a lock on the response
   private static int s_requestLockTimeout = 2 * 60 * 1000;
@@ -181,8 +186,8 @@ public class RequestHandler {
   private final ProxySessionTracker tracker;
 
   // Where I/O log files go to, null means that they are disabled
-  private static File s_traceLogDir = null;
-
+  private static File s_temporaryDir = null;
+  
   /**
    * @param tracker
    */
@@ -192,11 +197,19 @@ public class RequestHandler {
   }
 
   /**
-   * Sets the trace logging directory (if null, disables logging)
+   * Sets the temporary output directory (if null, disables logging and repeatable requests)
    * @param traceLogDir
    */
-  public static void setTraceLogDir(File traceLogDir) {
-    s_traceLogDir = traceLogDir;
+  public static void setTemporaryDir(File temporaryDir) {
+    s_temporaryDir = temporaryDir;
+  }
+  
+  /**
+   * Returns the temporary output directory
+   * @return
+   */
+  public static File getTemporaryDir() {
+    return s_temporaryDir;
   }
 
   /**
@@ -293,48 +306,18 @@ public class RequestHandler {
   
   protected void onInvalidRequestIndex(String strRequestIndex) {
     log.error("Invalid requestIndex sent from client, found " + strRequestIndex);
-    throw new IllegalArgumentException("Invalid requestIndex sent from client, found " + strRequestIndex);
+    throw new IllegalArgumentException("Invalid requestIndex sent from client, found " + strRequestIndex + ", sessionId=" + tracker.getSessionId());
   }
   
   protected void onDuplicateRequestIndex(int requestIndex) {
-    log.error("Duplicate request sent from client, requestIndex=" + requestIndex);
-    throw new IllegalArgumentException("Duplicate request sent from client, requestIndex=" + requestIndex);
+    log.info("Duplicate request sent from client, requestIndex=" + requestIndex);
   }
   
   protected void onRequestIndexTooOld(int requestIndex) {
     log.error("Request sent from client is too old, requestIndex=" + requestIndex);
-    throw new IllegalArgumentException("Request sent from client is too old, requestIndex=" + requestIndex);
+    throw new IllegalArgumentException("Request sent from client is too old, requestIndex=" + requestIndex + ", sessionId=" + tracker.getSessionId());
   }
 
-  protected void checkRequestIndex(int requestIndex, String strRequestIndex) {
-    if (requestIndex < 0) {
-      onInvalidRequestIndex(strRequestIndex);
-      return;
-    }
-    
-    LinkedList<Integer> requestIndexes = tracker.getRequestIndexes();
-    int lowestRequestIndex = -1;
-    boolean requestAlreadySeen = false;
-    synchronized(requestIndexes) {
-      for (Integer tmp : requestIndexes) {
-        if (tmp == requestIndex) {
-          requestAlreadySeen = true;
-          break;
-        }
-        if (lowestRequestIndex == -1 || lowestRequestIndex > tmp)
-          lowestRequestIndex = tmp;
-      }
-    }
-    if (requestAlreadySeen) {
-      onDuplicateRequestIndex(lowestRequestIndex);
-      return;
-    }
-    if (requestIndex < lowestRequestIndex) {
-      onRequestIndexTooOld(lowestRequestIndex);
-      return;
-    }
-  }
-  
   protected void onShaMismatch(String expectedSha, String actualSha) {
     throw new IllegalArgumentException("SHA1 mismatch, found " + actualSha + " expected " + expectedSha);
   }
@@ -385,11 +368,31 @@ public class RequestHandler {
     } catch(NumberFormatException e) {
       // Nothing
     }
-    LinkedList<Integer> requestIndexes = tracker.getRequestIndexes();
-    checkRequestIndex(requestIndex, str);
-    requestIndexes.add(requestIndex);
-    if (requestIndexes.size() > 30)
-      requestIndexes.removeFirst();
+    if (requestIndex < 0) {
+      onInvalidRequestIndex(str);
+      return;
+    }
+    
+    RepeatableRequest repeatableRequest = null;
+    if (s_temporaryDir != null) {
+      repeatableRequest = tracker.getExistingRepeatableRequest(requestIndex);
+      if (repeatableRequest != null) {
+        if (!repeatableRequest.isComplete()) {
+          response.setStatus(RESP_NOT_YET_READY);
+          return;
+        }
+        RepeatableRequestData rrd = repeatableRequest.reload();
+        writeResponse(response, rrd.headers, rrd.body);
+        return;
+      }
+      
+      // Being sent out of order shouldn't happen
+      if (requestIndex < tracker.getHighestRequestIndex() - 2) {
+        onRequestIndexTooOld(requestIndex);
+        return;
+      }
+      repeatableRequest = tracker.createRepeatableRequest(requestIndex);
+    }
 
     int retryIndex = -1;
     try {
@@ -412,10 +415,10 @@ public class RequestHandler {
     checkSessionId(sessionId);
 
     Writer writer = new StringWriter();
-    if (s_traceLogDir != null) {
+    if (s_temporaryDir != null && log.isTraceEnabled()) {
       Object obj = tracker.getObjectMapper().readValue(body, Object.class);
       String out = tracker.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(obj);
-      DiagUtils.writeFile(new File(s_traceLogDir, requestId + "-in.txt"), out);
+      DiagUtils.writeFile(new File(s_temporaryDir, "trace-logs/" + requestId + "-in.txt"), out);
     }
 
     checkSha(expectedSha, body);
@@ -425,8 +428,8 @@ public class RequestHandler {
 
     HashMap<String, String> respHeaders = new HashMap<String, String>();
 
-    if (s_traceLogDir != null) {
-      DiagUtils.writeFile(new File(s_traceLogDir, requestId + "-out.txt"), out);
+    if (s_temporaryDir != null && log.isTraceEnabled()) {
+      DiagUtils.writeFile(new File(s_temporaryDir, "trace-logs/" + requestId + "-out.txt"), out);
     }
     respHeaders.put(HEADER_INDEX, Integer.toString(requestIndex));
     if (sessionId != null && !tracker.getSessionId().equals(sessionId))
@@ -436,8 +439,16 @@ public class RequestHandler {
 
     String hash = DiagUtils.getSha1(out);
     respHeaders.put(HEADER_SHA1, hash);
+    
+    if (repeatableRequest != null) {
+      repeatableRequest.complete(respHeaders, out);
+    }
 
-    writeResponse(response, respHeaders, out);
+    try {
+      writeResponse(response, respHeaders, out);
+    } catch(IOException e) {
+      log.fatal("Failed to write back to client: " + e.getMessage());
+    }
   }
 
   protected void processRequestImpl(Reader request, Writer response, String requestId) throws ServletException, IOException {
