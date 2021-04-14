@@ -374,7 +374,7 @@ public class RequestHandler {
     }
     
     RepeatableRequest repeatableRequest = null;
-    if (s_temporaryDir != null) {
+    if (s_temporaryDir != null && !tracker.isDisposed()) {
       repeatableRequest = tracker.getExistingRepeatableRequest(requestIndex);
       if (repeatableRequest != null) {
         if (!repeatableRequest.isComplete()) {
@@ -441,7 +441,7 @@ public class RequestHandler {
     respHeaders.put(HEADER_SHA1, hash);
     
     if (repeatableRequest != null) {
-      repeatableRequest.complete(respHeaders, out);
+      tracker.completeRepeatableRequest(repeatableRequest, respHeaders, body);
     }
 
     try {

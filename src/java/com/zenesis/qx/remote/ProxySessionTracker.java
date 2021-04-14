@@ -433,6 +433,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 	private static int s_serialNo;
 	private Date lastClientTime;
 	private final Lock requestLock = new ReentrantLock();
+	private boolean disposed;
 	
 	/**
 	 * Creates a tracker for a session; if bootstrapClass is null you must override
@@ -488,10 +489,26 @@ public class ProxySessionTracker implements UploadInterceptor {
 		objectsById.clear();
 		objectIds.clear();
 		nextServerId = 0;
-		for (RepeatableRequest rr : repeatableRequests)
-		  rr.dispose();
-		repeatableRequests.clear();
+		
+		// Clear requests except the the initial request, because that's this request
+		for (int i = 0; i < repeatableRequests.size(); i++) {
+		  RepeatableRequest rr = repeatableRequests.get(i);
+		  if (rr.requestIndex != 0) {
+		    repeatableRequests.remove(i--);
+		    rr.dispose();
+		  }
+		}
 		highestRequestIndex = 0;
+	}
+	
+	/**
+	 * Called when the tracker is being discarded
+	 */
+	public void dispose() {
+	  disposed = true;
+    for (RepeatableRequest rr : repeatableRequests)
+      rr.dispose();
+    repeatableRequests.clear();
 	}
 	
 	/**
@@ -556,6 +573,15 @@ public class ProxySessionTracker implements UploadInterceptor {
 	}
 
 	/**
+	 * Returns whether this tracker is disposed
+	 * 
+	 * @return
+	 */
+	public boolean isDisposed() {
+    return disposed;
+  }
+
+  /**
 	 * @return the serialNo
 	 */
 	public int getSerialNo() {
@@ -877,6 +903,8 @@ public class ProxySessionTracker implements UploadInterceptor {
 	 * @throws IOException
 	 */
 	public void completeRepeatableRequest(RepeatableRequest rr, HashMap<String, String> headers, String body) throws IOException {
+	  if (disposed)
+	    return;
 	  synchronized(this) {
 	    if (!repeatableRequests.contains(rr))
 	      throw new IllegalArgumentException("Unrecognised RepeatableRequest");
