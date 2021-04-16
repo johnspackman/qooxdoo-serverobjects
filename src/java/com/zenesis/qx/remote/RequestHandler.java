@@ -441,7 +441,7 @@ public class RequestHandler {
     respHeaders.put(HEADER_SHA1, hash);
     
     if (repeatableRequest != null) {
-      tracker.completeRepeatableRequest(repeatableRequest, respHeaders, body);
+      tracker.completeRepeatableRequest(repeatableRequest, respHeaders, out);
     }
 
     try {

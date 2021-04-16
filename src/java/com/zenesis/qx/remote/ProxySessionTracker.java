@@ -875,8 +875,6 @@ public class ProxySessionTracker implements UploadInterceptor {
 	          if (numComplete >= MAX_REPEATABLE_COMPLETE_REQUESTS) {
 	            rr.dispose();
 	            repeatableRequests.remove(i);
-	            if (i > 0)
-	              i++;
 	          }
 	        }
 	      }
