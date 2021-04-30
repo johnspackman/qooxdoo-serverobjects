@@ -29,62 +29,65 @@ package com.zenesis.qx.event;
 
 /**
  * Contains details of the event which was thrown
+ * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
 public class Event {
 
-	private final String eventName;
-	private final Object originalTarget;
-	private final Object currentTarget;
-	private final Object data;
-	
-	/**
-	 * @param eventName
-	 * @param originalTarget
-	 * @param currentTarget
-	 * @param data
-	 */
-	public Event(Object originalTarget, Object currentTarget, String eventName, Object data) {
-		super();
-		this.eventName = eventName;
-		this.originalTarget = originalTarget;
-		this.currentTarget = currentTarget;
-		this.data = data;
-	}
+  private final String eventName;
+  private final Object originalTarget;
+  private final Object currentTarget;
+  private final Object data;
 
-	/**
-	 * @return the eventName
-	 */
-	public String getEventName() {
-		return eventName;
-	}
+  /**
+   * @param eventName
+   * @param originalTarget
+   * @param currentTarget
+   * @param data
+   */
+  public Event(Object originalTarget, Object currentTarget, String eventName, Object data) {
+    super();
+    this.eventName = eventName;
+    this.originalTarget = originalTarget;
+    this.currentTarget = currentTarget;
+    this.data = data;
+  }
 
-	/**
-	 * @return the originalTarget
-	 */
-	public Object getOriginalTarget() {
-		return originalTarget;
-	}
+  /**
+   * @return the eventName
+   */
+  public String getEventName() {
+    return eventName;
+  }
 
-	/**
-	 * @return the currentTarget
-	 */
-	public Object getCurrentTarget() {
-		return currentTarget;
-	}
+  /**
+   * @return the originalTarget
+   */
+  public Object getOriginalTarget() {
+    return originalTarget;
+  }
 
-	/**
-	 * @return the data
-	 */
-	public Object getData() {
-		return data;
-	}
+  /**
+   * @return the currentTarget
+   */
+  public Object getCurrentTarget() {
+    return currentTarget;
+  }
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		return eventName + " on " + currentTarget + ", data=" + data;
-	}
+  /**
+   * @return the data
+   */
+  public Object getData() {
+    return data;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+    return eventName + " on " + currentTarget + ", data=" + data;
+  }
 }

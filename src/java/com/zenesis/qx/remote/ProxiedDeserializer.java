@@ -36,17 +36,18 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 
 /**
  * Deserializer for Proxied
+ * 
  * @author John Spackman
  *
  */
 public class ProxiedDeserializer extends JsonDeserializer<Proxied> {
 
-	@Override
-	public Proxied deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
-		Object obj = jp.readValueAs(Object.class);
-		if (obj == null)
-			return null;
-		return RequestHandler.getCurrentHandler().getProxied(Integer.parseInt(obj.toString()));
-	}
+  @Override
+  public Proxied deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    Object obj = jp.readValueAs(Object.class);
+    if (obj == null)
+      return null;
+    return RequestHandler.getCurrentHandler().getProxied(Integer.parseInt(obj.toString()));
+  }
 
 }

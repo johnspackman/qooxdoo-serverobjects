@@ -29,9 +29,10 @@ package com.zenesis.qx.event;
 
 /**
  * Callback for handling an event
+ * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
 public interface EventListener {
 
-	public void handleEvent(Event event);
+  public void handleEvent(Event event);
 }

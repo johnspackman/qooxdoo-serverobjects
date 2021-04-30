@@ -71,13 +71,15 @@ import com.zenesis.qx.utils.ArrayUtils;
 /**
  * Handles the request and responses for a client.
  * 
- * This uses the Jackson JSON parser to pull data incrementally from the request; this makes the 
- * code harder to read/write and means that we expect the JSON data to occur in a particular 
- * order even though the JSON specification does not allow ordering to be enforced.  However,
- * by dealing with data incrementally in the way we are able to delay deciding what type of
- * data to instantiate until we have worked out where it is going - i.e. we look at the types
- * of a method's parameters and use that type information to change the way we parse.  In this
- * way, we can support any arbitrary mapping between JSON and Java thanks to Jackson.
+ * This uses the Jackson JSON parser to pull data incrementally from the
+ * request; this makes the code harder to read/write and means that we expect
+ * the JSON data to occur in a particular order even though the JSON
+ * specification does not allow ordering to be enforced. However, by dealing
+ * with data incrementally in the way we are able to delay deciding what type of
+ * data to instantiate until we have worked out where it is going - i.e. we look
+ * at the types of a method's parameters and use that type information to change
+ * the way we parse. In this way, we can support any arbitrary mapping between
+ * JSON and Java thanks to Jackson.
  * 
  * @author "John Spackman <john.spackman@zenesis.com>"
  *
@@ -87,16 +89,16 @@ public class RequestHandler {
   public static final Logger log = org.apache.logging.log4j.LogManager.getLogger(RequestHandler.class);
 
   // Command type strings received from the client
-  private static final String CMD_BOOTSTRAP = "bootstrap";	// Reset application session and get bootstrap
-  private static final String CMD_CALL = "call";				// Call server object method 
-  private static final String CMD_DISPOSE = "dispose";		// The client has disposed of a Proxied object 
-  private static final String CMD_EDIT_ARRAY = "edit-array";	// Changes to an array 
-  private static final String CMD_EXPIRE = "expire";			// Expires a flushed property value 
-  private static final String CMD_LISTEN = "listen";			// Add an event listener 
-  private static final String CMD_NEW = "new";				// Create a new object 
-  private static final String CMD_POLL = "poll";				// Poll for changes (ie do nothing) 
-  private static final String CMD_SET = "set";				// Set a property value 
-  private static final String CMD_UNLISTEN = "unlisten";		// Remove an event listener
+  private static final String CMD_BOOTSTRAP = "bootstrap"; // Reset application session and get bootstrap
+  private static final String CMD_CALL = "call"; // Call server object method
+  private static final String CMD_DISPOSE = "dispose"; // The client has disposed of a Proxied object
+  private static final String CMD_EDIT_ARRAY = "edit-array"; // Changes to an array
+  private static final String CMD_EXPIRE = "expire"; // Expires a flushed property value
+  private static final String CMD_LISTEN = "listen"; // Add an event listener
+  private static final String CMD_NEW = "new"; // Create a new object
+  private static final String CMD_POLL = "poll"; // Poll for changes (ie do nothing)
+  private static final String CMD_SET = "set"; // Set a property value
+  private static final String CMD_UNLISTEN = "unlisten"; // Remove an event listener
 
   // The request header sent by the client to validate the session
   public static final String HEADER_SESSION_ID = "x-proxymanager-sessionid";
@@ -104,7 +106,7 @@ public class RequestHandler {
   public static final String HEADER_INDEX = "x-proxymanager-requestindex";
   public static final String HEADER_CLIENT_TIME = "x-proxymanager-clienttime";
   public static final String HEADER_RETRY = "x-proxymanager-retry";
-  
+
   // The response codes
   public static final int RESP_NOT_YET_READY = 100;
 
@@ -123,7 +125,8 @@ public class RequestHandler {
     }
   }
 
-  // This class is sent as data by cmdNewObject to change a client ID into a server ID
+  // This class is sent as data by cmdNewObject to change a client ID into a
+  // server ID
   public static final class MapClientId {
     public final int serverId;
     public final int clientId;
@@ -156,6 +159,7 @@ public class RequestHandler {
   public static final class FunctionReturn {
     public final int asyncId;
     public final Object result;
+
     public FunctionReturn(int asyncId, Object result) {
       super();
       this.asyncId = asyncId;
@@ -164,7 +168,8 @@ public class RequestHandler {
 
   }
 
-  // This class is sent as data when an exception is thrown while setting a property value
+  // This class is sent as data when an exception is thrown while setting a
+  // property value
   public static final class PropertyReset extends ExceptionDetails {
     public final Object oldValue;
 
@@ -176,7 +181,7 @@ public class RequestHandler {
     public PropertyReset(Object oldValue, String exceptionClass, String message) {
       super(exceptionClass, message);
       this.oldValue = oldValue;
-    }		
+    }
   }
 
   // RequestHandler for the current thread
@@ -187,7 +192,7 @@ public class RequestHandler {
 
   // Where I/O log files go to, null means that they are disabled
   private static File s_temporaryDir = null;
-  
+
   /**
    * @param tracker
    */
@@ -197,15 +202,18 @@ public class RequestHandler {
   }
 
   /**
-   * Sets the temporary output directory (if null, disables logging and repeatable requests)
+   * Sets the temporary output directory (if null, disables logging and repeatable
+   * requests)
+   * 
    * @param traceLogDir
    */
   public static void setTemporaryDir(File temporaryDir) {
     s_temporaryDir = temporaryDir;
   }
-  
+
   /**
    * Returns the temporary output directory
+   * 
    * @return
    */
   public static File getTemporaryDir() {
@@ -213,7 +221,9 @@ public class RequestHandler {
   }
 
   /**
-   * Returns the time to wait for an exclusive lock on the request, in milliseconds
+   * Returns the time to wait for an exclusive lock on the request, in
+   * milliseconds
+   * 
    * @return
    */
   public static int getRequestLockTimeout() {
@@ -221,7 +231,8 @@ public class RequestHandler {
   }
 
   /**
-   * Sets the time to wait for an exclusive lock on the request, in milliseconds.  
+   * Sets the time to wait for an exclusive lock on the request, in milliseconds.
+   * 
    * @param requestLockTimeout
    */
   public static void setRequestLockTimeout(int requestLockTimeout) {
@@ -247,6 +258,7 @@ public class RequestHandler {
 
   /**
    * Returns the body
+   * 
    * @param request
    * @return
    * @throws IOException
@@ -272,107 +284,110 @@ public class RequestHandler {
    * @param body
    * @throws IOException
    */
-  protected void writeResponse(HttpServletResponse response, HashMap<String, String> headers, String body) throws IOException {
+  protected void writeResponse(HttpServletResponse response, HashMap<String, String> headers, String body)
+      throws IOException {
     for (String key : headers.keySet())
       response.setHeader(key, headers.get(key));
 
     OutputStream os = response.getOutputStream();
     /*
-        String enc = headers.get("Accept-Encoding");
-        if (enc != null) {
-            if (enc.indexOf("gzip") != -1) {
-                enc = enc.indexOf("x-gzip") != -1 ? "x-gzip" : "gzip";
-                response.addHeader("Content-Encoding", enc);
-                os = new GZIPOutputStream(os);
-            } else
-                enc = null;
-        }
+     * String enc = headers.get("Accept-Encoding"); if (enc != null) { if
+     * (enc.indexOf("gzip") != -1) { enc = enc.indexOf("x-gzip") != -1 ? "x-gzip" :
+     * "gzip"; response.addHeader("Content-Encoding", enc); os = new
+     * GZIPOutputStream(os); } else enc = null; }
      */
     Writer outputWriter = new OutputStreamWriter(os);
 
     outputWriter.write(body);
     outputWriter.flush();
   }
-  
+
   protected void checkSessionId(String sessionId) {
     if (sessionId != null && !tracker.getSessionId().equals(sessionId))
       onWrongSessionId(tracker.getSessionId(), sessionId);
   }
-  
+
   protected void onWrongSessionId(String expectedSessionId, String actualSessionId) {
     log.error("Wrong session id sent from client, expected " + expectedSessionId + " found " + actualSessionId);
-    throw new IllegalArgumentException("Wrong session id sent from client, expected " + expectedSessionId + " found " + actualSessionId);
+    throw new IllegalArgumentException(
+        "Wrong session id sent from client, expected " + expectedSessionId + " found " + actualSessionId);
   }
-  
+
   protected void onInvalidRequestIndex(String strRequestIndex) {
     log.error("Invalid requestIndex sent from client, found " + strRequestIndex);
-    throw new IllegalArgumentException("Invalid requestIndex sent from client, found " + strRequestIndex + ", sessionId=" + tracker.getSessionId());
+    throw new IllegalArgumentException(
+        "Invalid requestIndex sent from client, found " + strRequestIndex + ", sessionId=" + tracker.getSessionId());
   }
-  
+
   protected void onDuplicateRequestIndex(int requestIndex) {
     log.info("Duplicate request sent from client, requestIndex=" + requestIndex);
   }
-  
+
   protected void onRequestIndexTooOld(int requestIndex) {
     log.error("Request sent from client is too old, requestIndex=" + requestIndex);
-    throw new IllegalArgumentException("Request sent from client is too old, requestIndex=" + requestIndex + ", sessionId=" + tracker.getSessionId());
+    throw new IllegalArgumentException(
+        "Request sent from client is too old, requestIndex=" + requestIndex + ", sessionId=" + tracker.getSessionId());
   }
 
   protected void onShaMismatch(String expectedSha, String actualSha) {
     throw new IllegalArgumentException("SHA1 mismatch, found " + actualSha + " expected " + expectedSha);
   }
-  
+
   protected void checkSha(String expectedSha, String body) {
     if (expectedSha != null) {
       try {
         String hash = DiagUtils.getSha1(body);
         if (!hash.equals(expectedSha))
           onShaMismatch(expectedSha, hash);
-      }catch(IOException e) {
+      } catch (IOException e) {
         throw new IllegalArgumentException("Unable to check SHA1 mismatch: " + e.getMessage());
       }
     }
   }
-  
+
   protected String calcRequestId(int requestIndex) {
     int actualIndex = tracker.getNextRequestIndex();
-    String str = tracker.getSessionId().replace(':', '_') + "/" + 
-        new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + 
-        DiagUtils.zeroPad(requestIndex) + "-" + DiagUtils.zeroPad(actualIndex);
+    String str = tracker.getSessionId().replace(':', '_') + "/" +
+        new SimpleDateFormat("dd-HHmm.ss.SSS").format(new Date()) + "-" + DiagUtils.zeroPad(requestIndex) + "-" +
+        DiagUtils.zeroPad(actualIndex);
     return str;
   }
 
   /**
-   * Handles the callback from the client; expects either an object or an array of objects
+   * Handles the callback from the client; expects either an object or an array of
+   * objects
    * 
-   * This method needs to be synchronized because if there are multiple requests (where one or more are 
-   * probably asynchronous) then we could serialise serverObjects in a slow response and the the faster
-   * response only gets a server object ID ... except that the slow response has not completed yet and
-   * therefore the fast response has not told the client about the server object. 
+   * This method needs to be synchronized because if there are multiple requests
+   * (where one or more are probably asynchronous) then we could serialise
+   * serverObjects in a slow response and the the faster response only gets a
+   * server object ID ... except that the slow response has not completed yet and
+   * therefore the fast response has not told the client about the server object.
    * 
    * The same is true for client IDs
    * 
    * @param request
    * @param response
-   * @param sessionId session id passed from the client for validation, ignored if null
+   * @param sessionId session id passed from the client for validation, ignored if
+   *                  null
    * @throws ServletException
    * @throws IOException
    */
-  public void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+  public void processRequest(HttpServletRequest request, HttpServletResponse response)
+      throws ServletException, IOException {
     HashMap<String, String> headers = getHeaders(request);
 
     String str = headers.get(RequestHandler.HEADER_INDEX);
     int requestIndex = -1;
     try {
       requestIndex = Integer.parseInt(str);
-    } catch(NumberFormatException e) {
+    } catch (NumberFormatException e) {
       // Nothing
     }
     if (requestIndex < 0) {
       onInvalidRequestIndex(str);
       return;
     }
-    
+
     RepeatableRequest repeatableRequest = null;
     if (s_temporaryDir != null && !tracker.isDisposed()) {
       repeatableRequest = tracker.getExistingRepeatableRequest(requestIndex);
@@ -385,7 +400,7 @@ public class RequestHandler {
         writeResponse(response, rrd.headers, rrd.body);
         return;
       }
-      
+
       // Being sent out of order shouldn't happen
       if (requestIndex < tracker.getHighestRequestIndex() - 2) {
         onRequestIndexTooOld(requestIndex);
@@ -397,7 +412,7 @@ public class RequestHandler {
     int retryIndex = -1;
     try {
       retryIndex = Integer.parseInt(headers.get(HEADER_RETRY));
-    }catch(NumberFormatException e) {
+    } catch (NumberFormatException e) {
       // Nothing
     }
     String sessionId = headers.get(HEADER_SESSION_ID);
@@ -406,7 +421,7 @@ public class RequestHandler {
     String requestId = calcRequestId(requestIndex);
     try {
       tracker.setLastClientTime(new Date(Long.parseLong(strClientTime)));
-    } catch(NumberFormatException e) {
+    } catch (NumberFormatException e) {
       log.error("Cannot parse client time " + strClientTime + " for " + requestId);
     }
 
@@ -439,23 +454,24 @@ public class RequestHandler {
 
     String hash = DiagUtils.getSha1(out);
     respHeaders.put(HEADER_SHA1, hash);
-    
+
     if (repeatableRequest != null) {
       tracker.completeRepeatableRequest(repeatableRequest, respHeaders, out);
     }
 
     try {
       writeResponse(response, respHeaders, out);
-    } catch(IOException e) {
+    } catch (IOException e) {
       log.fatal("Failed to write back to client: " + e.getMessage());
     }
   }
 
-  protected void processRequestImpl(Reader request, Writer response, String requestId) throws ServletException, IOException {
+  protected void processRequestImpl(Reader request, Writer response, String requestId)
+      throws ServletException, IOException {
     try {
       if (!tracker.getRequestLock().tryLock(s_requestLockTimeout, TimeUnit.MILLISECONDS))
         throw new ServletException("Timeout while waiting for request lock for " + requestId);
-    }catch(InterruptedException e) {
+    } catch (InterruptedException e) {
       throw new ServletException("Exception while waiting for request lock for " + requestId + ": " + e.getMessage());
     }
     try {
@@ -464,31 +480,32 @@ public class RequestHandler {
       try {
         JsonParser jp = objectMapper.getJsonFactory().createJsonParser(request);
         if (jp.nextToken() == JsonToken.START_ARRAY) {
-          while(jp.nextToken() != JsonToken.END_ARRAY)
+          while (jp.nextToken() != JsonToken.END_ARRAY)
             processCommand(jp);
         } else if (jp.getCurrentToken() == JsonToken.START_OBJECT)
           processCommand(jp);
 
         CommandQueue queue = tracker.getQueue();
         JsonSerializable data = null;
-        synchronized(queue) {
+        synchronized (queue) {
           data = queue.getDataToFlush();
         }
         if (data != null)
           objectMapper.writeValue(response, data);
 
-      } catch(ProxyTypeSerialisationException e) {
+      } catch (ProxyTypeSerialisationException e) {
         log.fatal("Unable to serialise type information to client for " + requestId + ": " + e.getMessage(), e);
 
-      } catch(ProxyException e) {
+      } catch (ProxyException e) {
         handleException(response, objectMapper, e);
 
-      } catch(Exception e) {
+      } catch (Exception e) {
         log.error("Exception during callback for " + requestId + ": " + e.getMessage(), e);
-        tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null, new ExceptionDetails(e.getClass().getName(), e.getMessage()));
+        tracker.getQueue().queueCommand(CommandType.EXCEPTION, null, null,
+            new ExceptionDetails(e.getClass().getName(), e.getMessage()));
         CommandQueue queue = tracker.getQueue();
         JsonSerializable data = null;
-        synchronized(queue) {
+        synchronized (queue) {
           data = queue.getDataToFlush();
         }
         if (data != null)
@@ -504,6 +521,7 @@ public class RequestHandler {
 
   /**
    * Called to handle exceptions during processRequest
+   * 
    * @param response
    * @param objectMapper
    * @param e
@@ -511,11 +529,11 @@ public class RequestHandler {
    */
   protected void handleException(Writer response, ObjectMapper objectMapper, ProxyException e) throws IOException {
     Throwable cause = e.getCause();
-    tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null, 
+    tracker.getQueue().queueCommand(CommandType.EXCEPTION, e.getServerObject(), null,
         new ExceptionDetails(cause.getClass().getName(), cause.getMessage()));
     CommandQueue queue = tracker.getQueue();
     JsonSerializable data = null;
-    synchronized(queue) {
+    synchronized (queue) {
       data = queue.getDataToFlush();
     }
     if (data != null)
@@ -524,6 +542,7 @@ public class RequestHandler {
 
   /**
    * Returns the request handler for the current thread
+   * 
    * @return
    */
   public static RequestHandler getCurrentHandler() {
@@ -531,8 +550,9 @@ public class RequestHandler {
   }
 
   /**
-   * Handles an object from the client; expects the object to have a property "cmd" which is
-   * the type of command
+   * Handles an object from the client; expects the object to have a property
+   * "cmd" which is the type of command
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -576,17 +596,20 @@ public class RequestHandler {
 
   /**
    * Resets the application session and returns the bootstrap object to the client
+   * 
    * @param jp
    */
   protected void cmdBootstrap(JsonParser jp) throws ServletException, IOException {
     tracker.resetSession();
-    tracker.getQueue().queueCommand(CommandId.CommandType.BOOTSTRAP, null, null, new Bootstrap(tracker.getBootstrap(), tracker.getSessionId()));
+    tracker.getQueue().queueCommand(CommandId.CommandType.BOOTSTRAP, null, null,
+        new Bootstrap(tracker.getBootstrap(), tracker.getSessionId()));
     jp.nextToken();
   }
 
   /**
-   * Handles a server method call from the client; expects a serverId, methodName, and an optional
-   * array of parameters
+   * Handles a server method call from the client; expects a serverId, methodName,
+   * and an optional array of parameters
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -599,34 +622,38 @@ public class RequestHandler {
     Class serverClass = null;
     Proxied serverObject = null;
     if (obj instanceof Integer) {
-      int serverId = (Integer)obj;
+      int serverId = (Integer) obj;
       serverObject = getProxied(serverId);
       serverClass = serverObject.getClass();
     } else if (obj != null) {
       try {
         serverClass = Class.forName(obj.toString());
-      } catch(ClassNotFoundException e) {
+      } catch (ClassNotFoundException e) {
         log.error("Cannot find server class " + obj + ": " + e.getMessage());
       }
     }
 
-
     // Onto what should be parameters
     jp.nextToken();
 
-    // Find the method by hand - we have already guaranteed that there will not be conflicting
-    //	method names (ie no overridden methods) but Java needs a list of parameter types
-    //	so we do it ourselves.
+    // Find the method by hand - we have already guaranteed that there will not be
+    // conflicting
+    // method names (ie no overridden methods) but Java needs a list of parameter
+    // types
+    // so we do it ourselves.
     boolean found = false;
 
-    // Check for property accessors; if serverObject is null then it's static method call and
-    //	properties are not supported
-    if (serverObject != null && methodName.length() > 3 && (methodName.startsWith("get") || methodName.startsWith("set"))) {
+    // Check for property accessors; if serverObject is null then it's static method
+    // call and
+    // properties are not supported
+    if (serverObject != null && methodName.length() > 3 &&
+        (methodName.startsWith("get") || methodName.startsWith("set"))) {
       String name = methodName.substring(3, 4).toLowerCase();
       if (methodName.length() > 4)
         name += methodName.substring(4);
       ProxyProperty property = null;
-      for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null; type = type.getSuperType()) {
+      for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null; type = type
+          .getSuperType()) {
         property = type.getProperties().get(name);
         if (property != null) {
           found = true;
@@ -643,14 +670,15 @@ public class RequestHandler {
           property.setValue(serverObject, values[0]);
         }
         if (property.getGroup() != null) {
-          for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null; type = type.getSuperType()) {
+          for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null; type = type
+              .getSuperType()) {
             for (ProxyProperty tmp : type.getProperties().values()) {
               if (tmp.getGroup() != null && tmp.getGroup().equals(property.getGroup())) {
                 if (!tracker.doesClientHaveValue(serverObject, tmp)) {
                   Object value = tmp.getValue(serverObject);
                   tracker.setClientHasValue(serverObject, tmp);
-                  tracker.getQueue().queueCommand(CommandId.CommandType.SET_VALUE, serverObject, 
-                      tmp.getName(), tmp.serialize(serverObject, value));
+                  tracker.getQueue().queueCommand(CommandId.CommandType.SET_VALUE, serverObject, tmp.getName(),
+                      tmp.serialize(serverObject, value));
                 }
               }
             }
@@ -669,7 +697,8 @@ public class RequestHandler {
     }
 
     if (!found) {
-      for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null && !found; type = type.getSuperType()) {
+      for (ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverClass); type != null &&
+          !found; type = type.getSuperType()) {
         ProxyMethod[] methods = type.getMethods();
         for (int i = 0; i < methods.length; i++)
           if (methods[i].getName().equals(methodName)) {
@@ -687,15 +716,20 @@ public class RequestHandler {
                 }
               };
               tracker.getQueue().queueCommand(id, new FunctionReturn(asyncId, result));
-            }catch(InvocationTargetException e) {
+            } catch (InvocationTargetException e) {
               Throwable t = e.getCause();
-              log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + t.getMessage(), t);
-              throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + ": " + t.getMessage(), t);
-            }catch(RuntimeException e) {
-              log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject + ": " + e.getMessage(), e);
-              throw new ProxyException(serverObject, "Exception while invoking " + method + " on " + serverObject + ": " + e.getMessage(), e);
-            }catch(IllegalAccessException e) {
-              throw new ServletException("Exception while running " + method + "(" + Helpers.toString(values) + "): " + e.getMessage(), e);
+              log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject +
+                  ": " + t.getMessage(), t);
+              throw new ProxyException(serverObject,
+                  "Exception while invoking " + method + " on " + serverObject + ": " + t.getMessage(), t);
+            } catch (RuntimeException e) {
+              log.error("Exception while invoking " + method + "(" + Helpers.toString(values) + ") on " + serverObject +
+                  ": " + e.getMessage(), e);
+              throw new ProxyException(serverObject,
+                  "Exception while invoking " + method + " on " + serverObject + ": " + e.getMessage(), e);
+            } catch (IllegalAccessException e) {
+              throw new ServletException(
+                  "Exception while running " + method + "(" + Helpers.toString(values) + "): " + e.getMessage(), e);
             }
             found = true;
             break;
@@ -704,7 +738,8 @@ public class RequestHandler {
     }
 
     if (!found)
-      throw new ServletException("Cannot find method called " + methodName + " in " + (serverObject != null ? serverObject : serverClass));
+      throw new ServletException(
+          "Cannot find method called " + methodName + " in " + (serverObject != null ? serverObject : serverClass));
 
     jp.nextToken();
   }
@@ -712,8 +747,7 @@ public class RequestHandler {
   private Object[] readParameters(JsonParser jp, Class[] types) throws IOException {
     if (types == null) {
       // Check for parameters
-      if (jp.getCurrentToken() == JsonToken.FIELD_NAME &&
-          jp.getCurrentName().equals("parameters") &&
+      if (jp.getCurrentToken() == JsonToken.FIELD_NAME && jp.getCurrentName().equals("parameters") &&
           jp.nextToken() == JsonToken.START_ARRAY) {
         while (jp.nextToken() != JsonToken.END_ARRAY)
           ;
@@ -724,8 +758,7 @@ public class RequestHandler {
     Object[] params = null;
 
     // Check for parameters
-    if (jp.getCurrentToken() == JsonToken.FIELD_NAME &&
-        jp.getCurrentName().equals("parameters") &&
+    if (jp.getCurrentToken() == JsonToken.FIELD_NAME && jp.getCurrentName().equals("parameters") &&
         jp.nextToken() == JsonToken.START_ARRAY) {
 
       params = readArray(jp, types);
@@ -742,6 +775,7 @@ public class RequestHandler {
 
   /**
    * Called when the client has disposed of
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -757,10 +791,11 @@ public class RequestHandler {
   }
 
   /**
-   * Finds the observer for a Proxied object, if the object does not implement ProxiedObserver then
-   * it looks for enclosing classes which do.  Static enclosing classes are located by looking for
-   * methods named in the form "getXxxx" which have no parameters and return an instance of Proxied,
-   * or which have the EnclosingThisMethod annotation.
+   * Finds the observer for a Proxied object, if the object does not implement
+   * ProxiedObserver then it looks for enclosing classes which do. Static
+   * enclosing classes are located by looking for methods named in the form
+   * "getXxxx" which have no parameters and return an instance of Proxied, or
+   * which have the EnclosingThisMethod annotation.
    * 
    * @param proxied
    * @return null if not found
@@ -768,7 +803,7 @@ public class RequestHandler {
   private ProxiedObserver getObserver(Proxied proxied) {
     while (proxied != null) {
       if (proxied instanceof ProxiedObserver)
-        return (ProxiedObserver)proxied;
+        return (ProxiedObserver) proxied;
 
       Class clazz = proxied.getClass();
       Class outerClazz = clazz.getEnclosingClass();
@@ -781,20 +816,19 @@ public class RequestHandler {
         for (Method method : clazz.getMethods()) {
           if (method.getAnnotationsByType(EnclosingThisMethod.class).length > 0) {
             if (matched != null)
-              throw new IllegalStateException("Too many methods marked as EnclosingThisMethod in " + clazz + " (found " + matched + " and " + method + ")");
+              throw new IllegalStateException("Too many methods marked as EnclosingThisMethod in " + clazz +
+                  " (found " + matched + " and " + method + ")");
             matched = method;
           }
         }
         if (matched == null) {
           for (Method method : clazz.getMethods()) {
             String name = method.getName();
-            if (method.getParameterTypes().length == 0 && 
-                name.length() > 3 && 
-                name.startsWith("get") && 
-                Character.isUpperCase(name.charAt(3)) &&
-                outerClazz.isAssignableFrom(method.getReturnType())) {
+            if (method.getParameterTypes().length == 0 && name.length() > 3 && name.startsWith("get") &&
+                Character.isUpperCase(name.charAt(3)) && outerClazz.isAssignableFrom(method.getReturnType())) {
               if (matched != null)
-                throw new IllegalStateException("Too many methods which could provide the enclosing this in " + clazz + " (found " + matched + " and " + method + ")");
+                throw new IllegalStateException("Too many methods which could provide the enclosing this in " + clazz +
+                    " (found " + matched + " and " + method + ")");
               matched = method;
             }
           }
@@ -802,9 +836,9 @@ public class RequestHandler {
         if (matched != null) {
           try {
             nextObject = matched.invoke(proxied, new Object[0]);
-          }catch(InvocationTargetException e) {
+          } catch (InvocationTargetException e) {
             throw new IllegalStateException("Cannot get enclosing instance from " + matched + ": " + e.getMessage(), e);
-          }catch(IllegalAccessException e) {
+          } catch (IllegalAccessException e) {
             throw new IllegalStateException("Cannot get enclosing instance from " + matched + ": " + e.getMessage(), e);
           }
         }
@@ -813,15 +847,16 @@ public class RequestHandler {
           Field field = clazz.getDeclaredField("this$0");
           field.setAccessible(true);
           nextObject = field.get(proxied);
-        } catch(NoSuchFieldException e) {
+        } catch (NoSuchFieldException e) {
           throw new IllegalStateException("Cannot find enclosing instance in this$0 of " + clazz);
-        } catch(IllegalAccessException e) {
-          throw new IllegalStateException("Cannot get enclosing instance from this$0 of " + clazz + ": " + e.getMessage(), e);
+        } catch (IllegalAccessException e) {
+          throw new IllegalStateException(
+              "Cannot get enclosing instance from this$0 of " + clazz + ": " + e.getMessage(), e);
         }
       }
 
       if (nextObject != null && nextObject instanceof Proxied)
-        proxied = (Proxied)nextObject;
+        proxied = (Proxied) nextObject;
       else
         break;
     }
@@ -830,7 +865,9 @@ public class RequestHandler {
   }
 
   /**
-   * Handles setting a server object property from the client; expects a serverId, propertyName, and a value
+   * Handles setting a server object property from the client; expects a serverId,
+   * propertyName, and a value
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -881,8 +918,9 @@ public class RequestHandler {
   }
 
   /**
-   * Sent when the client expires a cached property value, allowing the server property 
-   * to also its flush caches; expects a serverId and propertyName
+   * Sent when the client expires a cached property value, allowing the server
+   * property to also its flush caches; expects a serverId and propertyName
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -901,8 +939,10 @@ public class RequestHandler {
   }
 
   /**
-   * Handles dynamic changes to a qa.data.Array instance without having a complete replacement; expects a 
-   * serverId, propertyName, type (one of "add", "remove", "order"), start, end, and optional array of items 
+   * Handles dynamic changes to a qa.data.Array instance without having a complete
+   * replacement; expects a serverId, propertyName, type (one of "add", "remove",
+   * "order"), start, end, and optional array of items
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -920,7 +960,7 @@ public class RequestHandler {
         arrayReplaceAll(jp, serverId, propertyName);
       else
         arrayUpdate(jp, serverId, propertyName);
-    }finally {
+    } finally {
       tracker.endMutate(serverObject, propertyName);
     }
   }
@@ -934,30 +974,32 @@ public class RequestHandler {
 
     if (prop.getPropertyClass().isMap()) {
       Object removed = readOptionalArray(jp, ArrayList.class, "removed", prop.getPropertyClass().getKeyClass());
-      Map put = readOptionalExpandedMap(jp, "put", 
-          prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
+      Map put = readOptionalExpandedMap(jp, "put", prop.getPropertyClass().getKeyClass(),
+          prop.getPropertyClass().getJavaType());
 
       // Quick logging
       if (log.isDebugEnabled())
-        log.debug("edit-array: update map: property=" + prop + ", removed=" + DiagUtils.arrayToString(removed) + ", put=" + DiagUtils.mapToString(put));
+        log.debug("edit-array: update map: property=" + prop + ", removed=" + DiagUtils.arrayToString(removed) +
+            ", put=" + DiagUtils.mapToString(put));
 
       Map map = ArrayUtils.getMap(serverObject, prop);
 
       Proxied mutating = null;
       try {
         if (map instanceof Proxied)
-          tracker.beginMutate(mutating = (Proxied)map, null);
+          tracker.beginMutate(mutating = (Proxied) map, null);
 
         ArrayUtils.removeAll(map, removed);
         if (put != null) {
           map.putAll(put);
         }
 
-        // Because collection properties are objects and we change them without the serverObject's
-        //	knowledge, we have to make sure we notify other trackers ourselves
+        // Because collection properties are objects and we change them without the
+        // serverObject's
+        // knowledge, we have to make sure we notify other trackers ourselves
         if (mutating == null)
           ProxyManager.propertyChanged(serverObject, propertyName, map, null);
-      }finally {
+      } finally {
         if (mutating != null)
           tracker.endMutate(mutating, null);
       }
@@ -985,7 +1027,7 @@ public class RequestHandler {
       Proxied mutating = null;
       try {
         if (list instanceof Proxied)
-          tracker.beginMutate(mutating = (Proxied)list, null);
+          tracker.beginMutate(mutating = (Proxied) list, null);
 
         ArrayUtils.removeAll(list, removed);
         ArrayUtils.addAll(list, added);
@@ -997,20 +1039,17 @@ public class RequestHandler {
         }
 
         if (log.isTraceEnabled()) {
-          log.debug("edit-array: update array: property=" + prop + 
-              ",\n   removed=" + DiagUtils.arrayToString(removed) + 
-              ",\n   added=" + DiagUtils.arrayToString(added) + 
-              ",\n   array=" + DiagUtils.arrayToString(array) +
+          log.debug("edit-array: update array: property=" + prop + ",\n   removed=" + DiagUtils.arrayToString(removed) +
+              ",\n   added=" + DiagUtils.arrayToString(added) + ",\n   array=" + DiagUtils.arrayToString(array) +
               ",\n   actual=" + DiagUtils.arrayToString(list));
         } else if (log.isDebugEnabled()) {
-          log.debug("edit-array: update array: property=" + prop + 
-              ", removed=" + DiagUtils.arrayToString(removed) + 
-              ", added=" + DiagUtils.arrayToString(added) + 
-              ", array=" + DiagUtils.arrayToString(array));
+          log.debug("edit-array: update array: property=" + prop + ", removed=" + DiagUtils.arrayToString(removed) +
+              ", added=" + DiagUtils.arrayToString(added) + ", array=" + DiagUtils.arrayToString(array));
         }
 
-        // Because collection properties are objects and we change them without the serverObject's
-        //	knowledge, we have to make sure we notify other trackers ourselves
+        // Because collection properties are objects and we change them without the
+        // serverObject's
+        // knowledge, we have to make sure we notify other trackers ourselves
         if (mutating == null)
           ProxyManager.propertyChanged(serverObject, propertyName, list, null);
 
@@ -1034,7 +1073,8 @@ public class RequestHandler {
     ProxyProperty prop = getProperty(type, propertyName);
 
     if (prop.getPropertyClass().isMap()) {
-      Map items = readOptionalMap(jp, HashMap.class, "items", prop.getPropertyClass().getKeyClass(), prop.getPropertyClass().getJavaType());
+      Map items = readOptionalMap(jp, HashMap.class, "items", prop.getPropertyClass().getKeyClass(),
+          prop.getPropertyClass().getJavaType());
       if (log.isDebugEnabled())
         log.debug("edit-array: replaceAll map: property=" + prop + ", items=" + DiagUtils.mapToString(items));
 
@@ -1042,8 +1082,9 @@ public class RequestHandler {
       map.clear();
       map.putAll(items);
 
-      // Because collection properties are objects and we change them without the serverObject's
-      //	knowledge, we have to make sure we notify other trackers ourselves
+      // Because collection properties are objects and we change them without the
+      // serverObject's
+      // knowledge, we have to make sure we notify other trackers ourselves
       if (!(map instanceof Proxied))
         ProxyManager.propertyChanged(serverObject, propertyName, items, null);
       if (observer != null)
@@ -1051,9 +1092,11 @@ public class RequestHandler {
 
       jp.nextToken();
     } else {
-      // NOTE: items is an Array!!  But because it may be an array of primitive types, we have
-      //	to use java.lang.reflect.Array to access members because we cannot cast arrays of
-      //	primitives to Object[]
+      // NOTE: items is an Array!! But because it may be an array of primitive types,
+      // we have
+      // to use java.lang.reflect.Array to access members because we cannot cast
+      // arrays of
+      // primitives to Object[]
       Object items = readOptionalArray(jp, ArrayList.class, "items", prop.getPropertyClass().getJavaType());
       if (log.isDebugEnabled())
         log.debug("edit-array: replaceAll array: property=" + prop + ", items=" + DiagUtils.arrayToString(items));
@@ -1063,8 +1106,9 @@ public class RequestHandler {
         list.clear();
         ArrayUtils.addAll(list, items);
 
-        // Because collection properties are objects and we change them without the serverObject's
-        //	knowledge, we have to make sure we notify other trackers ourselves
+        // Because collection properties are objects and we change them without the
+        // serverObject's
+        // knowledge, we have to make sure we notify other trackers ourselves
         if (!(list instanceof Proxied))
           ProxyManager.propertyChanged(serverObject, propertyName, list, null);
         if (observer != null)
@@ -1080,8 +1124,9 @@ public class RequestHandler {
   }
 
   /**
-   * Handles creating a server object to match one created on the client; expects className,
-   * clientId, properties
+   * Handles creating a server object to match one created on the client; expects
+   * className, clientId, properties
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -1094,8 +1139,8 @@ public class RequestHandler {
     // Get the class
     Class<? extends Proxied> clazz;
     try {
-      clazz = (Class<? extends Proxied>)Class.forName(className);
-    } catch(ClassNotFoundException e) {
+      clazz = (Class<? extends Proxied>) Class.forName(className);
+    } catch (ClassNotFoundException e) {
       throw new ServletException("Unknown class " + className);
     }
     ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(clazz);
@@ -1104,23 +1149,25 @@ public class RequestHandler {
     Proxied proxied;
     try {
       proxied = type.newInstance(clazz);
-    } catch(InstantiationException e) {
+    } catch (InstantiationException e) {
       throw new ServletException("Cannot create class " + className + ": " + e.getMessage(), e);
-    } catch(InvocationTargetException e) {
+    } catch (InvocationTargetException e) {
       throw new ServletException("Cannot create class " + className + ": " + e.getMessage(), e);
-    } catch(IllegalAccessException e) {
+    } catch (IllegalAccessException e) {
       throw new ServletException("Cannot create class " + className + ": " + e.getMessage(), e);
     }
 
     // Get the server ID
     int serverId = tracker.addClientObject(proxied);
 
-    // Remember the client ID, in case there are subsequent commands which refer to it
+    // Remember the client ID, in case there are subsequent commands which refer to
+    // it
     tracker.registerClientObject(clientId, proxied);
 
     // Tell the client about the new ID - do this before changing properties
     tracker.invalidateCache(proxied);
-    tracker.getQueue().queueCommand(CommandId.CommandType.MAP_CLIENT_ID, proxied, null, new MapClientId(serverId, clientId));
+    tracker.getQueue().queueCommand(CommandId.CommandType.MAP_CLIENT_ID, proxied, null,
+        new MapClientId(serverId, clientId));
 
     // Set property values
     if (jp.nextToken() == JsonToken.FIELD_NAME) {
@@ -1130,7 +1177,7 @@ public class RequestHandler {
         String propertyName = jp.getCurrentName();
         jp.nextToken();
 
-        // Read a Proxied object?  
+        // Read a Proxied object?
         ProxyProperty prop = getProperty(type, propertyName);
         MetaClass propClass = prop.getPropertyClass();
         Object value = null;
@@ -1162,8 +1209,9 @@ public class RequestHandler {
   }
 
   /**
-   * Handles creating a server object to match one created on the client; expects className,
-   * clientId, properties
+   * Handles creating a server object to match one created on the client; expects
+   * className, clientId, properties
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -1174,6 +1222,7 @@ public class RequestHandler {
 
   /**
    * Handles adding an event listener; expects serverId, eventName
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -1189,6 +1238,7 @@ public class RequestHandler {
 
   /**
    * Handles removing an event listener; expects serverId, eventName
+   * 
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -1204,6 +1254,7 @@ public class RequestHandler {
 
   /**
    * Returns the proxied object, by serverID or client ID
+   * 
    * @param id
    * @return
    */
@@ -1216,6 +1267,7 @@ public class RequestHandler {
 
   /**
    * Finds a property in a type, recursing up the class hierarchy
+   * 
    * @param type
    * @param name
    * @return
@@ -1231,14 +1283,16 @@ public class RequestHandler {
   }
 
   /**
-   * Sets a property value, tracking which property is being set so that isSettingProperty can
-   * detect recursive sets
+   * Sets a property value, tracking which property is being set so that
+   * isSettingProperty can detect recursive sets
+   * 
    * @param type
    * @param proxied
    * @param propertyName
    * @param value
    */
-  protected void setPropertyValue(ProxyType type, Proxied proxied, String propertyName, Object value) throws ProxyException {
+  protected void setPropertyValue(ProxyType type, Proxied proxied, String propertyName, Object value)
+      throws ProxyException {
     tracker.beginMutate(proxied, propertyName);
     try {
       ProxyProperty property = getProperty(type, propertyName);
@@ -1251,27 +1305,29 @@ public class RequestHandler {
       else {
         try {
           property.setValue(proxied, value);
-        } catch(Exception e) {
-          tracker.getQueue().queueCommand(CommandId.CommandType.RESTORE_VALUE, proxied, propertyName, new PropertyReset(oldValue, e.getClass().getName(), e.getMessage()));
+        } catch (Exception e) {
+          tracker.getQueue().queueCommand(CommandId.CommandType.RESTORE_VALUE, proxied, propertyName,
+              new PropertyReset(oldValue, e.getClass().getName(), e.getMessage()));
         }
       }
       ProxiedObserver observer = getObserver(proxied);
       if (observer != null) {
         Object setValue = property.getValue(proxied);
-        if ((setValue != null && oldValue == null) ||
-            (setValue == null && oldValue != null) ||
+        if ((setValue != null && oldValue == null) || (setValue == null && oldValue != null) ||
             (setValue != null && oldValue != null && !setValue.equals(oldValue))) {
           observer.observeSetProperty(proxied, property, value, oldValue);
         }
       }
-    }finally {
+    } finally {
       tracker.endMutate(proxied, propertyName);
     }
   }
 
   /**
-   * Attempts to convert a native type - Jackson will interpret floating point numbers as
-   * Double, which will cause an exception if the destination only accepts float.
+   * Attempts to convert a native type - Jackson will interpret floating point
+   * numbers as Double, which will cause an exception if the destination only
+   * accepts float.
+   * 
    * @param clazz
    * @param value
    * @return
@@ -1285,48 +1341,49 @@ public class RequestHandler {
       return value;
 
     if (vClazz == double.class || vClazz == Double.class) {
-      double val = (Double)value;
+      double val = (Double) value;
       if (targetClass == float.class || targetClass == Float.class)
-        value = (float)val;
+        value = (float) val;
       else if (targetClass == int.class || targetClass == Integer.class)
-        value = (int)val;
+        value = (int) val;
       else if (targetClass == long.class || targetClass == Long.class)
-        value = (long)val;
+        value = (long) val;
 
     } else if (vClazz == float.class || vClazz == Float.class) {
-      float val = (Float)value;
+      float val = (Float) value;
       if (targetClass == double.class || targetClass == Double.class)
-        value = (double)val;
+        value = (double) val;
       else if (targetClass == int.class || targetClass == Integer.class)
-        value = (int)Math.round(val);
+        value = (int) Math.round(val);
       else if (targetClass == long.class || targetClass == Long.class)
-        value = (long)Math.round(val);
+        value = (long) Math.round(val);
 
     } else if (vClazz == long.class || vClazz == Long.class) {
-      long val = (Long)value;
+      long val = (Long) value;
       if (targetClass == float.class || targetClass == Float.class)
-        value = (float)val;
+        value = (float) val;
       else if (targetClass == double.class || targetClass == Double.class)
-        value = (double)val;
+        value = (double) val;
       else if (targetClass == int.class || targetClass == Integer.class)
-        value = (int)val;
+        value = (int) val;
 
     } else if (vClazz == int.class || vClazz == Integer.class) {
-      int val = (Integer)value;
+      int val = (Integer) value;
       if (targetClass == float.class || targetClass == Float.class)
-        value = (float)val;
+        value = (float) val;
       else if (targetClass == double.class || targetClass == Double.class)
-        value = (double)val;
+        value = (double) val;
       else if (targetClass == long.class || targetClass == Long.class)
-        value = (long)val;
+        value = (long) val;
     }
 
     return value;
   }
 
   /**
-   * Reads an array from JSON, where each value is of the listed in types; EG the first element
-   * is class type[0], the second element is class type[1] etc
+   * Reads an array from JSON, where each value is of the listed in types; EG the
+   * first element is class type[0], the second element is class type[1] etc
+   * 
    * @param jp
    * @param types
    * @return
@@ -1375,9 +1432,11 @@ public class RequestHandler {
   }
 
   /**
-   * Reads an array from JSON, where each value is of the class clazz.  Note that while the result
-   * is an array, you cannot assume that it is an array of Object, or use generics because generics
-   * are always Objects - this is because arrays of primitive types are not arrays of Objects
+   * Reads an array from JSON, where each value is of the class clazz. Note that
+   * while the result is an array, you cannot assume that it is an array of
+   * Object, or use generics because generics are always Objects - this is because
+   * arrays of primitive types are not arrays of Objects
+   * 
    * @param jp
    * @param clazz
    * @return
@@ -1392,10 +1451,10 @@ public class RequestHandler {
     boolean isProxyClass = Proxied.class.isAssignableFrom(clazz);
     ArrayList result;
     try {
-      result = (ArrayList)arrayClass.newInstance();
-    }catch(InstantiationException e) {
+      result = (ArrayList) arrayClass.newInstance();
+    } catch (InstantiationException e) {
       throw new IOException("Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
-    }catch(IllegalAccessException e) {
+    } catch (IllegalAccessException e) {
       throw new IOException("Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
     }
     for (; jp.nextToken() != JsonToken.END_ARRAY;) {
@@ -1421,21 +1480,21 @@ public class RequestHandler {
     for (int i = 0; i < result.size(); i++)
       Array.set(arr, i, result.get(i));
     return arr;
-    //return result.toArray(Array.newInstance(clazz, result.size()));
+    // return result.toArray(Array.newInstance(clazz, result.size()));
   }
 
   /**
-   * Reads an array from JSON, where each value is of the class clazz; only if the property
-   * exists
-   * @param jp parser
-   * @param name name of the property
+   * Reads an array from JSON, where each value is of the class clazz; only if the
+   * property exists
+   * 
+   * @param jp    parser
+   * @param name  name of the property
    * @param clazz class of each instance
    * @return
    * @throws IOException
    */
   private Object readOptionalArray(JsonParser jp, Class arrayClass, String name, Class clazz) throws IOException {
-    if (jp.nextToken() == JsonToken.FIELD_NAME &&
-        jp.getCurrentName().equals(name) &&
+    if (jp.nextToken() == JsonToken.FIELD_NAME && jp.getCurrentName().equals(name) &&
         jp.nextToken() == JsonToken.START_ARRAY) {
       return readArray(jp, arrayClass, clazz);
     }
@@ -1443,8 +1502,7 @@ public class RequestHandler {
   }
 
   private Map readOptionalExpandedMap(JsonParser jp, String name, Class keyClazz, Class valueClazz) throws IOException {
-    if (jp.nextToken() == JsonToken.FIELD_NAME &&
-        jp.getCurrentName().equals(name) &&
+    if (jp.nextToken() == JsonToken.FIELD_NAME && jp.getCurrentName().equals(name) &&
         jp.nextToken() == JsonToken.START_OBJECT) {
       return readExpandedMap(jp, keyClazz, valueClazz);
     }
@@ -1493,9 +1551,11 @@ public class RequestHandler {
   }
 
   /**
-   * Reads an array from JSON, where each value is of the class clazz.  Note that while the result
-   * is an array, you cannot assume that it is an array of Object, or use generics because generics
-   * are always Objects - this is because arrays of primitive types are not arrays of Objects
+   * Reads an array from JSON, where each value is of the class clazz. Note that
+   * while the result is an array, you cannot assume that it is an array of
+   * Object, or use generics because generics are always Objects - this is because
+   * arrays of primitive types are not arrays of Objects
+   * 
    * @param jp
    * @param clazz
    * @return
@@ -1512,10 +1572,10 @@ public class RequestHandler {
       keyClazz = String.class;
     Map result;
     try {
-      result = (Map)mapClass.newInstance();
-    }catch(IllegalAccessException e) {
+      result = (Map) mapClass.newInstance();
+    } catch (IllegalAccessException e) {
       throw new IOException("Cannot create instance of " + mapClass + ": " + e.getMessage(), e);
-    }catch(InstantiationException e) {
+    } catch (InstantiationException e) {
       throw new IOException("Cannot create instance of " + mapClass + ": " + e.getMessage(), e);
     }
     for (; jp.nextToken() != JsonToken.END_OBJECT;) {
@@ -1543,16 +1603,17 @@ public class RequestHandler {
 
   /**
    * Reads a map, if the property exists
-   * @param jp parser
-   * @param name name of the property
-   * @param keyClazz class of keys
+   * 
+   * @param jp         parser
+   * @param name       name of the property
+   * @param keyClazz   class of keys
    * @param valueClazz class of values
    * @return
    * @throws IOException
    */
-  private Map readOptionalMap(JsonParser jp, Class mapClass, String name, Class keyClazz, Class valueClazz) throws IOException {
-    if (jp.nextToken() == JsonToken.FIELD_NAME &&
-        jp.getCurrentName().equals(name) &&
+  private Map readOptionalMap(JsonParser jp, Class mapClass, String name, Class keyClazz, Class valueClazz)
+      throws IOException {
+    if (jp.nextToken() == JsonToken.FIELD_NAME && jp.getCurrentName().equals(name) &&
         jp.nextToken() == JsonToken.START_OBJECT) {
       return readMap(jp, mapClass, keyClazz, valueClazz);
     }
@@ -1561,6 +1622,7 @@ public class RequestHandler {
 
   /**
    * Reads the current token value, with special consideration for enums
+   * 
    * @param jp
    * @param clazz
    * @return
@@ -1607,10 +1669,11 @@ public class RequestHandler {
 
   /**
    * Gets a field value from the parser, checking that it is the type expected
-   * @param <T> The desired type of object returned
-   * @param jp the parser
+   * 
+   * @param <T>       The desired type of object returned
+   * @param jp        the parser
    * @param fieldName the name of the field to get
-   * @param clazz the class of the type to get 
+   * @param clazz     the class of the type to get
    * @return
    * @throws ServletException
    * @throws IOException
@@ -1618,13 +1681,15 @@ public class RequestHandler {
   private <T> T getFieldValue(JsonParser jp, String fieldName, Class<T> clazz) throws ServletException, IOException {
     skipFieldName(jp, fieldName);
 
-    T obj = (T)jp.readValueAs(clazz);
+    T obj = (T) jp.readValueAs(clazz);
     return obj;
   }
 
   /**
-   * Reads the next token and ensures that it is a field name called <code>fieldName</code>; leaves the current
-   * token on the start of the field value
+   * Reads the next token and ensures that it is a field name called
+   * <code>fieldName</code>; leaves the current token on the start of the field
+   * value
+   * 
    * @param jp
    * @param fieldName
    * @throws ServletException
@@ -1632,7 +1697,8 @@ public class RequestHandler {
    */
   private void skipFieldName(JsonParser jp, String fieldName) throws ServletException, IOException {
     if (jp.nextToken() != JsonToken.FIELD_NAME)
-      throw new ServletException("Cannot find field name - looking for " + fieldName + " found " + jp.getCurrentToken() + ":" + jp.getText());
+      throw new ServletException(
+          "Cannot find field name - looking for " + fieldName + " found " + jp.getCurrentToken() + ":" + jp.getText());
     String str = jp.getText();
     if (!fieldName.equals(str))
       throw new ServletException("Cannot find field called " + fieldName + " found " + str);

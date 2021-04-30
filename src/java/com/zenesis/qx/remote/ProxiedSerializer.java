@@ -38,33 +38,39 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 
 /**
  * Serializer for Proxied
+ * 
  * @author John Spackman
  *
  */
 public class ProxiedSerializer extends JsonSerializer<Proxied> {
-	
-	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxiedSerializer.class);
 
-	/* (non-Javadoc)
-	 * @see org.codehaus.jackson.map.JsonSerializer#serialize(java.lang.Object, org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
-	 */
-	@Override
-	public void serialize(Proxied value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
-		if (value == null)
-			jgen.writeNull();
-		else {
-			ProxySessionTracker tracker = ProxyManager.getTracker();
-			if (tracker == null) {
-				log.fatal("No tracker when trying to write object " + value);
-				jgen.writeNull();
-			} else {
-				Object obj = tracker.getProxy(value);
-				if (obj == null)
-					jgen.writeNull();
-				else
-					jgen.writeObject(obj);
-			}
-		}
-	}
+  private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxiedSerializer.class);
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see org.codehaus.jackson.map.JsonSerializer#serialize(java.lang.Object,
+   * org.codehaus.jackson.JsonGenerator,
+   * org.codehaus.jackson.map.SerializerProvider)
+   */
+  @Override
+  public void serialize(Proxied value, JsonGenerator jgen, SerializerProvider provider)
+      throws IOException, JsonProcessingException {
+    if (value == null)
+      jgen.writeNull();
+    else {
+      ProxySessionTracker tracker = ProxyManager.getTracker();
+      if (tracker == null) {
+        log.fatal("No tracker when trying to write object " + value);
+        jgen.writeNull();
+      } else {
+        Object obj = tracker.getProxy(value);
+        if (obj == null)
+          jgen.writeNull();
+        else
+          jgen.writeObject(obj);
+      }
+    }
+  }
 
 }

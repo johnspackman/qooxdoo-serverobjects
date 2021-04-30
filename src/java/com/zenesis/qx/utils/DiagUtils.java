@@ -26,7 +26,7 @@ public class DiagUtils {
 
   public static String arrayToString(Object items) {
     if (items instanceof Collection)
-      items = ((Collection)items).toArray();
+      items = ((Collection) items).toArray();
     int itemsLength = Array.getLength(items);
     String str = "";
     if (items != null) {
@@ -51,7 +51,7 @@ public class DiagUtils {
         else
           buf.append((char) ('a' + (halfbyte - 10)));
         halfbyte = data[i] & 0x0F;
-      } while(two_halfs++ < 1);
+      } while (two_halfs++ < 1);
     }
     return buf.toString();
   }
@@ -64,7 +64,7 @@ public class DiagUtils {
       byte[] sha1hash = md.digest();
       String hash = DiagUtils.bytesToHex(sha1hash);
       return hash;
-    }catch(NoSuchAlgorithmException e) {
+    } catch (NoSuchAlgorithmException e) {
       throw new IOException(e.getMessage(), e);
     }
   }
@@ -83,5 +83,5 @@ public class DiagUtils {
       return "0" + number;
     return Integer.toString(number);
   }
-  
+
 }

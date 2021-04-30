@@ -28,19 +28,20 @@
 package com.zenesis.qx.event;
 
 /**
- * Objects which support events can optionally implement this interface to provide
- * better control over the event process.  If this is not implemented, the object
- * will be considered to throw events without any checks on validity
+ * Objects which support events can optionally implement this interface to
+ * provide better control over the event process. If this is not implemented,
+ * the object will be considered to throw events without any checks on validity
  * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
 public interface EventVerifiable {
 
-	/**
-	 * Detects whether this object supports a given event
-	 * @param eventName
-	 * @return
-	 */
-	public boolean supportsEvent(String eventName);
-	
+  /**
+   * Detects whether this object supports a given event
+   * 
+   * @param eventName
+   * @return
+   */
+  public boolean supportsEvent(String eventName);
+
 }

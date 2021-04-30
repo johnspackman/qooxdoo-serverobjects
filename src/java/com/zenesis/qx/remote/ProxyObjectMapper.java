@@ -40,80 +40,87 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 /**
- * Simple wrapper for Jackson ObjectMapper that uses our custom de/serialisation factories and adds a few helper
- * methods.
+ * Simple wrapper for Jackson ObjectMapper that uses our custom de/serialisation
+ * factories and adds a few helper methods.
  * 
  * @author <a href="mailto:john.spackman@zenesis.com">John Spackman</a>
  */
 @SuppressWarnings("serial")
 public class ProxyObjectMapper extends BasicObjectMapper {
-	
-	@SuppressWarnings("unused")
-	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxyObjectMapper.class);
-	
-	private static final SimpleDateFormat DF = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-	
-	/*
-	 * Serialises a Date as the JS equivelant
-	 */
-	private static final class DateSerializer extends JsonSerializer<Date> {
 
-		/* (non-Javadoc)
-		 * @see com.fasterxml.jackson.databind.JsonSerializer#serialize(java.lang.Object, com.fasterxml.jackson.core.JsonGenerator, com.fasterxml.jackson.databind.SerializerProvider)
-		 */
-		@Override
-		public void serialize(Date value, JsonGenerator gen, SerializerProvider sp) throws IOException, JsonProcessingException {
-			if (value == null)
-				gen.writeNull();
-			else
-				gen.writeRawValue("new Date(\"" + DF.format(value) + "\")");
-		}
-	}
-	
-	
-	/** the tracker */
-	private final ProxySessionTracker tracker;
+  @SuppressWarnings("unused")
+  private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxyObjectMapper.class);
 
-	
-	/**
-	 * Constructor
-	 * @param tracker
-	 */
-	public ProxyObjectMapper(ProxySessionTracker tracker) {
-		this(tracker, true, new File("."));
-	}
-	
-	/**
-	 * Constructor
-	 * @param tracker
-	 * @param indent whether to indent JSON
-	 */
-	public ProxyObjectMapper(ProxySessionTracker tracker, boolean indent) {
-		this(tracker, indent, null);
-	}
-		
-	/**
-	 * Constructor
-	 * @param tracker
-	 * @param indent whether to indent JSON
-	 * @param rootDir root directory to serialise all File's as relative to
-	 */
-	public ProxyObjectMapper(ProxySessionTracker tracker, boolean indent, File rootDir) {
-		super(indent, rootDir == null ? new File(".") : null);
-		this.tracker = tracker;
-	}
-	
-	@Override
-	protected void addToModule(SimpleModule module) {
-        module.addSerializer(Proxied.class, new ProxiedSerializer());
-        module.addDeserializer(Proxied.class, new ProxiedDeserializer());
-        module.addSerializer(Date.class, new DateSerializer());
-	}
-	
-	/**
-	 * @return the tracker
-	 */
-	public ProxySessionTracker getTracker() {
-		return tracker;
-	}
+  private static final SimpleDateFormat DF = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+
+  /*
+   * Serialises a Date as the JS equivelant
+   */
+  private static final class DateSerializer extends JsonSerializer<Date> {
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.fasterxml.jackson.databind.JsonSerializer#serialize(java.lang.Object,
+     * com.fasterxml.jackson.core.JsonGenerator,
+     * com.fasterxml.jackson.databind.SerializerProvider)
+     */
+    @Override
+    public void serialize(Date value, JsonGenerator gen, SerializerProvider sp)
+        throws IOException, JsonProcessingException {
+      if (value == null)
+        gen.writeNull();
+      else
+        gen.writeRawValue("new Date(\"" + DF.format(value) + "\")");
+    }
+  }
+
+  /** the tracker */
+  private final ProxySessionTracker tracker;
+
+  /**
+   * Constructor
+   * 
+   * @param tracker
+   */
+  public ProxyObjectMapper(ProxySessionTracker tracker) {
+    this(tracker, true, new File("."));
+  }
+
+  /**
+   * Constructor
+   * 
+   * @param tracker
+   * @param indent  whether to indent JSON
+   */
+  public ProxyObjectMapper(ProxySessionTracker tracker, boolean indent) {
+    this(tracker, indent, null);
+  }
+
+  /**
+   * Constructor
+   * 
+   * @param tracker
+   * @param indent  whether to indent JSON
+   * @param rootDir root directory to serialise all File's as relative to
+   */
+  public ProxyObjectMapper(ProxySessionTracker tracker, boolean indent, File rootDir) {
+    super(indent, rootDir == null ? new File(".") : null);
+    this.tracker = tracker;
+  }
+
+  @Override
+  protected void addToModule(SimpleModule module) {
+    module.addSerializer(Proxied.class, new ProxiedSerializer());
+    module.addDeserializer(Proxied.class, new ProxiedDeserializer());
+    module.addSerializer(Date.class, new DateSerializer());
+  }
+
+  /**
+   * @return the tracker
+   */
+  public ProxySessionTracker getTracker() {
+    return tracker;
+  }
 }

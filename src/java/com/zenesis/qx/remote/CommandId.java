@@ -28,71 +28,65 @@
 package com.zenesis.qx.remote;
 
 public class CommandId {
-	
-	public enum CommandType {
-		BOOTSTRAP("bootstrap"),
-		FIRE_EVENT("fire"),
-		FUNCTION_RETURN("return"),
-		EXCEPTION("exception"),
-		MAP_CLIENT_ID("mapClientId"),
-		RESTORE_VALUE("restore"),
-		SET_VALUE("set"),
-		EXPIRE("expire"),
-		DEFINE("define"),
-		EDIT_ARRAY("edit-array", true),
-		LOAD_TYPE("load-type"),
-		UPLOAD("upload");
-		
-		public final String remoteId;
-		public final boolean cumulative;
 
-		private CommandType(String remoteId) {
-			this.remoteId = remoteId;
-			this.cumulative = false;
-		}
+  public enum CommandType {
+    BOOTSTRAP("bootstrap"), FIRE_EVENT("fire"), FUNCTION_RETURN("return"), EXCEPTION("exception"),
+    MAP_CLIENT_ID("mapClientId"), RESTORE_VALUE("restore"), SET_VALUE("set"), EXPIRE("expire"), DEFINE("define"),
+    EDIT_ARRAY("edit-array", true), LOAD_TYPE("load-type"), UPLOAD("upload");
 
-		private CommandType(String remoteId, boolean cumulative) {
-			this.remoteId = remoteId;
-			this.cumulative = cumulative;
-		}
-	}
-	public final CommandType type;
-	public final Object object;
-	public final String name;
-	
-	/**
-	 * @param object
-	 * @param propertyName
-	 */
-	public CommandId(CommandType type, Object object, String propertyName) {
-		super();
-		this.type = type;
-		this.object = object;
-		this.name = propertyName;
-	}
+    public final String remoteId;
+    public final boolean cumulative;
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		CommandId that = (CommandId)obj;
-		return that.type == type && that.object == object &&
-			((name == null && that.name == null) ||
-			(name != null && that.name != null && that.name.equals(name)))
-			;
-	}
-	
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		int hash = type.hashCode();
-		if (object != null)
-			hash ^= object.hashCode();
-		if (name != null)
-			hash ^= name.hashCode();
-		return hash;
-	}
+    private CommandType(String remoteId) {
+      this.remoteId = remoteId;
+      this.cumulative = false;
+    }
+
+    private CommandType(String remoteId, boolean cumulative) {
+      this.remoteId = remoteId;
+      this.cumulative = cumulative;
+    }
+  }
+
+  public final CommandType type;
+  public final Object object;
+  public final String name;
+
+  /**
+   * @param object
+   * @param propertyName
+   */
+  public CommandId(CommandType type, Object object, String propertyName) {
+    super();
+    this.type = type;
+    this.object = object;
+    this.name = propertyName;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    CommandId that = (CommandId) obj;
+    return that.type == type && that.object == object &&
+        ((name == null && that.name == null) || (name != null && that.name != null && that.name.equals(name)));
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    int hash = type.hashCode();
+    if (object != null)
+      hash ^= object.hashCode();
+    if (name != null)
+      hash ^= name.hashCode();
+    return hash;
+  }
 }

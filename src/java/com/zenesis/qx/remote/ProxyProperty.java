@@ -36,91 +36,99 @@ import com.zenesis.qx.remote.annotations.Remote;
  * @author John Spackman [john.spackman@zenesis.com]
  */
 public interface ProxyProperty extends JsonSerializable {
-	
-	public String getName();
-	
-	/**
-	 * Returns true if this property is readonly
-	 * @return
-	 */
-	public boolean isReadOnly();
-	
-	/**
-	 * @return the sync
-	 */
-	public Remote.Sync getSync();
 
-	/**
-	 * @return the event
-	 */
-	public ProxyEvent getEvent();
+  public String getName();
 
-	/**
-	 * @return the nullable
-	 */
-	public boolean isNullable();
+  /**
+   * Returns true if this property is readonly
+   * 
+   * @return
+   */
+  public boolean isReadOnly();
 
-	/**
-	 * @return the onDemand
-	 */
-	public boolean isOnDemand();
-	
-	/**
-	 * The ondemand group for the property
-	 * @return
-	 */
-	public String getGroup();
+  /**
+   * @return the sync
+   */
+  public Remote.Sync getSync();
 
-	/**
-	 * @return the sendExceptions
-	 */
-	public boolean isSendExceptions();
-	
-	/**
-	 * @return the propertyClass
-	 */
-	public MetaClass getPropertyClass();
-	
-	/**
-	 * Returns the value currently in the property of an object 
-	 * @param proxied
-	 * @return
-	 */
-	public Object getValue(Proxied proxied) throws ProxyException;
-	
-	/**
-	 * Sets the value of a property in an object
-	 * @param proxied
-	 * @param value
-	 */
-	public void setValue(Proxied proxied, Object value) throws ProxyException;
+  /**
+   * @return the event
+   */
+  public ProxyEvent getEvent();
 
-	/**
-	 * Expires the cached value, in response to the same event on the client
-	 * @param proxied
-	 */
-	public void expire(Proxied proxied);
-	
-	/**
-	 * Called internally to serialize a value to the client
-	 * @param proxied
-	 * @param value
-	 * @return
-	 */
-	public Object serialize(Proxied proxied, Object value);
+  /**
+   * @return the nullable
+   */
+  public boolean isNullable();
 
-	/**
-	 * Called internally to deserialize a value from the client
-	 * @param proxied
-	 * @param value
-	 * @return
-	 */
-	public Object deserialize(Proxied proxied, Object value);
-	
-	/**
-	 * Called to write the property definition
-	 * @param cw
-	 * @param type
-	 */
-	public void write(ClassWriter cw);
+  /**
+   * @return the onDemand
+   */
+  public boolean isOnDemand();
+
+  /**
+   * The ondemand group for the property
+   * 
+   * @return
+   */
+  public String getGroup();
+
+  /**
+   * @return the sendExceptions
+   */
+  public boolean isSendExceptions();
+
+  /**
+   * @return the propertyClass
+   */
+  public MetaClass getPropertyClass();
+
+  /**
+   * Returns the value currently in the property of an object
+   * 
+   * @param proxied
+   * @return
+   */
+  public Object getValue(Proxied proxied) throws ProxyException;
+
+  /**
+   * Sets the value of a property in an object
+   * 
+   * @param proxied
+   * @param value
+   */
+  public void setValue(Proxied proxied, Object value) throws ProxyException;
+
+  /**
+   * Expires the cached value, in response to the same event on the client
+   * 
+   * @param proxied
+   */
+  public void expire(Proxied proxied);
+
+  /**
+   * Called internally to serialize a value to the client
+   * 
+   * @param proxied
+   * @param value
+   * @return
+   */
+  public Object serialize(Proxied proxied, Object value);
+
+  /**
+   * Called internally to deserialize a value from the client
+   * 
+   * @param proxied
+   * @param value
+   * @return
+   */
+  public Object deserialize(Proxied proxied, Object value);
+
+  /**
+   * Called to write the property definition
+   * 
+   * @param cw
+   * @param type
+   */
+  public void write(ClassWriter cw);
 }

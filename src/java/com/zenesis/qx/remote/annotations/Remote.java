@@ -34,42 +34,43 @@ package com.zenesis.qx.remote.annotations;
  */
 public final class Remote {
 
-	private Remote() {
-		super();
-	}
-	
-	/*
-	 * How to handle array properties - the default is to wrap 
-	 */
-	public enum Array {
-		WRAP,		// Wrap the array with qx.data.Array 
-		NATIVE,		// Pass the array as a native array
-		DEFAULT		// Sensible default for the context
-	}
-	
-	/*
-	 * Because annotation values can never be null there is no easy way to specify
-	 * "take default value"; this Toggle enum is semantically equivalent to Boolean  
-	 */
-	public enum Toggle {
-		TRUE(true), FALSE(false), DEFAULT(null);
-		
-		public Boolean booleanValue;
+  private Remote() {
+    super();
+  }
 
-		private Toggle(Boolean booleanValue) {
-			this.booleanValue = booleanValue;
-		}
-	}
-	
-	/*
-	 * How to relay the event or property value to the other side
-	 */
-	public enum Sync {
-		QUEUE("queue"), IMMEDIATE("immediate");
-		
-		public final String remoteId;
-		Sync(String remoteId) {
-			this.remoteId = remoteId;
-		}
-	}
+  /*
+   * How to handle array properties - the default is to wrap
+   */
+  public enum Array {
+    WRAP, // Wrap the array with qx.data.Array
+    NATIVE, // Pass the array as a native array
+    DEFAULT // Sensible default for the context
+  }
+
+  /*
+   * Because annotation values can never be null there is no easy way to specify
+   * "take default value"; this Toggle enum is semantically equivalent to Boolean
+   */
+  public enum Toggle {
+    TRUE(true), FALSE(false), DEFAULT(null);
+
+    public Boolean booleanValue;
+
+    private Toggle(Boolean booleanValue) {
+      this.booleanValue = booleanValue;
+    }
+  }
+
+  /*
+   * How to relay the event or property value to the other side
+   */
+  public enum Sync {
+    QUEUE("queue"), IMMEDIATE("immediate");
+
+    public final String remoteId;
+
+    Sync(String remoteId) {
+      this.remoteId = remoteId;
+    }
+  }
 }

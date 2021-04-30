@@ -11,5 +11,5 @@ import com.zenesis.qx.remote.ProxyTypeFactory;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Proxied {
 
-	public Class<? extends ProxyTypeFactory> factory() default ProxyTypeFactory.class;
+  public Class<? extends ProxyTypeFactory> factory() default ProxyTypeFactory.class;
 }

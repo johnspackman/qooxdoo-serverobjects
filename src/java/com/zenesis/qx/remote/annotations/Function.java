@@ -38,21 +38,23 @@ import java.lang.annotation.Target;
  * @author "John Spackman <john.spackman@zenesis.com>"
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 public @interface Function {
 
-	/**
-	 * If the function returns an array, whether the array should be wrapped on 
-	 * the client as a qx.data.Array
-	 * @return
-	 */
-	public Remote.Array array() default Remote.Array.DEFAULT;
-	
-	/**
-	 * If a function returns an ArrayList instead of an actual array then we loose
-	 * type information and that means we cannot deserialise from the client; in
-	 * this case, we have to specify the class using the arrayType 
-	 * @return
-	 */
-	public Class arrayType() default Object.class;
+  /**
+   * If the function returns an array, whether the array should be wrapped on the
+   * client as a qx.data.Array
+   * 
+   * @return
+   */
+  public Remote.Array array() default Remote.Array.DEFAULT;
+
+  /**
+   * If a function returns an ArrayList instead of an actual array then we loose
+   * type information and that means we cannot deserialise from the client; in
+   * this case, we have to specify the class using the arrayType
+   * 
+   * @return
+   */
+  public Class arrayType() default Object.class;
 }

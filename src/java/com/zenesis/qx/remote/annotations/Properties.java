@@ -34,33 +34,37 @@ import java.lang.annotation.Target;
 
 /**
  * Defines the collection of properties for a class
+ * 
  * @author John Spackman [john.spackman@zenesis.com]
  *
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 public @interface Properties {
 
-	/**
-	 * The list of Property annotations for a class
-	 * @return
-	 */
-	public Property[] value() default {};
-	
-	/**
-	 * Whether to automatically generate events
-	 */
-	public boolean autoEvents() default true;
-	
-	/**
-	 * Extra classes to send
-	 * @return
-	 */
-	public Class[] refs() default {};
-	
-	/**
-	 * The Qooxdoo class to extend
-	 * @return
-	 */
-	public String extend() default "";
+  /**
+   * The list of Property annotations for a class
+   * 
+   * @return
+   */
+  public Property[] value() default {};
+
+  /**
+   * Whether to automatically generate events
+   */
+  public boolean autoEvents() default true;
+
+  /**
+   * Extra classes to send
+   * 
+   * @return
+   */
+  public Class[] refs() default {};
+
+  /**
+   * The Qooxdoo class to extend
+   * 
+   * @return
+   */
+  public String extend() default "";
 }

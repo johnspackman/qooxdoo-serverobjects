@@ -42,129 +42,137 @@ import com.zenesis.qx.remote.annotations.Remote;
 import com.zenesis.qx.remote.annotations.Use;
 
 /**
- * Provides a thin wrapper around ProxyType so that serialisation works for arrays
+ * Provides a thin wrapper around ProxyType so that serialisation works for
+ * arrays
  * 
  * @author "John Spackman <john.spackman@zenesis.com>"
  *
  */
 public class ProxyTypeArray implements ProxyType {
-	
-	private final ProxyTypeImpl type;
-	@SuppressWarnings("unused")
-	private final Remote.Array array;
 
-	public ProxyTypeArray(ProxyTypeImpl type, Remote.Array array) {
-		super();
-		this.type = type;
-		this.array = array;
-	}
+  private final ProxyTypeImpl type;
+  @SuppressWarnings("unused")
+  private final Remote.Array array;
 
-	@Override
-	public void resolve(ProxyTypeManager typeManager) {
-	}
+  public ProxyTypeArray(ProxyTypeImpl type, Remote.Array array) {
+    super();
+    this.type = type;
+    this.array = array;
+  }
 
-	@Override
-	public Set<ProxyType> getExtraTypes() {
-		return Collections.EMPTY_SET;
-	}
+  @Override
+  public void resolve(ProxyTypeManager typeManager) {
+  }
 
-	/* (non-Javadoc)
-	 * @see com.zenesis.qx.remote.ProxyType#getClassName()
-	 */
-	@Override
-	public String getClassName() {
-		return type.getClassName();
-	}
+  @Override
+  public Set<ProxyType> getExtraTypes() {
+    return Collections.EMPTY_SET;
+  }
 
-	/* (non-Javadoc)
-	 * @see com.zenesis.qx.remote.ProxyType#getClazz()
-	 */
-	@Override
-	public Class getClazz() {
-		return type.getClazz();
-	}
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.zenesis.qx.remote.ProxyType#getClassName()
+   */
+  @Override
+  public String getClassName() {
+    return type.getClassName();
+  }
 
-	/* (non-Javadoc)
-	 * @see com.zenesis.qx.remote.ProxyType#getSuperType()
-	 */
-	@Override
-	public ProxyType getSuperType() {
-		return null;
-	}
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.zenesis.qx.remote.ProxyType#getClazz()
+   */
+  @Override
+  public Class getClazz() {
+    return type.getClazz();
+  }
 
-	@Override
-	public String getQooxdooExtend() {
-		return null;
-	}
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.zenesis.qx.remote.ProxyType#getSuperType()
+   */
+  @Override
+  public ProxyType getSuperType() {
+    return null;
+  }
 
-	@Override
-	public Method serializeConstructorArgs() {
-		return null;
-	}
+  @Override
+  public String getQooxdooExtend() {
+    return null;
+  }
 
-	@Override
-	public ProxyEvent getEvent(String eventName) {
-		return type.getEvent(eventName);
-	}
+  @Override
+  public Method serializeConstructorArgs() {
+    return null;
+  }
 
-	@Override
-	public Map<String, ProxyEvent> getEvents() {
-		return type.getEvents();
-	}
+  @Override
+  public ProxyEvent getEvent(String eventName) {
+    return type.getEvent(eventName);
+  }
 
-	@Override
-	public Set<ProxyType> getInterfaces() {
-		return type.getInterfaces();
-	}
+  @Override
+  public Map<String, ProxyEvent> getEvents() {
+    return type.getEvents();
+  }
 
-	@Override
-	public Mixin[] getMixins() {
-		return type.getMixins();
-	}
+  @Override
+  public Set<ProxyType> getInterfaces() {
+    return type.getInterfaces();
+  }
 
-	@Override
-    public Use[] getUses() {
-        return type.getUses();
-    }
+  @Override
+  public Mixin[] getMixins() {
+    return type.getMixins();
+  }
 
-    @Override
-	public ProxyMethod[] getMethods() {
-		return type.getMethods();
-	}
+  @Override
+  public Use[] getUses() {
+    return type.getUses();
+  }
 
-	@Override
-	public Map<String, ProxyProperty> getProperties() {
-		return type.getProperties();
-	}
+  @Override
+  public ProxyMethod[] getMethods() {
+    return type.getMethods();
+  }
 
-	@Override
-	public boolean isInterface() {
-		return type.isInterface();
-	}
+  @Override
+  public Map<String, ProxyProperty> getProperties() {
+    return type.getProperties();
+  }
 
-	@Override
-	public boolean isProperty(String name) {
-		return type.isProperty(name);
-	}
+  @Override
+  public boolean isInterface() {
+    return type.isInterface();
+  }
 
-	@Override
-	public boolean supportsEvent(String eventName) {
-		return type.supportsEvent(eventName);
-	}
+  @Override
+  public boolean isProperty(String name) {
+    return type.isProperty(name);
+  }
 
-	@Override
-	public void serialize(JsonGenerator gen, SerializerProvider sp) throws IOException, JsonProcessingException {
-		type.serialize(gen, sp, Remote.Array.WRAP);
-	}
+  @Override
+  public boolean supportsEvent(String eventName) {
+    return type.supportsEvent(eventName);
+  }
 
-	@Override
-	public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts) throws IOException, JsonProcessingException {
-		serialize(gen, sp);
-	}
+  @Override
+  public void serialize(JsonGenerator gen, SerializerProvider sp) throws IOException, JsonProcessingException {
+    type.serialize(gen, sp, Remote.Array.WRAP);
+  }
 
-	@Override
-	public Proxied newInstance(Class<? extends Proxied> clazz) throws InstantiationException, IllegalAccessException {
-		return clazz.newInstance();
-	}
+  @Override
+  public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts)
+      throws IOException, JsonProcessingException {
+    serialize(gen, sp);
+  }
+
+  @Override
+  public Proxied newInstance(Class<? extends Proxied> clazz) throws InstantiationException, IllegalAccessException {
+    return clazz.newInstance();
+  }
 
 }

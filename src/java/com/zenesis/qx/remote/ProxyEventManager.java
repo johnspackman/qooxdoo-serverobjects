@@ -31,33 +31,37 @@ import com.zenesis.qx.event.EventManager;
 
 /**
  * Specialisation of EventManager for better event detection
+ * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
 public class ProxyEventManager extends EventManager {
-	
-	private final ProxyTypeManager typeManager;
 
-	public ProxyEventManager(ProxyTypeManager typeManager) {
-		super();
-		this.typeManager = typeManager;
-	}
+  private final ProxyTypeManager typeManager;
 
-	public ProxyEventManager(ProxyTypeManager typeManager, boolean setGlobal) {
-		super(setGlobal);
-		this.typeManager = typeManager;
-	}
+  public ProxyEventManager(ProxyTypeManager typeManager) {
+    super();
+    this.typeManager = typeManager;
+  }
 
-	/* (non-Javadoc)
-	 * @see com.zenesis.qx.event.EventManager#supportsEvent(java.lang.Object, java.lang.String)
-	 */
-	@Override
-	public boolean _supportsEvent(Object obj, String eventName) {
-		if (obj instanceof Proxied) {
-			Proxied proxied = (Proxied)obj;
-			ProxyType type = typeManager.getProxyType(proxied.getClass());
-			return type.supportsEvent(eventName);
-		}
-		return super._supportsEvent(obj, eventName);
-	}
+  public ProxyEventManager(ProxyTypeManager typeManager, boolean setGlobal) {
+    super(setGlobal);
+    this.typeManager = typeManager;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.zenesis.qx.event.EventManager#supportsEvent(java.lang.Object,
+   * java.lang.String)
+   */
+  @Override
+  public boolean _supportsEvent(Object obj, String eventName) {
+    if (obj instanceof Proxied) {
+      Proxied proxied = (Proxied) obj;
+      ProxyType type = typeManager.getProxyType(proxied.getClass());
+      return type.supportsEvent(eventName);
+    }
+    return super._supportsEvent(obj, eventName);
+  }
 
 }

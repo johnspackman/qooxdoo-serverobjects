@@ -36,50 +36,60 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 
 /**
- * Very simple object used when we want to output a JS object into the stream but
- * either don't want any members (because we'll populate them later) or where
- * we only have one key/value pair 
+ * Very simple object used when we want to output a JS object into the stream
+ * but either don't want any members (because we'll populate them later) or
+ * where we only have one key/value pair
+ * 
  * @author <a href="mailto:john.spackman@zenesis.com">John Spackman</a>
  */
 public class SimpleJsonObject implements JsonSerializable {
-	
-	private final String name;
-	private final Object value;
 
-	public SimpleJsonObject(String name, Object value) {
-		super();
-		this.name = name;
-		this.value = value;
-	}
+  private final String name;
+  private final Object value;
 
-	public SimpleJsonObject() {
-		super();
-		this.name = null;
-		this.value = null;
-	}
+  public SimpleJsonObject(String name, Object value) {
+    super();
+    this.name = name;
+    this.value = value;
+  }
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.fasterxml.jackson.databind.JsonSerializable#serialize(com.fasterxml.jackson.core.JsonGenerator, com.fasterxml.jackson.databind.SerializerProvider)
-	 */
-	@Override
-	public void serialize(JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
-		jgen.writeStartObject();
-		if (name != null) {
-			if (value != null)
-				jgen.writeObjectField(name, value);
-			else
-				jgen.writeNullField(name);
-		}
-		jgen.writeEndObject();
-	}
+  public SimpleJsonObject() {
+    super();
+    this.name = null;
+    this.value = null;
+  }
 
-	/* (non-Javadoc)
-	 * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.fasterxml.jackson.core.JsonGenerator, com.fasterxml.jackson.databind.SerializerProvider, com.fasterxml.jackson.databind.jsontype.TypeSerializer)
-	 */
-	@Override
-	public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts) throws IOException, JsonProcessingException {
-		serialize(gen, sp);
-	}
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.fasterxml.jackson.databind.JsonSerializable#serialize(com.fasterxml.
+   * jackson.core.JsonGenerator,
+   * com.fasterxml.jackson.databind.SerializerProvider)
+   */
+  @Override
+  public void serialize(JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+    jgen.writeStartObject();
+    if (name != null) {
+      if (value != null)
+        jgen.writeObjectField(name, value);
+      else
+        jgen.writeNullField(name);
+    }
+    jgen.writeEndObject();
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.
+   * fasterxml.jackson.core.JsonGenerator,
+   * com.fasterxml.jackson.databind.SerializerProvider,
+   * com.fasterxml.jackson.databind.jsontype.TypeSerializer)
+   */
+  @Override
+  public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts)
+      throws IOException, JsonProcessingException {
+    serialize(gen, sp);
+  }
 
 }

@@ -35,35 +35,35 @@ import javax.servlet.ServletException;
  * @author "John Spackman <john.spackman@zenesis.com>"
  */
 public class ProxyException extends ServletException {
-	
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private final Proxied serverObject;
 
-	/**
-	 * @param message
-	 * @param rootCause
-	 */
-	public ProxyException(Proxied serverObject, String message, Throwable rootCause) {
-		super(message, rootCause);
-		this.serverObject = serverObject;
-	}
+  /**
+   * 
+   */
+  private static final long serialVersionUID = 1L;
+  private final Proxied serverObject;
 
-	/**
-	 * @param message
-	 */
-	public ProxyException(Proxied serverObject, String message) {
-		super(message);
-		this.serverObject = serverObject;
-	}
+  /**
+   * @param message
+   * @param rootCause
+   */
+  public ProxyException(Proxied serverObject, String message, Throwable rootCause) {
+    super(message, rootCause);
+    this.serverObject = serverObject;
+  }
 
-	/**
-	 * @return the serverObject
-	 */
-	public Proxied getServerObject() {
-		return serverObject;
-	}
+  /**
+   * @param message
+   */
+  public ProxyException(Proxied serverObject, String message) {
+    super(message);
+    this.serverObject = serverObject;
+  }
+
+  /**
+   * @return the serverObject
+   */
+  public Proxied getServerObject() {
+    return serverObject;
+  }
 
 }

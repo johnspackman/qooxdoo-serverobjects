@@ -6,18 +6,20 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 public @interface Mixin {
 
-	/**
-	 * The name of the mixin to include for this class
-	 * @return
-	 */
-	public String value();
-	
-	/**
-	 * Whether to patch (false == to use 'include' method) 
-	 * @return
-	 */
-	public boolean patch() default true;
+  /**
+   * The name of the mixin to include for this class
+   * 
+   * @return
+   */
+  public String value();
+
+  /**
+   * Whether to patch (false == to use 'include' method)
+   * 
+   * @return
+   */
+  public boolean patch() default true;
 }

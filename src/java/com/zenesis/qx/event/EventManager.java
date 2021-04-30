@@ -96,7 +96,8 @@ public class EventManager {
      * @throws IllegalArgumentException if the listener is added twice
      */
     public void addListener(EventListener newListener) throws IllegalArgumentException {
-      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference)listenerRef).get() : listenerRef;
+      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference) listenerRef).get()
+          : listenerRef;
 
       // Nothing so far? Easy.
       if (listener == null) {
@@ -166,7 +167,8 @@ public class EventManager {
      * @return true if the listener existed and was removed
      */
     public boolean removeListener(EventListener oldListener) {
-      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference)listenerRef).get() : listenerRef;
+      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference) listenerRef).get()
+          : listenerRef;
       if (listener == null)
         return false;
 
@@ -213,7 +215,8 @@ public class EventManager {
      * @return true if the listener existed and was removed
      */
     public boolean hasListener(EventListener oldListener) {
-      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference)listenerRef).get() : listenerRef;
+      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference) listenerRef).get()
+          : listenerRef;
       if (listener == null)
         return false;
 
@@ -248,7 +251,8 @@ public class EventManager {
      * Fires an event on the listener(s)
      */
     public void fireEvent(Event event) {
-      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference)listenerRef).get() : listenerRef;
+      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference) listenerRef).get()
+          : listenerRef;
 
       if (listener == null)
         return;
@@ -287,7 +291,8 @@ public class EventManager {
     }
 
     public boolean isEmpty() {
-      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference)listenerRef).get() : listenerRef;
+      final Object listener = listenerRef != null && listenerRef instanceof Reference ? ((Reference) listenerRef).get()
+          : listenerRef;
 
       if (listener == null)
         return true;

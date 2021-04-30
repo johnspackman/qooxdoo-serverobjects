@@ -38,48 +38,54 @@ import java.lang.annotation.Target;
  * @author "John Spackman <john.spackman@zenesis.com>"
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 public @interface Method {
 
-	/**
-	 * If the function returns an array, whether the array should be wrapped on 
-	 * the client as a qx.data.Array
-	 * @return
-	 */
-	public Remote.Array array() default Remote.Array.DEFAULT;
-	
-	/**
-	 * If a function returns an ArrayList instead of an actual array then we loose
-	 * type information and that means we cannot deserialise from the client; in
-	 * this case, we have to specify the class using the arrayType 
-	 * @return
-	 */
-	public Class arrayType() default Object.class;
-	
-	/**
-	 * If a function returns a Map this specifies the class of the key; in practice
-	 * this is only useful for enum keys because keys must be translated into
-	 * strings on the client 
-	 * @return
-	 */
-	public Class keyType() default Object.class;
-	
-	/**
-	 * Whether the method's return value should be sent with the object property
-	 * values
-	 * @return
-	 */
-	public boolean prefetchResult() default false;
-	
-	/**
-	 * Whether the method's return value can be cached on the client
-	 * @return
-	 */
-	public boolean cacheResult() default false;
+  /**
+   * If the function returns an array, whether the array should be wrapped on the
+   * client as a qx.data.Array
+   * 
+   * @return
+   */
+  public Remote.Array array() default Remote.Array.DEFAULT;
 
-	/**
-	 * Annotation to send to the client
-	 * @return
-	 */
-	public String anno() default "";
+  /**
+   * If a function returns an ArrayList instead of an actual array then we loose
+   * type information and that means we cannot deserialise from the client; in
+   * this case, we have to specify the class using the arrayType
+   * 
+   * @return
+   */
+  public Class arrayType() default Object.class;
+
+  /**
+   * If a function returns a Map this specifies the class of the key; in practice
+   * this is only useful for enum keys because keys must be translated into
+   * strings on the client
+   * 
+   * @return
+   */
+  public Class keyType() default Object.class;
+
+  /**
+   * Whether the method's return value should be sent with the object property
+   * values
+   * 
+   * @return
+   */
+  public boolean prefetchResult() default false;
+
+  /**
+   * Whether the method's return value can be cached on the client
+   * 
+   * @return
+   */
+  public boolean cacheResult() default false;
+
+  /**
+   * Annotation to send to the client
+   * 
+   * @return
+   */
+  public String anno() default "";
 }

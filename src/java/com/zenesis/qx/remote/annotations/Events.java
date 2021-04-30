@@ -34,11 +34,12 @@ import java.lang.annotation.Target;
 
 /**
  * Holds a list of Event annotations on a class
+ * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 public @interface Events {
 
-	public Event[] value();
+  public Event[] value();
 }

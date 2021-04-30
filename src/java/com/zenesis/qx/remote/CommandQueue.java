@@ -30,43 +30,47 @@ package com.zenesis.qx.remote;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.zenesis.qx.remote.CommandId.CommandType;
 
-
 /**
- * Controls the writing of events and properties to the queue to be dispatched to
- * the client.
+ * Controls the writing of events and properties to the queue to be dispatched
+ * to the client.
  * 
- * When writing property values and events to the queue for asynchronous delivery,
- * the values and events may or may not need to be replayed in a specific order.  For
- * example, a simple and low-cost implementation could set all property values and then 
- * fire all events in the order they were received, amalgamating duplicate values and 
- * events into one.  A more complicated and expensive version would replay them in
- * the exact order, including duplicate values etc.
+ * When writing property values and events to the queue for asynchronous
+ * delivery, the values and events may or may not need to be replayed in a
+ * specific order. For example, a simple and low-cost implementation could set
+ * all property values and then fire all events in the order they were received,
+ * amalgamating duplicate values and events into one. A more complicated and
+ * expensive version would replay them in the exact order, including duplicate
+ * values etc.
  * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
 public interface CommandQueue {
 
-	public void queueCommand(CommandId.CommandType type, Object object, String propertyName, Object data);
-	public void queueCommand(CommandId id, Object data);
+  public void queueCommand(CommandId.CommandType type, Object object, String propertyName, Object data);
 
-	public Object getCommand(CommandType type, Object object, String propertyName);
-	
-	/**
-	 * Detects whether there is anything to be sent to the client
-	 * @return
-	 */
-	public boolean hasDataToFlush();
-	
-	/**
-	 * Returns the data in a thread safe instance (allows the queue to be unlocked immediately after calling,
-	 * and before serialisation)
-	 * @return
-	 */
-	public JsonSerializable getDataToFlush();
-	
-	/**
-	 * Detects whether any property or event should be flushed ASAP
-	 * @return
-	 */
-	public boolean needsFlush();
+  public void queueCommand(CommandId id, Object data);
+
+  public Object getCommand(CommandType type, Object object, String propertyName);
+
+  /**
+   * Detects whether there is anything to be sent to the client
+   * 
+   * @return
+   */
+  public boolean hasDataToFlush();
+
+  /**
+   * Returns the data in a thread safe instance (allows the queue to be unlocked
+   * immediately after calling, and before serialisation)
+   * 
+   * @return
+   */
+  public JsonSerializable getDataToFlush();
+
+  /**
+   * Detects whether any property or event should be flushed ASAP
+   * 
+   * @return
+   */
+  public boolean needsFlush();
 }

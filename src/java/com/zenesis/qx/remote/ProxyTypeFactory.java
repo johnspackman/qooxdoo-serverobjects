@@ -37,12 +37,13 @@ import java.util.Set;
  */
 public interface ProxyTypeFactory {
 
-	/**
-	 * Called to create a new ProxyType
-	 * @param superType
-	 * @param clazz
-	 * @param interfaces
-	 * @return
-	 */
-	public ProxyType newProxyType(ProxyType superType, Class clazz, Set<ProxyType> interfaces);
+  /**
+   * Called to create a new ProxyType
+   * 
+   * @param superType
+   * @param clazz
+   * @param interfaces
+   * @return
+   */
+  public ProxyType newProxyType(ProxyType superType, Class clazz, Set<ProxyType> interfaces);
 }

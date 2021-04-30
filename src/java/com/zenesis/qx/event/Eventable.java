@@ -28,65 +28,70 @@
 package com.zenesis.qx.event;
 
 /**
- * Objects which support events can optionally implement this interface to provide
- * better control over the event process.  If this is not implemented, the object
- * will be considered to throw events without any checks on validity
+ * Objects which support events can optionally implement this interface to
+ * provide better control over the event process. If this is not implemented,
+ * the object will be considered to throw events without any checks on validity
  * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
 public interface Eventable {
 
-	/**
-	 * Called to suppress events (eg during loading)
-	 */
-	public void disableEvents();
-	
-    /**
-     * Called to reenable events (eg during loading)
-     */
-	public void enableEvents();
-	
-    /**
-     * Called to detect whether events are suppressed
-     */
-	public boolean eventsEnabled();
-	
-    /**
-     * Adds an event listener
-     * @param eventName
-     * @param listener
-     * @throws {@link IllegalArgumentException} if a listener is added twice
-     * @return true if the event was added
-     */
-    public boolean addListener(String eventName, EventListener listener) throws IllegalArgumentException;
-    
-    /**
-     * Removes a listener from an object and eventName
-     * @param eventName
-     * @param listener
-     * @return
-     */
-    public boolean removeListener(String eventName, EventListener listener);
+  /**
+   * Called to suppress events (eg during loading)
+   */
+  public void disableEvents();
 
-    /**
-     * Tests whether a listener exists
-     * @param eventName
-     * @param listener
-     * @return
-     */
-    public boolean hasListener(String eventName, EventListener listener);
-    
-    /**
-     * Fires an event on the object
-     * @param eventName
-     */
-    public void fireEvent(String eventName);
+  /**
+   * Called to reenable events (eg during loading)
+   */
+  public void enableEvents();
 
-    /**
-     * Fires a data event on the object
-     * @param eventName
-     * @param data
-     */
-    public void fireDataEvent(String eventName, Object data);
+  /**
+   * Called to detect whether events are suppressed
+   */
+  public boolean eventsEnabled();
+
+  /**
+   * Adds an event listener
+   * 
+   * @param eventName
+   * @param listener
+   * @throws {@link IllegalArgumentException} if a listener is added twice
+   * @return true if the event was added
+   */
+  public boolean addListener(String eventName, EventListener listener) throws IllegalArgumentException;
+
+  /**
+   * Removes a listener from an object and eventName
+   * 
+   * @param eventName
+   * @param listener
+   * @return
+   */
+  public boolean removeListener(String eventName, EventListener listener);
+
+  /**
+   * Tests whether a listener exists
+   * 
+   * @param eventName
+   * @param listener
+   * @return
+   */
+  public boolean hasListener(String eventName, EventListener listener);
+
+  /**
+   * Fires an event on the object
+   * 
+   * @param eventName
+   */
+  public void fireEvent(String eventName);
+
+  /**
+   * Fires a data event on the object
+   * 
+   * @param eventName
+   * @param data
+   */
+  public void fireDataEvent(String eventName, Object data);
 
 }

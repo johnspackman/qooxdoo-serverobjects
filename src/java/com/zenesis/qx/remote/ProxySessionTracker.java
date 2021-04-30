@@ -63,260 +63,289 @@ import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.collections.ChangeData;
 import com.zenesis.qx.utils.ArrayUtils;
 
-
 /**
- * This class tracks the uses of Proxies and ProxyTypes for a particular session; types
- * are only transmitted if not previously sent (in that session), and a mapping between
- * server and client instances/proxies is maintained.
+ * This class tracks the uses of Proxies and ProxyTypes for a particular
+ * session; types are only transmitted if not previously sent (in that session),
+ * and a mapping between server and client instances/proxies is maintained.
  * 
- * This corresponds to a ProxyTracker on the client which can do the reverse of everything
- * done here.
+ * This corresponds to a ProxyTracker on the client which can do the reverse of
+ * everything done here.
  * 
- * NOTE about sessions: ProxyTracker tracks objects and types delivered for the current
- * instance of an application's session on the client; note that if the user refreshes 
- * the page the application reloads and starts a new session but the HTTP session maintained
- * by the servlet container does not reset.  You'll probably keep an instance of ProxyTracker
- * in the HttpSession for the application, which means that when the application restarts
- * it has to tell the server to clear down and start again; when this happens, the method
- * resetSession() is called, the state is lost, and the ProxyTracker instance is reused.
+ * NOTE about sessions: ProxyTracker tracks objects and types delivered for the
+ * current instance of an application's session on the client; note that if the
+ * user refreshes the page the application reloads and starts a new session but
+ * the HTTP session maintained by the servlet container does not reset. You'll
+ * probably keep an instance of ProxyTracker in the HttpSession for the
+ * application, which means that when the application restarts it has to tell
+ * the server to clear down and start again; when this happens, the method
+ * resetSession() is called, the state is lost, and the ProxyTracker instance is
+ * reused.
  * 
- * If you want more control over session resets you can override resetSession(); if you
- * want control over how the bootstrap object is created you can override createBootstrap().
+ * If you want more control over session resets you can override resetSession();
+ * if you want control over how the bootstrap object is created you can override
+ * createBootstrap().
  * 
  * @author John Spackman
  *
  */
 public class ProxySessionTracker implements UploadInterceptor {
-	
-	private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxySessionTracker.class);
-	
-	/*
-	 * This class encapsulates data that needs to be sent to the server
-	 */
-	public static final class Proxy implements JsonSerializable {
-		public final int serverId;
-		public final Proxied proxied;
-		public final ProxyType proxyType;
-		public final HashSet<ProxyType> extraTypes;
-		public final boolean sendProperties;
 
-		/**
-		 * Constructor, used for existing objects
-		 * @param serverId
-		 */
-		public Proxy(Proxied proxied, int serverId, ProxyType proxyType, boolean sendProperties) {
-			super();
-			this.proxied = proxied;
-			this.serverId = serverId;
-			this.proxyType = proxyType;
-			this.extraTypes = null;
-			this.sendProperties = sendProperties;
-		}
+  private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxySessionTracker.class);
 
-		/**
-		 * @param serverId
-		 * @param proxyType
-		 * @param createNew
-		 */
-		public Proxy(Proxied proxied, int serverId) {
-			super();
-			this.proxied = proxied;
-			this.serverId = serverId;
-			this.proxyType = null;
-			this.extraTypes = null;
-			this.sendProperties = false;
-		}
+  /*
+   * This class encapsulates data that needs to be sent to the server
+   */
+  public static final class Proxy implements JsonSerializable {
+    public final int serverId;
+    public final Proxied proxied;
+    public final ProxyType proxyType;
+    public final HashSet<ProxyType> extraTypes;
+    public final boolean sendProperties;
 
-		/* (non-Javadoc)
-		 * @see org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
-		 */
-		@Override
-		public void serialize(JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
-			jgen.writeStartObject();
-			jgen.writeNumberField("serverId", serverId);
-			if (extraTypes != null)
-				jgen.writeObjectField("classes", extraTypes);
-			
-			// If we have a proxyType, it also means that this is the first time the object is sent to the server
-			if (sendProperties) {
-				jgen.writeObjectField("clazz", proxyType);
-				if (!proxyType.isInterface()) {
-					serializeConstructorArgs(jgen);
-					
-					// Write property values
-					boolean sentValues = false;
-					ArrayList<String> order = new ArrayList<String>();
-					for (ProxyType type = proxyType; type != null; type = type.getSuperType()) {
-						Collection<ProxyProperty> props = type.getProperties().values();
-						for (ProxyProperty prop : props) {
-							if (prop.isOnDemand())
-								continue;
-							if (!sentValues) {
-								jgen.writeObjectFieldStart("values");
-								sentValues = true;
-							}
-							try {
-								Object value = prop.getValue(proxied);
-								if (value instanceof ProxiedContainerAware)
-								    ((ProxiedContainerAware)value).setProxiedContainer(proxied, prop);
-								jgen.writeObjectField(prop.getName(), value);
-								order.add(prop.getName());
-							}catch(ProxyException e) {
-								throw new IllegalStateException(e.getMessage(), e);
-							}
-						}
-					}
-					if (sentValues)
-						jgen.writeEndObject();
-					if (!order.isEmpty())
-						jgen.writeObjectField("order", order);
+    /**
+     * Constructor, used for existing objects
+     * 
+     * @param serverId
+     */
+    public Proxy(Proxied proxied, int serverId, ProxyType proxyType, boolean sendProperties) {
+      super();
+      this.proxied = proxied;
+      this.serverId = serverId;
+      this.proxyType = proxyType;
+      this.extraTypes = null;
+      this.sendProperties = sendProperties;
+    }
 
-					// Write prefetch values
-					boolean prefetch = false;
-					for (ProxyType type = proxyType; type != null; type = type.getSuperType()) {
-						ProxyMethod[] methods = type.getMethods();
-						for (ProxyMethod method : methods) {
-							if (!method.isPrefetchResult())
-								continue;
-							if (!prefetch) {
-								jgen.writeObjectFieldStart("prefetch");
-								prefetch = true;
-							}
-							jgen.writeObjectField(method.getName(), method.getPrefetchValue(proxied));
-						}
-					}
-					if (prefetch)
-						jgen.writeEndObject();
-				}
-			}
-			jgen.writeEndObject();
-		}
+    /**
+     * @param serverId
+     * @param proxyType
+     * @param createNew
+     */
+    public Proxy(Proxied proxied, int serverId) {
+      super();
+      this.proxied = proxied;
+      this.serverId = serverId;
+      this.proxyType = null;
+      this.extraTypes = null;
+      this.sendProperties = false;
+    }
 
-		/* (non-Javadoc)
-		 * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.fasterxml.jackson.core.JsonGenerator, com.fasterxml.jackson.databind.SerializerProvider, com.fasterxml.jackson.databind.jsontype.TypeSerializer)
-		 */
-		@Override
-		public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts)
-				throws IOException, JsonProcessingException {
-			serialize(gen, sp);
-		}
-		
-		private void serializeConstructorArgs(JsonGenerator jgen) throws IOException {
-			if (proxyType.serializeConstructorArgs() != null) {
-				try {
-					jgen.writeFieldName("constructorArgs");
-					jgen.writeStartArray();
-					proxyType.serializeConstructorArgs().invoke(proxied, new Object[] { jgen });
-					jgen.writeEndArray();
-				} catch(InvocationTargetException e) {
-					throw new IllegalStateException("Cannot serialize constructor for " + proxied.getClass() + ": " + e.getMessage(), e);
-				} catch(IllegalAccessException e) {
-					throw new IllegalStateException("Cannot serialize constructor for " + proxied.getClass() + ": " + e.getMessage());
-				}
-			}
-		}
-	}
-	
-	/*
-	 * This encapsulates a POJO to distinguish it from a Proxied definition
-	 */
-	public static final class POJO {
-		public final Object pojo;
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.
+     * JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
+     */
+    @Override
+    public void serialize(JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+      jgen.writeStartObject();
+      jgen.writeNumberField("serverId", serverId);
+      if (extraTypes != null)
+        jgen.writeObjectField("classes", extraTypes);
 
-		public POJO(Object pojo) {
-			super();
-			this.pojo = pojo;
-		}
-	}
-	
-	/*
-	 * Encapsulates a return value
-	 */
-	public static final class ReturnValue implements JsonSerializable {
-		public final Object value;
+      // If we have a proxyType, it also means that this is the first time the object
+      // is sent to the server
+      if (sendProperties) {
+        jgen.writeObjectField("clazz", proxyType);
+        if (!proxyType.isInterface()) {
+          serializeConstructorArgs(jgen);
 
-		/**
-		 * @param value
-		 */
-		public ReturnValue(Object value) {
-			super();
-			this.value = value;
-		}
+          // Write property values
+          boolean sentValues = false;
+          ArrayList<String> order = new ArrayList<String>();
+          for (ProxyType type = proxyType; type != null; type = type.getSuperType()) {
+            Collection<ProxyProperty> props = type.getProperties().values();
+            for (ProxyProperty prop : props) {
+              if (prop.isOnDemand())
+                continue;
+              if (!sentValues) {
+                jgen.writeObjectFieldStart("values");
+                sentValues = true;
+              }
+              try {
+                Object value = prop.getValue(proxied);
+                if (value instanceof ProxiedContainerAware)
+                  ((ProxiedContainerAware) value).setProxiedContainer(proxied, prop);
+                jgen.writeObjectField(prop.getName(), value);
+                order.add(prop.getName());
+              } catch (ProxyException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+              }
+            }
+          }
+          if (sentValues)
+            jgen.writeEndObject();
+          if (!order.isEmpty())
+            jgen.writeObjectField("order", order);
 
-		/* (non-Javadoc)
-		 * @see org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
-		 */
-		@Override
-		public void serialize(JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
-			jgen.writeStartObject();
-			jgen.writeStringField("type", "return-value");
-			jgen.writeObjectField("value", value);
-			if (value instanceof Proxied)
-				jgen.writeBooleanField("isProxy", true);
-			jgen.writeEndObject();
-		}
+          // Write prefetch values
+          boolean prefetch = false;
+          for (ProxyType type = proxyType; type != null; type = type.getSuperType()) {
+            ProxyMethod[] methods = type.getMethods();
+            for (ProxyMethod method : methods) {
+              if (!method.isPrefetchResult())
+                continue;
+              if (!prefetch) {
+                jgen.writeObjectFieldStart("prefetch");
+                prefetch = true;
+              }
+              jgen.writeObjectField(method.getName(), method.getPrefetchValue(proxied));
+            }
+          }
+          if (prefetch)
+            jgen.writeEndObject();
+        }
+      }
+      jgen.writeEndObject();
+    }
 
-		/* (non-Javadoc)
-		 * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.fasterxml.jackson.core.JsonGenerator, com.fasterxml.jackson.databind.SerializerProvider, com.fasterxml.jackson.databind.jsontype.TypeSerializer)
-		 */
-		@Override
-		public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts)
-				throws IOException, JsonProcessingException {
-			serialize(gen, sp);
-		}
-		
-	}
-	
-	/*
-	 * Class used to identify a property
-	 */
-	private static final class PropertyId {
-		private final Proxied proxied;
-		private final String propertyName;
-		
-		public PropertyId(Proxied proxied, String propertyName) {
-			super();
-			this.proxied = proxied;
-			this.propertyName = propertyName;
-		}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.
+     * fasterxml.jackson.core.JsonGenerator,
+     * com.fasterxml.jackson.databind.SerializerProvider,
+     * com.fasterxml.jackson.databind.jsontype.TypeSerializer)
+     */
+    @Override
+    public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts)
+        throws IOException, JsonProcessingException {
+      serialize(gen, sp);
+    }
 
-		/* (non-Javadoc)
-		 * @see java.lang.Object#hashCode()
-		 */
-		@Override
-		public int hashCode() {
-			if (propertyName == null)
-				return proxied.hashCode();
-			return proxied.hashCode() ^ propertyName.hashCode();
-		}
+    private void serializeConstructorArgs(JsonGenerator jgen) throws IOException {
+      if (proxyType.serializeConstructorArgs() != null) {
+        try {
+          jgen.writeFieldName("constructorArgs");
+          jgen.writeStartArray();
+          proxyType.serializeConstructorArgs().invoke(proxied, new Object[] { jgen });
+          jgen.writeEndArray();
+        } catch (InvocationTargetException e) {
+          throw new IllegalStateException(
+              "Cannot serialize constructor for " + proxied.getClass() + ": " + e.getMessage(), e);
+        } catch (IllegalAccessException e) {
+          throw new IllegalStateException(
+              "Cannot serialize constructor for " + proxied.getClass() + ": " + e.getMessage());
+        }
+      }
+    }
+  }
 
-		/* (non-Javadoc)
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
-		@Override
-		public boolean equals(Object obj) {
-			PropertyId that = (PropertyId)obj;
-			if (propertyName == null)
-				return that.proxied == proxied && that.propertyName == null;
-			return that.proxied == proxied && propertyName.equals(that.propertyName);
-		}
-	}
-	
-  // Maximum number of repeatable requests that are completed and kept around for the client's request for a repeat
+  /*
+   * This encapsulates a POJO to distinguish it from a Proxied definition
+   */
+  public static final class POJO {
+    public final Object pojo;
+
+    public POJO(Object pojo) {
+      super();
+      this.pojo = pojo;
+    }
+  }
+
+  /*
+   * Encapsulates a return value
+   */
+  public static final class ReturnValue implements JsonSerializable {
+    public final Object value;
+
+    /**
+     * @param value
+     */
+    public ReturnValue(Object value) {
+      super();
+      this.value = value;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.
+     * JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
+     */
+    @Override
+    public void serialize(JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+      jgen.writeStartObject();
+      jgen.writeStringField("type", "return-value");
+      jgen.writeObjectField("value", value);
+      if (value instanceof Proxied)
+        jgen.writeBooleanField("isProxy", true);
+      jgen.writeEndObject();
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.
+     * fasterxml.jackson.core.JsonGenerator,
+     * com.fasterxml.jackson.databind.SerializerProvider,
+     * com.fasterxml.jackson.databind.jsontype.TypeSerializer)
+     */
+    @Override
+    public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts)
+        throws IOException, JsonProcessingException {
+      serialize(gen, sp);
+    }
+
+  }
+
+  /*
+   * Class used to identify a property
+   */
+  private static final class PropertyId {
+    private final Proxied proxied;
+    private final String propertyName;
+
+    public PropertyId(Proxied proxied, String propertyName) {
+      super();
+      this.proxied = proxied;
+      this.propertyName = propertyName;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+      if (propertyName == null)
+        return proxied.hashCode();
+      return proxied.hashCode() ^ propertyName.hashCode();
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+      PropertyId that = (PropertyId) obj;
+      if (propertyName == null)
+        return that.proxied == proxied && that.propertyName == null;
+      return that.proxied == proxied && propertyName.equals(that.propertyName);
+    }
+  }
+
+  // Maximum number of repeatable requests that are completed and kept around for
+  // the client's request for a repeat
   public final int MAX_REPEATABLE_COMPLETE_REQUESTS = 5;
-  
-	// Class to persist the repeatable request
-	public static final class RepeatableRequest {
+
+  // Class to persist the repeatable request
+  public static final class RepeatableRequest {
     private final String sessionId;
     private final int requestIndex;
     private boolean complete;
-    
+
     public RepeatableRequest(String sessionId, int requestIndex) {
       super();
       this.sessionId = sessionId;
       this.requestIndex = requestIndex;
     }
-    
+
     /**
      * Stores the data on disk
      * 
@@ -324,11 +353,12 @@ public class ProxySessionTracker implements UploadInterceptor {
      * @param body
      * @throws IOException
      */
-    /*class*/ void complete(HashMap<String, String> headers, String body) throws IOException {
+    /* class */ void complete(HashMap<String, String> headers, String body) throws IOException {
       if (complete)
         throw new IllegalStateException("Completing a RepeatableRequest which is complete");
-      
-      File file = new File(RequestHandler.getTemporaryDir(), "repeatable-requests/" + sessionId.replace(':', '_') + "-" + requestIndex);
+
+      File file = new File(RequestHandler.getTemporaryDir(),
+          "repeatable-requests/" + sessionId.replace(':', '_') + "-" + requestIndex);
       file.getParentFile().mkdirs();
       RepeatableRequestData rrd = new RepeatableRequestData(requestIndex, headers, body);
       try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(file))) {
@@ -337,7 +367,7 @@ public class ProxySessionTracker implements UploadInterceptor {
       }
       complete = true;
     }
-    
+
     /**
      * Reloads the repeatable request from disk
      * 
@@ -347,23 +377,25 @@ public class ProxySessionTracker implements UploadInterceptor {
     RepeatableRequestData reload() throws IOException {
       if (!complete)
         throw new IllegalStateException("Cannot load a request which is not complete");
-      File file = new File(RequestHandler.getTemporaryDir(), "repeatable-requests/" + sessionId.replace(':', '_') + "-" + requestIndex);
+      File file = new File(RequestHandler.getTemporaryDir(),
+          "repeatable-requests/" + sessionId.replace(':', '_') + "-" + requestIndex);
       try (ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(file))) {
-        RepeatableRequestData rrd = (RepeatableRequestData)objectInputStream.readObject();
+        RepeatableRequestData rrd = (RepeatableRequestData) objectInputStream.readObject();
         return rrd;
-      } catch(ClassNotFoundException e) {
+      } catch (ClassNotFoundException e) {
         throw new IllegalStateException("Cannot deserialise RepeatableRequest: " + e.getMessage(), e);
       }
     }
-    
+
     /**
      * Disposes the persisted data
      */
-    /*class*/ void dispose() {
-      File file = new File(RequestHandler.getTemporaryDir(), "repeatable-requests/" + sessionId.replace(':', '_') + "-" + requestIndex);
+    /* class */ void dispose() {
+      File file = new File(RequestHandler.getTemporaryDir(),
+          "repeatable-requests/" + sessionId.replace(':', '_') + "-" + requestIndex);
       file.delete();
     }
-    
+
     /**
      * Tests whether the request is complete yet
      * 
@@ -372,23 +404,23 @@ public class ProxySessionTracker implements UploadInterceptor {
     public boolean isComplete() {
       return complete;
     }
-	}
+  }
 
   // Class to persist the repeatable request data
   public static final class RepeatableRequestData implements Serializable {
     private static final long serialVersionUID = 1L;
-    
+
     public int requestIndex;
     public HashMap<String, String> headers;
     public String body;
-    
+
     /**
      * Default constructor, needed for serialisation
      */
     public RepeatableRequestData() {
       // Nothing
     }
-    
+
     public RepeatableRequestData(int requestIndex, HashMap<String, String> headers, String body) {
       super();
       this.requestIndex = requestIndex;
@@ -397,787 +429,841 @@ public class ProxySessionTracker implements UploadInterceptor {
     }
   }
 
-	// All ProxyTypes which have already been sent to the client
-	private final HashSet<ProxyType> deliveredTypes = new HashSet<ProxyType>();
-	
-	// Mapping all objects that the client knows about against the ID we assigned to them
-	private final HashMap<Integer, Proxied> objectsById = new HashMap<Integer, Proxied>();
-	private final HashMap<Proxied, Integer> objectIds = new HashMap<Proxied, Integer>();
-	private HashSet<Integer> disposedObjectIds;
-	private final HashSet<Proxied> invalidObjects = new HashSet<Proxied>();
-	private final HashSet<PropertyId> knownOnDemandProperties = new HashSet<ProxySessionTracker.PropertyId>();
-	private final HashSet<PropertyId> mutatingProperties = new HashSet<ProxySessionTracker.PropertyId>();
-	private final ArrayList<RepeatableRequest> repeatableRequests = new ArrayList<>();
-	private int highestRequestIndex;
+  // All ProxyTypes which have already been sent to the client
+  private final HashSet<ProxyType> deliveredTypes = new HashSet<ProxyType>();
 
-	// Client Objects, indexed by client ID (negative) 
-	private HashMap<Integer, WeakReference<Proxied>> clientObjects;
-	
-	// The Object mapper
-	private ProxyObjectMapper objectMapper;
+  // Mapping all objects that the client knows about against the ID we assigned to
+  // them
+  private final HashMap<Integer, Proxied> objectsById = new HashMap<Integer, Proxied>();
+  private final HashMap<Proxied, Integer> objectIds = new HashMap<Proxied, Integer>();
+  private HashSet<Integer> disposedObjectIds;
+  private final HashSet<Proxied> invalidObjects = new HashSet<Proxied>();
+  private final HashSet<PropertyId> knownOnDemandProperties = new HashSet<ProxySessionTracker.PropertyId>();
+  private final HashSet<PropertyId> mutatingProperties = new HashSet<ProxySessionTracker.PropertyId>();
+  private final ArrayList<RepeatableRequest> repeatableRequests = new ArrayList<>();
+  private int highestRequestIndex;
 
-	// Server IDs are assigned incrementally from 0
-	private int nextServerId;
-	
-	// Queue for properties and events
-	private CommandQueue queue;
-	private int requestIndex;
-	
-	// Bootstrap object
-	protected final Class<? extends Proxied> bootstrapClass;
-	private Proxied bootstrap;
-	
-	// Session information
-	private final String sessionId;
-	private final int serialNo;
-	private static int s_serialNo;
-	private Date lastClientTime;
-	private final Lock requestLock = new ReentrantLock();
-	private boolean disposed;
-	
-	/**
-	 * Creates a tracker for a session; if bootstrapClass is null you must override
-	 * createBootstrap() 
-	 * @param bootstrapClass
-	 */
-	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass) {
-        this(bootstrapClass, null, null);
-	}
-	
-	/**
-	 * Creates a tracker for a session; if bootstrapClass is null you must override
-	 * createBootstrap() 
-	 * @param bootstrapClass
-	 */
-	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir) {
-		this(bootstrapClass, rootDir, null);
-	}
-	
-	/**
-	 * Creates a tracker for a session; if bootstrapClass is null you must override
-	 * createBootstrap() 
-	 * @param bootstrapClass
-	 */
-	public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir, String sessionPrefix) {
-		super();
-		this.bootstrapClass = bootstrapClass;
-        objectMapper = createObjectMapper(rootDir);
-        synchronized(this) {
-            serialNo = ++s_serialNo;
-        }
-		String sessionId = UUID.randomUUID() + ":" + serialNo;
-		if (sessionPrefix != null)
-			sessionId = sessionPrefix + sessionId;
-		this.sessionId = sessionId;
-	}
-	
-	/**
-	 * Creates an object mapper
-	 * @return
-	 */
-	protected ProxyObjectMapper createObjectMapper(File rootDir) {
-		return new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
-	}
-	
-	/**
-	 * Resets the session, called when the application restarts
-	 */
-	public void resetSession() {
-		resetBootstrap();
-		queue = null;
-		deliveredTypes.clear();
-		objectsById.clear();
-		objectIds.clear();
-		nextServerId = 0;
-		
-		// Clear requests except the the initial request, because that's this request
-		for (int i = 0; i < repeatableRequests.size(); i++) {
-		  RepeatableRequest rr = repeatableRequests.get(i);
-		  if (rr.requestIndex != 0) {
-		    repeatableRequests.remove(i--);
-		    rr.dispose();
-		  }
-		}
-		highestRequestIndex = 0;
-	}
-	
-	/**
-	 * Called when the tracker is being discarded
-	 */
-	public void dispose() {
-	  disposed = true;
+  // Client Objects, indexed by client ID (negative)
+  private HashMap<Integer, WeakReference<Proxied>> clientObjects;
+
+  // The Object mapper
+  private ProxyObjectMapper objectMapper;
+
+  // Server IDs are assigned incrementally from 0
+  private int nextServerId;
+
+  // Queue for properties and events
+  private CommandQueue queue;
+  private int requestIndex;
+
+  // Bootstrap object
+  protected final Class<? extends Proxied> bootstrapClass;
+  private Proxied bootstrap;
+
+  // Session information
+  private final String sessionId;
+  private final int serialNo;
+  private static int s_serialNo;
+  private Date lastClientTime;
+  private final Lock requestLock = new ReentrantLock();
+  private boolean disposed;
+
+  /**
+   * Creates a tracker for a session; if bootstrapClass is null you must override
+   * createBootstrap()
+   * 
+   * @param bootstrapClass
+   */
+  public ProxySessionTracker(Class<? extends Proxied> bootstrapClass) {
+    this(bootstrapClass, null, null);
+  }
+
+  /**
+   * Creates a tracker for a session; if bootstrapClass is null you must override
+   * createBootstrap()
+   * 
+   * @param bootstrapClass
+   */
+  public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir) {
+    this(bootstrapClass, rootDir, null);
+  }
+
+  /**
+   * Creates a tracker for a session; if bootstrapClass is null you must override
+   * createBootstrap()
+   * 
+   * @param bootstrapClass
+   */
+  public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir, String sessionPrefix) {
+    super();
+    this.bootstrapClass = bootstrapClass;
+    objectMapper = createObjectMapper(rootDir);
+    synchronized (this) {
+      serialNo = ++s_serialNo;
+    }
+    String sessionId = UUID.randomUUID() + ":" + serialNo;
+    if (sessionPrefix != null)
+      sessionId = sessionPrefix + sessionId;
+    this.sessionId = sessionId;
+  }
+
+  /**
+   * Creates an object mapper
+   * 
+   * @return
+   */
+  protected ProxyObjectMapper createObjectMapper(File rootDir) {
+    return new ProxyObjectMapper(this, log.isDebugEnabled(), rootDir);
+  }
+
+  /**
+   * Resets the session, called when the application restarts
+   */
+  public void resetSession() {
+    resetBootstrap();
+    queue = null;
+    deliveredTypes.clear();
+    objectsById.clear();
+    objectIds.clear();
+    nextServerId = 0;
+
+    // Clear requests except the the initial request, because that's this request
+    for (int i = 0; i < repeatableRequests.size(); i++) {
+      RepeatableRequest rr = repeatableRequests.get(i);
+      if (rr.requestIndex != 0) {
+        repeatableRequests.remove(i--);
+        rr.dispose();
+      }
+    }
+    highestRequestIndex = 0;
+  }
+
+  /**
+   * Called when the tracker is being discarded
+   */
+  public void dispose() {
+    disposed = true;
     for (RepeatableRequest rr : repeatableRequests)
       rr.dispose();
     repeatableRequests.clear();
-	}
-	
-	/**
-	 * Called to create a new instance of the bootstrap class 
-	 * @return
-	 */
-	protected Proxied createBootstrap() {
-		try {
-			return bootstrapClass.newInstance();
-		}catch(IllegalAccessException e) {
-			throw new IllegalStateException("Cannot create bootstrap instance from " + bootstrapClass + ": " + e.getMessage());
-		}catch(InstantiationException e) {
-			Throwable t = (Throwable)e;
-			throw new IllegalStateException("Cannot create bootstrap instance from " + bootstrapClass + ": " + t.getMessage(), t);
-		}
-	}
-	
-	/**
-	 * Called to initialise a new Bootstrap object after it has been set; this allows
-	 * initialisation of bootstrap to call getBootstrap.
-	 * @param boot
-	 */
-	protected void initialiseBootstrap(Proxied bootstrap) {
-		// Nothing
-	}
+  }
 
-	/**
-	 * Called to reset the bootstrap instance for a new session
-	 */
-	protected void resetBootstrap() {
-		bootstrap = null;
-	}
-	
-	/**
-	 * Returns the bootstrap, creating one if necessary
-	 * @return
-	 */
-	public Proxied getBootstrap() {
-		if (bootstrap == null) {
-			bootstrap = createBootstrap();
-			if (bootstrap == null)
-				throw new IllegalStateException("createBootstrap returned null");
-			initialiseBootstrap(bootstrap);
-		}
-		return bootstrap;
-	}
-	
-	/**
-	 * Detects whether the bootstrap has been created yet
-	 * @return
-	 */
-	public boolean hasBootstrap() {
-		return bootstrap != null;
-	}
-	
-	/**
-	 * Returns the unique session id
-	 * @return
-	 */
-	public String getSessionId() {
-		return sessionId;
-	}
+  /**
+   * Called to create a new instance of the bootstrap class
+   * 
+   * @return
+   */
+  protected Proxied createBootstrap() {
+    try {
+      return bootstrapClass.newInstance();
+    } catch (IllegalAccessException e) {
+      throw new IllegalStateException(
+          "Cannot create bootstrap instance from " + bootstrapClass + ": " + e.getMessage());
+    } catch (InstantiationException e) {
+      Throwable t = (Throwable) e;
+      throw new IllegalStateException("Cannot create bootstrap instance from " + bootstrapClass + ": " + t.getMessage(),
+          t);
+    }
+  }
 
-	/**
-	 * Returns whether this tracker is disposed
-	 * 
-	 * @return
-	 */
-	public boolean isDisposed() {
+  /**
+   * Called to initialise a new Bootstrap object after it has been set; this
+   * allows initialisation of bootstrap to call getBootstrap.
+   * 
+   * @param boot
+   */
+  protected void initialiseBootstrap(Proxied bootstrap) {
+    // Nothing
+  }
+
+  /**
+   * Called to reset the bootstrap instance for a new session
+   */
+  protected void resetBootstrap() {
+    bootstrap = null;
+  }
+
+  /**
+   * Returns the bootstrap, creating one if necessary
+   * 
+   * @return
+   */
+  public Proxied getBootstrap() {
+    if (bootstrap == null) {
+      bootstrap = createBootstrap();
+      if (bootstrap == null)
+        throw new IllegalStateException("createBootstrap returned null");
+      initialiseBootstrap(bootstrap);
+    }
+    return bootstrap;
+  }
+
+  /**
+   * Detects whether the bootstrap has been created yet
+   * 
+   * @return
+   */
+  public boolean hasBootstrap() {
+    return bootstrap != null;
+  }
+
+  /**
+   * Returns the unique session id
+   * 
+   * @return
+   */
+  public String getSessionId() {
+    return sessionId;
+  }
+
+  /**
+   * Returns whether this tracker is disposed
+   * 
+   * @return
+   */
+  public boolean isDisposed() {
     return disposed;
   }
 
   /**
-	 * @return the serialNo
-	 */
-	public int getSerialNo() {
-		return serialNo;
-	}
+   * @return the serialNo
+   */
+  public int getSerialNo() {
+    return serialNo;
+  }
 
-	/**
-	 * @return the requestLock
-	 */
-	public Lock getRequestLock() {
-		return requestLock;
-	}
+  /**
+   * @return the requestLock
+   */
+  public Lock getRequestLock() {
+    return requestLock;
+  }
 
-	/**
-	 * @return the lastClientTime
-	 */
-	public Date getLastClientTime() {
-		return lastClientTime;
-	}
+  /**
+   * @return the lastClientTime
+   */
+  public Date getLastClientTime() {
+    return lastClientTime;
+  }
 
-	/**
-	 * @param lastClientTime the lastClientTime to set
-	 */
-	/*package*/ void setLastClientTime(Date lastClientTime) {
-		this.lastClientTime = lastClientTime;
-	}
+  /**
+   * @param lastClientTime the lastClientTime to set
+   */
+  /* package */ void setLastClientTime(Date lastClientTime) {
+    this.lastClientTime = lastClientTime;
+  }
 
-	@Override
-	public void interceptUpload(UploadingFile upfile) {
-		if (bootstrap != null && bootstrap instanceof UploadInterceptor) {
-			((UploadInterceptor)bootstrap).interceptUpload(upfile);
-		}
-	}
+  @Override
+  public void interceptUpload(UploadingFile upfile) {
+    if (bootstrap != null && bootstrap instanceof UploadInterceptor) {
+      ((UploadInterceptor) bootstrap).interceptUpload(upfile);
+    }
+  }
 
-	/**
-	 * Creates an object which can be serialised by Jackson JSON and passed to the
-	 * client ProxyTracker to convert into a suitable client object 
-	 * @param obj
-	 * @return
-	 */
-	public synchronized Proxy getProxy(Proxied obj) {
-		if (obj == null)
-			return null;
-		
-		// See if it's an object the client already knows about
-		Integer serverId = objectIds.get(obj);
-		if (serverId != null) {
-			if (invalidObjects.remove(obj)) {
-				ProxyType type = getProxyType(obj);
-				return new Proxy(obj, serverId, type, true);
-			}
-			return new Proxy(obj, serverId);
-		}
-		
-		// See if the client already knows about the type
-		ProxyType type = getProxyType(obj);
-		
-		// Get an ID
-		serverId = nextServerId++;
-		
-		// Store mappings for ID and Proxied object
-		objectsById.put(serverId, obj);
-		objectIds.put(obj, serverId);
-		
-		// Return the information for the client
-		return new Proxy(obj, serverId, type, true);
-	}
-	
-	/**
-	 * Returns the ProxyType to use for a specific object
-	 * @param obj
-	 * @return
-	 */
-	protected ProxyType getProxyType(Object obj) {
-		ProxyType type = null;
-		if (obj instanceof DynamicTypeProvider)
-			type = ((DynamicTypeProvider)obj).getProxyType();
-		if (type == null)
-			type = ProxyTypeManager.INSTANCE.getProxyType((Class<Proxied>)obj.getClass());
-		return type;
-	}
-	
-	/**
-	 * Marks an object as invalid so that the next time it's sent to the client, all of the
-	 * property values will be resent
-	 * @param obj
-	 */
-	public synchronized void invalidateCache(Proxied proxied) {
-		if (objectIds.containsKey(proxied))
-			invalidObjects.add(proxied);
-	}
-	
-	/**
-	 * Causes the tracker to forget about the Proxied object
-	 * @param proxied
-	 */
-	public synchronized void forget(Proxied proxied) {
-		Integer id = objectIds.get(proxied);
-		if (id != null) {
-			objectIds.remove(proxied);
-			objectsById.remove(id);
-			invalidObjects.remove(proxied);
-			if (log.isDebugEnabled()) {
-				if (disposedObjectIds == null)
-					disposedObjectIds = new HashSet();
-				disposedObjectIds.add(id);
-			}
-		}
-	}
-	
-	/**
-	 * Causes the tracker to forget about the Proxied object
-	 * @param proxied
-	 */
-	public synchronized void forget(int serverId) {
-		Proxied proxied = objectsById.get(serverId);
-		if (proxied != null) {
-			objectIds.remove(proxied);
-			objectsById.remove(serverId);
-			invalidObjects.remove(proxied);
-			if (log.isDebugEnabled()) {
-				if (disposedObjectIds == null)
-					disposedObjectIds = new HashSet();
-				disposedObjectIds.add(serverId);
-			}
-		}
-	}
-	
-	/**
-	 * When the client creates an instance of a Proxied class addClientObject is used
-	 * to obtain an ID for it and add it to the lists of objects 
-	 * @param proxied
-	 * @return the new ID for the object
-	 */
-	public synchronized int addClientObject(Proxied proxied) {
-		if (objectIds.containsKey(proxied))
-			throw new IllegalArgumentException("Cannot add an existing server object as a client object");
-		
-		// Get an ID
-		int serverId = nextServerId++;
-		
-		// Store mappings for ID and Proxied object
-		objectsById.put(serverId, proxied);
-		objectIds.put(proxied, serverId);
-		
-		return serverId;
-	}
-	
-	/**
-	 * Returns the Proxied object that corresponds to a given value from the
-	 * client
-	 * @param id the ID that was originally passed to the client
-	 * @return the object, or null
-	 */
-	public synchronized Proxied getProxied(int id) {
-		Proxied proxied = null;
-		if (id < 0) {
-			if (clientObjects != null) {
-				WeakReference<Proxied> ref = clientObjects.get(id);
-				if (ref != null) {
-					proxied = ref.get();
-					if (proxied == null)
-						clientObjects.remove(id);
-				}
-			}
-		} else
-			proxied = objectsById.get(id);
-		if (proxied == null) {
-			if (log.isDebugEnabled() && disposedObjectIds != null)
-				if (disposedObjectIds.contains(id))
-					throw new IllegalArgumentException("Cannot find Proxied instance for invalid proxied ID " + id + " - object already disposed");
-			throw new IllegalArgumentException("Cannot find Proxied instance for invalid proxied ID " + id);
-		}
-		return proxied;
-	}
-	
-	/**
-	 * Detects whether the Proxied object is tracked on the client
-	 * @param proxied
-	 * @return
-	 */
-	public synchronized boolean hasProxied(Proxied proxied) {
-		Integer serverId = objectIds.get(proxied);
-		return serverId != null;
-	}
+  /**
+   * Creates an object which can be serialised by Jackson JSON and passed to the
+   * client ProxyTracker to convert into a suitable client object
+   * 
+   * @param obj
+   * @return
+   */
+  public synchronized Proxy getProxy(Proxied obj) {
+    if (obj == null)
+      return null;
 
-	/**
-	 * Registers a client object; the 
-	 * @param clientId
-	 * @param proxied
-	 */
-	public synchronized void registerClientObject(int clientId, Proxied proxied) {
-		if (clientId >= 0)
-			throw new IllegalArgumentException("Invalid client id " + clientId +" for " + proxied.getClass() + " " + proxied);
-		if (clientObjects == null)
-			clientObjects = new HashMap<Integer, WeakReference<Proxied>>();
-		clientObjects.put(clientId, new WeakReference<Proxied>(proxied));
-	}
-	
-	/**
-	 * Tests whether a ProxyType has already been sent to the client
-	 * @param type
-	 * @return
-	 */
-	public boolean isTypeDelivered(ProxyType type) {
-	    if (ProxyManager.isPrecompiledTypesOnly())
-	        return true;
-		return deliveredTypes.contains(type);
-	}
-	
-	/**
-	 * Registers a ProxyType as delivered to the client
-	 * @param type
-	 * @return
-	 */
-	public void setTypeDelivered(ProxyType type) {
-		if (ProxyManager.isPrecompiledTypesOnly())
-		    return;
-	    if (deliveredTypes.contains(type))
-			throw new IllegalArgumentException("ProxyType " + type + " has already been sent to the client");
-		deliveredTypes.add(type);
-		for (ProxyType extra : type.getExtraTypes())
-			if (!isTypeDelivered(extra)) {
-				CommandQueue queue = getQueue();
-				queue.queueCommand(CommandId.CommandType.LOAD_TYPE, extra, null, null);
-			}
-	}
+    // See if it's an object the client already knows about
+    Integer serverId = objectIds.get(obj);
+    if (serverId != null) {
+      if (invalidObjects.remove(obj)) {
+        ProxyType type = getProxyType(obj);
+        return new Proxy(obj, serverId, type, true);
+      }
+      return new Proxy(obj, serverId);
+    }
 
-    /**
-	 * Marks a property as being mutated by the client
-	 * @param proxied
-	 * @param propertyName
-	 */
-	public void beginMutate(Proxied proxied, String propertyName) {
-		PropertyId id = new PropertyId(proxied, propertyName);
-		if (mutatingProperties.contains(id))
-			throw new IllegalArgumentException("Property " + id + " is already being mutated");
-		mutatingProperties.add(id);
-	}
-	
-	/**
-	 * Marks a property as no longer being mutated by the client
-	 * @param proxied
-	 * @param propertyName
-	 */
-	public void endMutate(Proxied proxied, String propertyName) {
-		PropertyId id = new PropertyId(proxied, propertyName);
-		if (!mutatingProperties.remove(id))
-			throw new IllegalArgumentException("Property " + id + " is not being mutated");
-	}
+    // See if the client already knows about the type
+    ProxyType type = getProxyType(obj);
 
-	/**
-	 * Detects whether a property is being mutated by the client
-	 * @param proxied
-	 * @param propertyName
-	 */
-	public boolean isMutating(Proxied proxied, String propertyName) {
-		PropertyId id = new PropertyId(proxied, propertyName);
-		return mutatingProperties.contains(id);
-	}
+    // Get an ID
+    serverId = nextServerId++;
 
-	/**
-	 * Checks for an existing, repeatable, request; returns null if not found
-	 * 
-	 * @param requestIndex
-	 * @return
-	 */
-	public synchronized RepeatableRequest getExistingRepeatableRequest(int requestIndex) {
-	  for (int i = 0; i < repeatableRequests.size(); i++) {
-	    RepeatableRequest rr = repeatableRequests.get(i);
-	    if (rr.requestIndex == requestIndex)
-	      return rr;
-	  }
-	  return null;
-	}
-	
-	/**
-	 * Creates a new repeatable request
-	 * @param requestIndex
-	 * @return
-	 */
-	public synchronized RepeatableRequest createRepeatableRequest(int requestIndex) {
-	  RepeatableRequest rr = getExistingRepeatableRequest(requestIndex);
-	  if (rr == null) {
-	    if (repeatableRequests.size() >= MAX_REPEATABLE_COMPLETE_REQUESTS) {
-	      int numComplete = 0;
-	      for (int i = repeatableRequests.size() - 1; i >= 0; i--) {
-	        rr = repeatableRequests.get(i);
-	        if (rr.isComplete()) {
-	          numComplete++;
-	          if (numComplete >= MAX_REPEATABLE_COMPLETE_REQUESTS) {
-	            rr.dispose();
-	            repeatableRequests.remove(i);
-	          }
-	        }
-	      }
-	    }
-	    rr = new RepeatableRequest(sessionId, requestIndex);
-	    repeatableRequests.add(rr);
-	    if (requestIndex > highestRequestIndex)
-	      highestRequestIndex = requestIndex;
-	  }
-	    
-	  return rr;
-	}
-	
-	public int getHighestRequestIndex() {
+    // Store mappings for ID and Proxied object
+    objectsById.put(serverId, obj);
+    objectIds.put(obj, serverId);
+
+    // Return the information for the client
+    return new Proxy(obj, serverId, type, true);
+  }
+
+  /**
+   * Returns the ProxyType to use for a specific object
+   * 
+   * @param obj
+   * @return
+   */
+  protected ProxyType getProxyType(Object obj) {
+    ProxyType type = null;
+    if (obj instanceof DynamicTypeProvider)
+      type = ((DynamicTypeProvider) obj).getProxyType();
+    if (type == null)
+      type = ProxyTypeManager.INSTANCE.getProxyType((Class<Proxied>) obj.getClass());
+    return type;
+  }
+
+  /**
+   * Marks an object as invalid so that the next time it's sent to the client, all
+   * of the property values will be resent
+   * 
+   * @param obj
+   */
+  public synchronized void invalidateCache(Proxied proxied) {
+    if (objectIds.containsKey(proxied))
+      invalidObjects.add(proxied);
+  }
+
+  /**
+   * Causes the tracker to forget about the Proxied object
+   * 
+   * @param proxied
+   */
+  public synchronized void forget(Proxied proxied) {
+    Integer id = objectIds.get(proxied);
+    if (id != null) {
+      objectIds.remove(proxied);
+      objectsById.remove(id);
+      invalidObjects.remove(proxied);
+      if (log.isDebugEnabled()) {
+        if (disposedObjectIds == null)
+          disposedObjectIds = new HashSet();
+        disposedObjectIds.add(id);
+      }
+    }
+  }
+
+  /**
+   * Causes the tracker to forget about the Proxied object
+   * 
+   * @param proxied
+   */
+  public synchronized void forget(int serverId) {
+    Proxied proxied = objectsById.get(serverId);
+    if (proxied != null) {
+      objectIds.remove(proxied);
+      objectsById.remove(serverId);
+      invalidObjects.remove(proxied);
+      if (log.isDebugEnabled()) {
+        if (disposedObjectIds == null)
+          disposedObjectIds = new HashSet();
+        disposedObjectIds.add(serverId);
+      }
+    }
+  }
+
+  /**
+   * When the client creates an instance of a Proxied class addClientObject is
+   * used to obtain an ID for it and add it to the lists of objects
+   * 
+   * @param proxied
+   * @return the new ID for the object
+   */
+  public synchronized int addClientObject(Proxied proxied) {
+    if (objectIds.containsKey(proxied))
+      throw new IllegalArgumentException("Cannot add an existing server object as a client object");
+
+    // Get an ID
+    int serverId = nextServerId++;
+
+    // Store mappings for ID and Proxied object
+    objectsById.put(serverId, proxied);
+    objectIds.put(proxied, serverId);
+
+    return serverId;
+  }
+
+  /**
+   * Returns the Proxied object that corresponds to a given value from the client
+   * 
+   * @param id the ID that was originally passed to the client
+   * @return the object, or null
+   */
+  public synchronized Proxied getProxied(int id) {
+    Proxied proxied = null;
+    if (id < 0) {
+      if (clientObjects != null) {
+        WeakReference<Proxied> ref = clientObjects.get(id);
+        if (ref != null) {
+          proxied = ref.get();
+          if (proxied == null)
+            clientObjects.remove(id);
+        }
+      }
+    } else
+      proxied = objectsById.get(id);
+    if (proxied == null) {
+      if (log.isDebugEnabled() && disposedObjectIds != null)
+        if (disposedObjectIds.contains(id))
+          throw new IllegalArgumentException(
+              "Cannot find Proxied instance for invalid proxied ID " + id + " - object already disposed");
+      throw new IllegalArgumentException("Cannot find Proxied instance for invalid proxied ID " + id);
+    }
+    return proxied;
+  }
+
+  /**
+   * Detects whether the Proxied object is tracked on the client
+   * 
+   * @param proxied
+   * @return
+   */
+  public synchronized boolean hasProxied(Proxied proxied) {
+    Integer serverId = objectIds.get(proxied);
+    return serverId != null;
+  }
+
+  /**
+   * Registers a client object; the
+   * 
+   * @param clientId
+   * @param proxied
+   */
+  public synchronized void registerClientObject(int clientId, Proxied proxied) {
+    if (clientId >= 0)
+      throw new IllegalArgumentException(
+          "Invalid client id " + clientId + " for " + proxied.getClass() + " " + proxied);
+    if (clientObjects == null)
+      clientObjects = new HashMap<Integer, WeakReference<Proxied>>();
+    clientObjects.put(clientId, new WeakReference<Proxied>(proxied));
+  }
+
+  /**
+   * Tests whether a ProxyType has already been sent to the client
+   * 
+   * @param type
+   * @return
+   */
+  public boolean isTypeDelivered(ProxyType type) {
+    if (ProxyManager.isPrecompiledTypesOnly())
+      return true;
+    return deliveredTypes.contains(type);
+  }
+
+  /**
+   * Registers a ProxyType as delivered to the client
+   * 
+   * @param type
+   * @return
+   */
+  public void setTypeDelivered(ProxyType type) {
+    if (ProxyManager.isPrecompiledTypesOnly())
+      return;
+    if (deliveredTypes.contains(type))
+      throw new IllegalArgumentException("ProxyType " + type + " has already been sent to the client");
+    deliveredTypes.add(type);
+    for (ProxyType extra : type.getExtraTypes())
+      if (!isTypeDelivered(extra)) {
+        CommandQueue queue = getQueue();
+        queue.queueCommand(CommandId.CommandType.LOAD_TYPE, extra, null, null);
+      }
+  }
+
+  /**
+   * Marks a property as being mutated by the client
+   * 
+   * @param proxied
+   * @param propertyName
+   */
+  public void beginMutate(Proxied proxied, String propertyName) {
+    PropertyId id = new PropertyId(proxied, propertyName);
+    if (mutatingProperties.contains(id))
+      throw new IllegalArgumentException("Property " + id + " is already being mutated");
+    mutatingProperties.add(id);
+  }
+
+  /**
+   * Marks a property as no longer being mutated by the client
+   * 
+   * @param proxied
+   * @param propertyName
+   */
+  public void endMutate(Proxied proxied, String propertyName) {
+    PropertyId id = new PropertyId(proxied, propertyName);
+    if (!mutatingProperties.remove(id))
+      throw new IllegalArgumentException("Property " + id + " is not being mutated");
+  }
+
+  /**
+   * Detects whether a property is being mutated by the client
+   * 
+   * @param proxied
+   * @param propertyName
+   */
+  public boolean isMutating(Proxied proxied, String propertyName) {
+    PropertyId id = new PropertyId(proxied, propertyName);
+    return mutatingProperties.contains(id);
+  }
+
+  /**
+   * Checks for an existing, repeatable, request; returns null if not found
+   * 
+   * @param requestIndex
+   * @return
+   */
+  public synchronized RepeatableRequest getExistingRepeatableRequest(int requestIndex) {
+    for (int i = 0; i < repeatableRequests.size(); i++) {
+      RepeatableRequest rr = repeatableRequests.get(i);
+      if (rr.requestIndex == requestIndex)
+        return rr;
+    }
+    return null;
+  }
+
+  /**
+   * Creates a new repeatable request
+   * 
+   * @param requestIndex
+   * @return
+   */
+  public synchronized RepeatableRequest createRepeatableRequest(int requestIndex) {
+    RepeatableRequest rr = getExistingRepeatableRequest(requestIndex);
+    if (rr == null) {
+      if (repeatableRequests.size() >= MAX_REPEATABLE_COMPLETE_REQUESTS) {
+        int numComplete = 0;
+        for (int i = repeatableRequests.size() - 1; i >= 0; i--) {
+          rr = repeatableRequests.get(i);
+          if (rr.isComplete()) {
+            numComplete++;
+            if (numComplete >= MAX_REPEATABLE_COMPLETE_REQUESTS) {
+              rr.dispose();
+              repeatableRequests.remove(i);
+            }
+          }
+        }
+      }
+      rr = new RepeatableRequest(sessionId, requestIndex);
+      repeatableRequests.add(rr);
+      if (requestIndex > highestRequestIndex)
+        highestRequestIndex = requestIndex;
+    }
+
+    return rr;
+  }
+
+  public int getHighestRequestIndex() {
     return highestRequestIndex;
   }
 
   /**
-	 * Completes a repeatable request, storing the data for later use
-	 * 
-	 * @param rr
-	 * @param headers
-	 * @param body
-	 * @throws IOException
-	 */
-	public void completeRepeatableRequest(RepeatableRequest rr, HashMap<String, String> headers, String body) throws IOException {
-	  if (disposed)
-	    return;
-	  synchronized(this) {
-	    if (!repeatableRequests.contains(rr))
-	      throw new IllegalArgumentException("Unrecognised RepeatableRequest");
-	    if (rr.isComplete())
-	      throw new IllegalStateException("Completing a RepeatableRequest which is complete");
-	    rr.complete(headers, body);
-	  }
-	}
-	
-	/**
-	 * Registers that a property has changed; this also fires a server event for
-	 * the property if an event is defined
-	 * @param proxied
-	 * @param propertyName
-	 * @param oldValue
-	 * @param newValue
-	 */
-	public void propertyChanged(Proxied keyObject, ProxyProperty property, Object newValue, Object oldValue) {
-		CommandQueue queue = getQueue();
-		if (!doesClientHaveObject(keyObject) || isMutating(keyObject, property.getName()))
-			return;
-		if (property.isOnDemand() && !doesClientHaveValue(keyObject, property))
-			return; //queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, propertyName, null);
-		else
-			queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(), property.serialize(keyObject, newValue));
-		if (property.getEvent() != null) {
-			EventManager.fireDataEvent(keyObject, property.getEvent().getName(), newValue);
-		}
-	}
-	
-	/**
-	 * Registers that a collection has changed
-	 * @param proxied
-	 * @param propertyName
-	 * @param oldValue
-	 * @param newValue
-	 */
-	public void collectionChanged(Proxied keyObject, ChangeData change) {
-		CommandQueue queue = getQueue();
-		if (!doesClientHaveObject(keyObject) || isMutating(keyObject, null))
-			return;
-		Object[] current = (Object[])queue.getCommand(CommandId.CommandType.EDIT_ARRAY, keyObject, null);
-		current = ArrayUtils.addToObjectArray(current, change);
-		queue.queueCommand(CommandId.CommandType.EDIT_ARRAY, keyObject, null, current);
-	}
-	
-	/**
-	 * Forces the value of an on demand property to be sent to the client 
-	 * @param keyObject
-	 * @param propertyName
-	 * @param value
-	 */
-	public void preloadProperty(Proxied keyObject, ProxyProperty property, Object value) {
-		CommandQueue queue = getQueue();
-		if (!property.isOnDemand())
-			return;
-		queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(), property.serialize(keyObject, value));
-	}
-	
-	/**
-	 * Forces the value of an on demand property to be sent to the client 
-	 * @param keyObject
-	 * @param propertyName
-	 * @param value
-	 */
-	public void sendProperty(Proxied keyObject, ProxyProperty property) {
-		CommandQueue queue = getQueue();
-		if (!property.isOnDemand())
-			return;
-		try {
-			Object value = property.getValue(keyObject);
-			queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(), property.serialize(keyObject, value));
-		}catch(ProxyException e) {
-			throw new IllegalStateException(e.getMessage(), e);
-		}
-	}
-	
-	/**
-	 * Register that an on-demand property has changed and it's value should be
-	 * expired on the client, so that the next attempt to access it causes a refresh
-	 * @param proxied
-	 * @param propertyName
-	 * @param oldValue
-	 * @param newValue
-	 */
-	public void expireProperty(Proxied keyObject, ProxyProperty property) {
-		if (!doesClientHaveObject(keyObject))
-			return;
-		CommandQueue queue = getQueue();
-		if (property.isOnDemand())
-			queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, property.getName(), null);
-	}
-	
-	/**
-	 * Register that an on-demand property has changed and it's value should be
-	 * resent to the client, if the client already has it
-	 * @param proxied
-	 * @param propertyName
-	 * @param oldValue
-	 * @param newValue
-	 */
-	public void invalidateProperty(Proxied keyObject, ProxyProperty property) {
-		if (!property.isOnDemand() || !doesClientHaveObject(keyObject))
-			return;
-		CommandQueue queue = getQueue();
-		try {
-			Object value = property.getValue(keyObject);
-			queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(), property.serialize(keyObject, value));
-		}catch(ProxyException e) {
-			throw new IllegalStateException(e.getMessage(), e);
-		}
-	}
-	
-	/**
-	 * Expires the on-demand property value
-	 * @param proxied
-	 * @param propertyName
-	 * @return
-	 */
-	public boolean expireOnDemandProperty(Proxied proxied, String propertyName) {
-		boolean existed = knownOnDemandProperties.remove(new PropertyId(proxied, propertyName));
-		return existed;
-	}
-	
-	/**
-	 * Loads a proxy type onto the client
-	 * @param clazz
-	 */
-	public void loadProxyType(Class<? extends Proxied> clazz) {
-		ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(clazz);
-		if (type == null || isTypeDelivered(type))
-			return;
-		CommandQueue queue = getQueue();
-		queue.queueCommand(CommandId.CommandType.LOAD_TYPE, type, null, null);
-	}
-	
-	/**
-	 * Detects whether the client has a value for the given property of an object; this
-	 * returns true if the object has been sent and either the property is not ondemand
-	 * or the ondemand value has already been requested and sent.
-	 * @param proxied
-	 * @param prop
-	 * @return
-	 */
-	public boolean doesClientHaveValue(Proxied proxied, ProxyProperty prop) {
-		if (!objectIds.containsKey(proxied))
-			return false;
-		if (!prop.isOnDemand())
-			return true;
-		boolean existed = knownOnDemandProperties.contains(new PropertyId(proxied, prop.getName()));
-		return existed;
-	}
-	
-	/**
-	 * Records that the client has received an on-demand property value
-	 * @param proxied
-	 * @param prop
-	 */
-	public void setClientHasValue(Proxied proxied, ProxyProperty prop) {
-		if (!objectIds.containsKey(proxied) || !prop.isOnDemand())
-			return;
-		knownOnDemandProperties.add(new PropertyId(proxied, prop.getName()));
-	}
-	
-	/**
-	 * Detects whether the client has a value for the given property of an object; this
-	 * returns true if the object has been sent and either the property is not ondemand
-	 * or the ondemand value has already been requested and sent.
-	 * @param proxied
-	 * @param prop
-	 * @return
-	 */
-	public boolean doesClientHaveObject(Proxied proxied) {
-		return objectIds.containsKey(proxied);
-	}
-	
-	/**
-	 * Called to create a new instance of Queue; @see <code>getQueue</code>
-	 * @return
-	 */
-	protected CommandQueue createQueue() {
-		return new SimpleQueue();
-	}
-	
-	/**
-	 * Returns the Queue, creating one if necessary
-	 * @return
-	 */
-	public CommandQueue getQueue() {
-		if (queue == null)
-			queue = createQueue();
-		return queue;
-	}
-	
-	/**
-	 * Detects whether there is any data to flush
-	 * @return
-	 */
-	public boolean hasDataToFlush() {
-		return queue != null && queue.hasDataToFlush();
-	}
-	
-	/**
-	 * Detects whether the queue needs to be "urgently" flushed
-	 * @return
-	 */
-	public boolean needsFlush() {
-		return queue != null && queue.needsFlush();
-	}
-	
-	/**
-	 * Writes an object and any required class definitions etc out to a JSON String
-	 * @param obj
-	 * @return
-	 */
-	public String toJSON(Object obj) {
-		StringWriter strWriter = new StringWriter();
-		try {
-			toJSON(obj, strWriter);
-		}catch(IOException e) {
-			throw new IllegalArgumentException(e);
-		}
-		return strWriter.toString();
-	}
+   * Completes a repeatable request, storing the data for later use
+   * 
+   * @param rr
+   * @param headers
+   * @param body
+   * @throws IOException
+   */
+  public void completeRepeatableRequest(RepeatableRequest rr, HashMap<String, String> headers, String body)
+      throws IOException {
+    if (disposed)
+      return;
+    synchronized (this) {
+      if (!repeatableRequests.contains(rr))
+        throw new IllegalArgumentException("Unrecognised RepeatableRequest");
+      if (rr.isComplete())
+        throw new IllegalStateException("Completing a RepeatableRequest which is complete");
+      rr.complete(headers, body);
+    }
+  }
 
-	/**
-	 * Writes an object and any required class definitions etc
-	 * @param obj
-	 * @return
-	 */
-	public void toJSON(Object obj, Writer writer) throws IOException {
-		if (!(obj instanceof Proxied))
-			obj = new POJO(obj);
-		
-		objectMapper.writeValue(writer, obj);
-	}
-	
-	/**
-	 * Parses JSON and returns a suitable object
-	 * @param str
-	 * @return
-	 */
-	public Object fromJSON(String str) {
-		try {
-			return fromJSON(new StringReader(str));
-		} catch (IOException e) {
-			log.error("Error while parsing: " + e.getClass() + ": " + e.getMessage() + "; code was: " + str + "\n");
-			throw new IllegalArgumentException(e);
-		}
-	}
-	
-	/**
-	 * Parses JSON and returns a suitable object
-	 * @param reader
-	 * @return
-	 * @throws IOException
-	 */
-	public Object fromJSON(Reader reader) throws IOException {
-		try {
-			Object obj = objectMapper.readValue(reader, Object.class);
-			return obj;
-		}catch(JsonParseException e) {
-			throw new IOException(e.getMessage(), e);
-		}
-	}
+  /**
+   * Registers that a property has changed; this also fires a server event for the
+   * property if an event is defined
+   * 
+   * @param proxied
+   * @param propertyName
+   * @param oldValue
+   * @param newValue
+   */
+  public void propertyChanged(Proxied keyObject, ProxyProperty property, Object newValue, Object oldValue) {
+    CommandQueue queue = getQueue();
+    if (!doesClientHaveObject(keyObject) || isMutating(keyObject, property.getName()))
+      return;
+    if (property.isOnDemand() && !doesClientHaveValue(keyObject, property))
+      return; // queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, propertyName,
+              // null);
+    else
+      queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(),
+          property.serialize(keyObject, newValue));
+    if (property.getEvent() != null) {
+      EventManager.fireDataEvent(keyObject, property.getEvent().getName(), newValue);
+    }
+  }
 
-	/**
-	 * Returns the Jackson JSON ObjectMapper
-	 * @return
-	 */
-	public ProxyObjectMapper getObjectMapper() {
-		return objectMapper;
-	}
+  /**
+   * Registers that a collection has changed
+   * 
+   * @param proxied
+   * @param propertyName
+   * @param oldValue
+   * @param newValue
+   */
+  public void collectionChanged(Proxied keyObject, ChangeData change) {
+    CommandQueue queue = getQueue();
+    if (!doesClientHaveObject(keyObject) || isMutating(keyObject, null))
+      return;
+    Object[] current = (Object[]) queue.getCommand(CommandId.CommandType.EDIT_ARRAY, keyObject, null);
+    current = ArrayUtils.addToObjectArray(current, change);
+    queue.queueCommand(CommandId.CommandType.EDIT_ARRAY, keyObject, null, current);
+  }
 
-	public int getNextRequestIndex() {
-		return requestIndex++;
-	}
+  /**
+   * Forces the value of an on demand property to be sent to the client
+   * 
+   * @param keyObject
+   * @param propertyName
+   * @param value
+   */
+  public void preloadProperty(Proxied keyObject, ProxyProperty property, Object value) {
+    CommandQueue queue = getQueue();
+    if (!property.isOnDemand())
+      return;
+    queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(),
+        property.serialize(keyObject, value));
+  }
+
+  /**
+   * Forces the value of an on demand property to be sent to the client
+   * 
+   * @param keyObject
+   * @param propertyName
+   * @param value
+   */
+  public void sendProperty(Proxied keyObject, ProxyProperty property) {
+    CommandQueue queue = getQueue();
+    if (!property.isOnDemand())
+      return;
+    try {
+      Object value = property.getValue(keyObject);
+      queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(),
+          property.serialize(keyObject, value));
+    } catch (ProxyException e) {
+      throw new IllegalStateException(e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Register that an on-demand property has changed and it's value should be
+   * expired on the client, so that the next attempt to access it causes a refresh
+   * 
+   * @param proxied
+   * @param propertyName
+   * @param oldValue
+   * @param newValue
+   */
+  public void expireProperty(Proxied keyObject, ProxyProperty property) {
+    if (!doesClientHaveObject(keyObject))
+      return;
+    CommandQueue queue = getQueue();
+    if (property.isOnDemand())
+      queue.queueCommand(CommandId.CommandType.EXPIRE, keyObject, property.getName(), null);
+  }
+
+  /**
+   * Register that an on-demand property has changed and it's value should be
+   * resent to the client, if the client already has it
+   * 
+   * @param proxied
+   * @param propertyName
+   * @param oldValue
+   * @param newValue
+   */
+  public void invalidateProperty(Proxied keyObject, ProxyProperty property) {
+    if (!property.isOnDemand() || !doesClientHaveObject(keyObject))
+      return;
+    CommandQueue queue = getQueue();
+    try {
+      Object value = property.getValue(keyObject);
+      queue.queueCommand(CommandId.CommandType.SET_VALUE, keyObject, property.getName(),
+          property.serialize(keyObject, value));
+    } catch (ProxyException e) {
+      throw new IllegalStateException(e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Expires the on-demand property value
+   * 
+   * @param proxied
+   * @param propertyName
+   * @return
+   */
+  public boolean expireOnDemandProperty(Proxied proxied, String propertyName) {
+    boolean existed = knownOnDemandProperties.remove(new PropertyId(proxied, propertyName));
+    return existed;
+  }
+
+  /**
+   * Loads a proxy type onto the client
+   * 
+   * @param clazz
+   */
+  public void loadProxyType(Class<? extends Proxied> clazz) {
+    ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(clazz);
+    if (type == null || isTypeDelivered(type))
+      return;
+    CommandQueue queue = getQueue();
+    queue.queueCommand(CommandId.CommandType.LOAD_TYPE, type, null, null);
+  }
+
+  /**
+   * Detects whether the client has a value for the given property of an object;
+   * this returns true if the object has been sent and either the property is not
+   * ondemand or the ondemand value has already been requested and sent.
+   * 
+   * @param proxied
+   * @param prop
+   * @return
+   */
+  public boolean doesClientHaveValue(Proxied proxied, ProxyProperty prop) {
+    if (!objectIds.containsKey(proxied))
+      return false;
+    if (!prop.isOnDemand())
+      return true;
+    boolean existed = knownOnDemandProperties.contains(new PropertyId(proxied, prop.getName()));
+    return existed;
+  }
+
+  /**
+   * Records that the client has received an on-demand property value
+   * 
+   * @param proxied
+   * @param prop
+   */
+  public void setClientHasValue(Proxied proxied, ProxyProperty prop) {
+    if (!objectIds.containsKey(proxied) || !prop.isOnDemand())
+      return;
+    knownOnDemandProperties.add(new PropertyId(proxied, prop.getName()));
+  }
+
+  /**
+   * Detects whether the client has a value for the given property of an object;
+   * this returns true if the object has been sent and either the property is not
+   * ondemand or the ondemand value has already been requested and sent.
+   * 
+   * @param proxied
+   * @param prop
+   * @return
+   */
+  public boolean doesClientHaveObject(Proxied proxied) {
+    return objectIds.containsKey(proxied);
+  }
+
+  /**
+   * Called to create a new instance of Queue; @see <code>getQueue</code>
+   * 
+   * @return
+   */
+  protected CommandQueue createQueue() {
+    return new SimpleQueue();
+  }
+
+  /**
+   * Returns the Queue, creating one if necessary
+   * 
+   * @return
+   */
+  public CommandQueue getQueue() {
+    if (queue == null)
+      queue = createQueue();
+    return queue;
+  }
+
+  /**
+   * Detects whether there is any data to flush
+   * 
+   * @return
+   */
+  public boolean hasDataToFlush() {
+    return queue != null && queue.hasDataToFlush();
+  }
+
+  /**
+   * Detects whether the queue needs to be "urgently" flushed
+   * 
+   * @return
+   */
+  public boolean needsFlush() {
+    return queue != null && queue.needsFlush();
+  }
+
+  /**
+   * Writes an object and any required class definitions etc out to a JSON String
+   * 
+   * @param obj
+   * @return
+   */
+  public String toJSON(Object obj) {
+    StringWriter strWriter = new StringWriter();
+    try {
+      toJSON(obj, strWriter);
+    } catch (IOException e) {
+      throw new IllegalArgumentException(e);
+    }
+    return strWriter.toString();
+  }
+
+  /**
+   * Writes an object and any required class definitions etc
+   * 
+   * @param obj
+   * @return
+   */
+  public void toJSON(Object obj, Writer writer) throws IOException {
+    if (!(obj instanceof Proxied))
+      obj = new POJO(obj);
+
+    objectMapper.writeValue(writer, obj);
+  }
+
+  /**
+   * Parses JSON and returns a suitable object
+   * 
+   * @param str
+   * @return
+   */
+  public Object fromJSON(String str) {
+    try {
+      return fromJSON(new StringReader(str));
+    } catch (IOException e) {
+      log.error("Error while parsing: " + e.getClass() + ": " + e.getMessage() + "; code was: " + str + "\n");
+      throw new IllegalArgumentException(e);
+    }
+  }
+
+  /**
+   * Parses JSON and returns a suitable object
+   * 
+   * @param reader
+   * @return
+   * @throws IOException
+   */
+  public Object fromJSON(Reader reader) throws IOException {
+    try {
+      Object obj = objectMapper.readValue(reader, Object.class);
+      return obj;
+    } catch (JsonParseException e) {
+      throw new IOException(e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Returns the Jackson JSON ObjectMapper
+   * 
+   * @return
+   */
+  public ProxyObjectMapper getObjectMapper() {
+    return objectMapper;
+  }
+
+  public int getNextRequestIndex() {
+    return requestIndex++;
+  }
 }

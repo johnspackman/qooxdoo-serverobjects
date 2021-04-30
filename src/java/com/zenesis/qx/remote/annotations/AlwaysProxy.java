@@ -31,7 +31,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * This annotation shows that a method which would not normally be proxied, should be.
+ * This annotation shows that a method which would not normally be proxied,
+ * should be.
  * 
  * @author "John Spackman <john.spackman@zenesis.com>"
  *

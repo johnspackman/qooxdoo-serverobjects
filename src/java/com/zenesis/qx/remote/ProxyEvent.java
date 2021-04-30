@@ -33,61 +33,62 @@ import com.zenesis.qx.remote.annotations.Remote.Sync;
 
 /**
  * Represents an event which can be raised against a ProxyType instance
+ * 
  * @author John Spackman [john.spackman@zenesis.com]
  */
 public class ProxyEvent {
 
-	private final String name;
-	private final Remote.Sync sync;
-	private final Class dataClass;
-	
-	/**
-	 * @param name
-	 * @param sync
-	 * @param dataClass
-	 */
-	public ProxyEvent(String name, Sync sync, Class dataClass) {
-		super();
-		this.name = name;
-		this.sync = sync;
-		this.dataClass = dataClass;
-	}
+  private final String name;
+  private final Remote.Sync sync;
+  private final Class dataClass;
 
-	/**
-	 * @param name
-	 */
-	public ProxyEvent(String name) {
-		this(name, Remote.Sync.QUEUE, null);
-	}
-	
-	/**
-	 * Creates a ProxyEvent from an Event annotation
-	 * @param anno
-	 */
-	public ProxyEvent(Event anno) {
-		this(anno.value(), anno.sync(), anno.data());
-	}
+  /**
+   * @param name
+   * @param sync
+   * @param dataClass
+   */
+  public ProxyEvent(String name, Sync sync, Class dataClass) {
+    super();
+    this.name = name;
+    this.sync = sync;
+    this.dataClass = dataClass;
+  }
 
-	/**
-	 * @return the name
-	 */
-	public String getName() {
-		return name;
-	}
+  /**
+   * @param name
+   */
+  public ProxyEvent(String name) {
+    this(name, Remote.Sync.QUEUE, null);
+  }
 
-	/**
-	 * @return the sync
-	 */
-	public Remote.Sync getSync() {
-		return sync;
-	}
+  /**
+   * Creates a ProxyEvent from an Event annotation
+   * 
+   * @param anno
+   */
+  public ProxyEvent(Event anno) {
+    this(anno.value(), anno.sync(), anno.data());
+  }
 
-	/**
-	 * @return the dataClass
-	 */
-	public Class getDataClass() {
-		return dataClass;
-	}
-	
-	
+  /**
+   * @return the name
+   */
+  public String getName() {
+    return name;
+  }
+
+  /**
+   * @return the sync
+   */
+  public Remote.Sync getSync() {
+    return sync;
+  }
+
+  /**
+   * @return the dataClass
+   */
+  public Class getDataClass() {
+    return dataClass;
+  }
+
 }

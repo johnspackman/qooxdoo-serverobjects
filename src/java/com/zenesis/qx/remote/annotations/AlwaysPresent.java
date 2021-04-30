@@ -33,8 +33,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marking a class with this annotation means that the class is always present on
- * the client and does not need to be serialised
+ * Marking a class with this annotation means that the class is always present
+ * on the client and does not need to be serialised
  * 
  * @author "John Spackman <john.spackman@zenesis.com>"
  *

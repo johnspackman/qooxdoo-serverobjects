@@ -28,17 +28,18 @@
 package com.zenesis.qx.remote;
 
 /**
- * Interfaces which extend this can to be sent to the client as an RMI definition;
- * note that classes should not implement this interface directly because only
- * interfaces can proxied.
+ * Interfaces which extend this can to be sent to the client as an RMI
+ * definition; note that classes should not implement this interface directly
+ * because only interfaces can proxied.
  * 
  * @author John Spackman
  *
  */
 /*
-@JsonSerialize(using=ProxiedSerializer.class)
-@JsonDeserialize(using=ProxiedDeserializer.class)
-*/
+ * @JsonSerialize(using=ProxiedSerializer.class)
+ * 
+ * @JsonDeserialize(using=ProxiedDeserializer.class)
+ */
 public interface Proxied {
-	
+
 }

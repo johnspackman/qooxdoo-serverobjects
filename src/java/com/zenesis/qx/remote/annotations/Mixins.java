@@ -7,13 +7,14 @@ import java.lang.annotation.Target;
 
 /**
  * Used where multiple Mixin attributes are required for class
+ * 
  * @author john
  *
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 public @interface Mixins {
 
-	public Mixin[] value();
-	
+  public Mixin[] value();
+
 }

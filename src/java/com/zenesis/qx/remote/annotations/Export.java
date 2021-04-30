@@ -6,12 +6,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 public @interface Export {
 
-    public enum EXPORT {
-        YES, NO, DYNAMIC
-    }
-    
-    public EXPORT value() default EXPORT.YES;
+  public enum EXPORT {
+    YES, NO, DYNAMIC
+  }
+
+  public EXPORT value() default EXPORT.YES;
 }

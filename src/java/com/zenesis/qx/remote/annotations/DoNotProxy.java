@@ -31,8 +31,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * Marking a class with this annotation means that the class or method or field etc
- * can not be proxied
+ * Marking a class with this annotation means that the class or method or field
+ * etc can not be proxied
  * 
  * @author "John Spackman <john.spackman@zenesis.com>"
  *

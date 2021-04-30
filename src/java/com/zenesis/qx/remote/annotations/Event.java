@@ -38,24 +38,24 @@ import java.lang.annotation.Target;
  * @author John Spackman [john.spackman@zenesis.com]
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.ANNOTATION_TYPE})
+@Target({ ElementType.ANNOTATION_TYPE })
 public @interface Event {
-	
-	/**
-	 * The name of the event
-	 */
-	public String value();
-	
-	/**
-	 * Synchronisation policy for the event
-	 */
-	public Remote.Sync sync() default Remote.Sync.QUEUE;
 
-	/**
-	 * If the event has data associated with it, this gives the class of the
-	 * data.  Because annotation properties cannot have null and must be literal
-	 * values, the default class is <code>Remote</code> which cannot be instantiated
-	 * and therefore is a suitable placeholder for "no data".
-	 */
-	public Class data() default Remote.class;
+  /**
+   * The name of the event
+   */
+  public String value();
+
+  /**
+   * Synchronisation policy for the event
+   */
+  public Remote.Sync sync() default Remote.Sync.QUEUE;
+
+  /**
+   * If the event has data associated with it, this gives the class of the data.
+   * Because annotation properties cannot have null and must be literal values,
+   * the default class is <code>Remote</code> which cannot be instantiated and
+   * therefore is a suitable placeholder for "no data".
+   */
+  public Class data() default Remote.class;
 }
