@@ -89,6 +89,9 @@ public class FileApi implements Proxied {
 
   // Root folder
   private final File rootDir;
+  
+  @Property
+  private String title; 
 
   // Root URL
   @Property
@@ -746,6 +749,20 @@ public class FileApi implements Proxied {
    */
   public String getRootUrl() {
     return rootUrl;
+  }
+
+  /**
+   * @return the title
+   */
+  public String getTitle() {
+    return title;
+  }
+
+  /**
+   * @param title the title to set
+   */
+  public void setTitle(String title) {
+    this.title = ProxyManager.changeProperty(this, "title", title, this.title);
   }
 
   /**
