@@ -1988,7 +1988,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           postTime: new Date().getTime(),
           reqIndex: reqIndex
         },
-        handler: evt => this.__onResponseReceived(evt)
+        handler: ioData => this.__onResponseReceived(ioData)
       });
     },
 
