@@ -447,8 +447,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * @param cb {Function} called with (key, value, entry)
      */
     forEach: function(cb) {
-      var t = this;
-      return Object.keys(this.__lookupEntries).forEach(function(id) {
+      return Object.keys(this.__lookupEntries).forEach(id => {
         var entry = this.__lookupEntries[id];
         return cb(entry.getKey(), entry.getValue(), entry);
       });
@@ -459,8 +458,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * @param cb {Function} called with (key, value)
      */
     some: function(cb) {
-      var t = this;
-      return Object.keys(this.__lookupEntries).some(function(id) {
+      return Object.keys(this.__lookupEntries).some(id => {
         var entry = this.__lookupEntries[id];
         return cb(entry.getKey(), entry.getValue(), entry);
       });
@@ -471,8 +469,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * @param cb {Function} called with (key, value)
      */
     every: function(cb) {
-      var t = this;
-      return Object.keys(this.__lookupEntries).every(function(id) {
+      return Object.keys(this.__lookupEntries).every(id => {
         var entry = this.__lookupEntries[id];
         return cb(entry.getKey(), entry.getValue(), entry);
       });
@@ -530,11 +527,10 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       }
       
       var result = {};
-      var lookup = this.__lookupEntries;
-      this.getKeys().forEach(function(id) {
+      this.getKeys().forEach(id => {
         var entry = this.__lookupEntries[id];
         result[entry.getKey()] = entry.getValue();
-      }.bind(this));
+      });
       
       return result;
     },
