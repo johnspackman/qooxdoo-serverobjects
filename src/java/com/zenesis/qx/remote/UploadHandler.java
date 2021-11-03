@@ -64,7 +64,7 @@ public class UploadHandler {
 
   private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(UploadHandler.class);
 
-  public static final int MAX_UPLOAD_SIZE = 1024 * 1024 * 50; // Default max size of uploads, 50Mb
+  public static final int MAX_UPLOAD_SIZE = 1024 * 1024 * 100; // Default max size of uploads, 50Mb
   public static final String DEFAULT_ENCODING = "ISO-8859-1"; // Default encoding for parameters
 
   // Number of uploads received to date - used for a unique upload ID if none is
