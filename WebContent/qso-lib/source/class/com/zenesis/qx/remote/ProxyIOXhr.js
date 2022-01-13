@@ -46,24 +46,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
     timeout: {
       init: null,
       nullable: true,
-      check: "Integer",
-      apply: "_applyTimeout"
+      check: "Integer"
     }
   },
   
   members: {
-    /**
-     * Called to apply the timeout
-     */
-    _applyTimeout: function(value) {
-      if (typeof qx.io.remote.transport.XmlHttp.setTimeout == "function") {
-        qx.io.remote.transport.XmlHttp.setTimeout(value);
-      } else {
-        this.warn("Cannot set the timeout of the underlying qx.io.remote.transport.XmlHttp transport because it does not support " +
-        "setTimeout.  Please see pull request #???");
-      }
-    },
-
     /**
      * @Override
      */
@@ -73,21 +60,33 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
       
       let req = null;
       
+      const getResponseHeaders = () => {
+        let headers = {};
+        req.getAllResponseHeaders().split(/\n/).forEach(line => {
+          let m = line.trim().match(/^([^:]+)\s*:\s*(.*)$/);
+          if (m) {
+            let key = m[1];
+            let value = m[2];
+            headers[key] = value;
+          }  
+        });
+        return headers;
+      };
+      
       const onFailure = evt => {
-        req.dispose();
-        handler({
-          content: evt.getContent(),
-          statusCode: evt.getStatusCode(),
+        let data = {
+          content: req.getResponseText(),
+          statusCode: req.getStatus(),
           type: evt.getType(),
           proxyData: proxyData
-        });
+        };
+        req.dispose();
+        handler(data);
       };
       
       const onSuccess = evt => {
-        let responseHeaders = evt.getResponseHeaders();
-        let content = evt.getContent();
-        
-        req.dispose();
+        let responseHeaders = getResponseHeaders();
+        let content = req.getResponseText();
         
         if (qx.core.Environment.get("qx.debug")) {
           var sha = responseHeaders["x-proxymanager-sha1"];
@@ -99,17 +98,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
           }
         }
         
-        handler({
+        let data = {
           content: content,
-          statusCode: evt.getStatusCode(),
-          proxyData: proxyData,
-          responseHeaders: responseHeaders
-        });
+          responseHeaders: responseHeaders,
+          statusCode: req.getStatus(),
+          proxyData: proxyData
+        };
+        
+        req.dispose();
+        handler(data);
       }
       
       const createRequest = () => {
-        var req = new qx.io.remote.Request(this.getUrl(), "POST", "text/plain");
-        req.setAsynchronous(async);
+        var req = new qx.io.request.Xhr(this.getUrl(), "POST", "text/plain");
+        req.setAsync(async);
         req.setTimeout(this.getTimeout());
         
         // You must set the character encoding explicitly; even if the page is
@@ -132,11 +134,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
         headers["X-ProxyManager-ClientTime"] = new Date().getTime();
         Object.keys(headers).forEach(key => req.setRequestHeader(key, headers[key]));
         
-        req.addListener("completed", onSuccess);
-        req.addListener("failed", onFailure);
+        req.addListener("success", onSuccess);
+        req.addListener("fail", onFailure);
         req.addListener("timeout", onFailure);
         
-        req.setData(body);
+        req.setRequestData(body);
         return req;
       };
       
