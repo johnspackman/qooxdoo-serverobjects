@@ -612,6 +612,12 @@ public class FileApi implements Proxied {
       }
       if (unique && dest.exists())
         dest = makeUnique(dest);
+      if (!dest.getParentFile().exists()) {
+        dest.getParentFile().mkdirs();
+        if (notify)
+          onChange(ChangeType.CREATE_FOLDER, dest.getParentFile(), null);
+      }
+      
       FileOutputStream os = null;
       FileInputStream is = null;
       try {
