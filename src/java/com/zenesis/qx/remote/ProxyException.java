@@ -27,7 +27,7 @@
  */
 package com.zenesis.qx.remote;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 /**
  * This exception is thrown to relay an exception to the client

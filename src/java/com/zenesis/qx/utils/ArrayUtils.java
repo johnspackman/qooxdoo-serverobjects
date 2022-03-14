@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyProperty;
