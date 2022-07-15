@@ -454,7 +454,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
       Class[] mpts = method.getParameterTypes();
       if (epts.length == mpts.length) {
         for (int i = 0; i < epts.length; i++)
-          if (epts[i] != mpts[i])
+          if (!epts[i].isAssignableFrom(mpts[i]))
             return true;
         return false;
       }
