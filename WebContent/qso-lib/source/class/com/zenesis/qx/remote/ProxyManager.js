@@ -1974,7 +1974,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (!suppressWarnings && qx.core.Environment.get("com.zenesis.qx.remote.traceRecursion")) {
         if (this.__inProcessData) {
           var trace = qx.dev.StackTrace.getStackTrace();
-          this.warn(["Recursive calls to ProxyManager may cause exceptions with object references, stack trace:"].concat(trace).join("\n"));
+          console.warn(["Recursive calls to ProxyManager may cause exceptions with object references, stack trace:"].concat(trace).join("\n"));
         }
       }
       
