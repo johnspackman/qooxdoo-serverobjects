@@ -134,7 +134,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
         });
         if (!async) {
           var trace = qx.dev.StackTrace.getStackTrace();
-          this.warn(["Calling method " + this.classname + "." + name + " [" + this + "] synchronously, stack trace:"].concat(trace).join("\n"));
+          qx.log.Logger.warn(com.zenesis.qx.remote.MProxy, `Calling method ${this.classname}.${name} [${this}] synchronously, stack trace:${trace}\n`);
         }
       }
 
@@ -255,7 +255,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       if (qx.core.Environment.get("com.zenesis.qx.remote.traceOnDemandSync")) {
         if (async === undefined) {
           var trace = qx.dev.StackTrace.getStackTrace();
-          this.warn(["Getting ondemand property " + propName + " of " + this.classname + " [" + this + "] synchronously, stack trace:"].concat(trace).join("\n"));
+          qx.log.Logger.warn(com.zenesis.qx.remote.MProxy, `Getting ondemand property ${propName} of ${this.classname} [${this}] synchronously, stack trace:${trace}\n`);
         }
       }
 
