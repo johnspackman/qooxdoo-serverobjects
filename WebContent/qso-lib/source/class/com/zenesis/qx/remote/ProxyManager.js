@@ -1432,6 +1432,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
           }
         }
+        
+        console.log(`asyncId=${data.asyncId} ${serverObject.classname}.${methodName}`);
 
         for (var i = 0; i < notify.length; i++)
           notify[i].call(serverObject, result);
