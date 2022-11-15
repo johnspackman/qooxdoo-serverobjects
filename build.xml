@@ -10,7 +10,7 @@
 	<path id="classpath">
         <fileset dir="WebContent/WEB-INF/lib" includes="*.jar" />
         <fileset dir="lib" includes="*.jar" />
-        <fileset dir="../../../../../../../../../bin/apache-tomcat-7.0.81/lib" includes="*.jar" />
+        <fileset dir="../../../../../../../../../bin/apache-tomcat-10.0.17/lib" includes="*.jar" />
 	</path>
 
 	<target name="clean">

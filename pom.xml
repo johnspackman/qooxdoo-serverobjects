@@ -7,6 +7,33 @@
     
     
     <dependencies>
+<!-- https://mvnrepository.com/artifact/jakarta.servlet/jakarta.servlet-api -->
+<dependency>
+    <groupId>jakarta.servlet</groupId>
+    <artifactId>jakarta.servlet-api</artifactId>
+    <version>5.0.0</version>
+    <scope>provided</scope>
+</dependency>
+<dependency>
+    <groupId>javax</groupId>
+    <artifactId>javaee-web-api</artifactId>
+    <version>8.0.1</version>
+    <scope>provided</scope>
+</dependency>
+<dependency>
+    <groupId>org.clapper</groupId>
+    <artifactId>javautil</artifactId>
+    <version>3.2.0</version>
+    <scope>system</scope>
+    <systemPath>/Users/john/dev/Grasshopper/smart/Grasshopper2/WebContent/WEB-INF/lib/my-javautil.jar</systemPath>
+</dependency>
+<!-- https://mvnrepository.com/artifact/javax.activation/activation -->
+<dependency>
+    <groupId>javax.activation</groupId>
+    <artifactId>activation</artifactId>
+    <version>1.1.1</version>
+</dependency>
+
         <dependency>
             <groupId>javax</groupId>
             <artifactId>javaee-web-api</artifactId>
