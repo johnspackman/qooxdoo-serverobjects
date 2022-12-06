@@ -25,25 +25,138 @@ import com.zenesis.qx.remote.annotations.Properties;
  */
 @SuppressWarnings("serial")
 @Properties(extend = "qx.data.Array")
-public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied, Eventable, EventVerifiable {
+public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, Eventable, EventVerifiable {
 
   private final EventStore eventStore = new EventStore(this);
   private final int hashCode;
   private boolean sorting;
+  private transient Object[] elementData;
+  private int size;
+  private boolean storeReferences;
 
   public ArrayList() {
-    super();
-    hashCode = new Object().hashCode();
+    this(5);
   }
 
   public ArrayList(Collection<? extends T> c) {
-    super(c);
     hashCode = new Object().hashCode();
+    size = c.size();
+    elementData = new Object[size];
+    Iterator it = c.iterator();
+    int i = 0;
+    while (it.hasNext()) {
+      elementData[i++] = it.next();
+    }
   }
 
   public ArrayList(int initialCapacity) {
-    super(initialCapacity);
     hashCode = new Object().hashCode();
+    elementData = new Object[initialCapacity];
+  }
+
+  @Override
+  public T get(int index) {
+    if (index < 0 || index > size)
+      throw new IndexOutOfBoundsException("Index " + size + " out of bounds, max=" + size);
+    Object obj = elementData[index];
+    if (obj == null)
+      return null;
+    if (obj instanceof OnDemandReference<?>) {
+      obj = ((OnDemandReference<T>)obj).get();
+    }
+    return (T)obj;
+  }
+
+  @Override
+  public int size() {
+    return size;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.util.ArrayList#add(int, java.lang.Object)
+   */
+  @Override
+  public void add(int index, T element) {
+    addImpl(index, element);
+  }
+  
+  public void add(OnDemandReference<T> ref) {
+    addImpl(size, ref);
+  }
+
+  private void addImpl(int index, Object element) {
+    if (index < -1 || index > size)
+      throw new IndexOutOfBoundsException("Cannot add with index=" + index + " when size=" + size);
+    if (size == this.elementData.length) {
+      Object[] tmp = new Object[size + 5];
+      System.arraycopy(elementData, 0, tmp, 0, elementData.length);
+      elementData = tmp;
+    }
+    System.arraycopy(elementData, index,
+                     elementData, index + 1,
+                     size - index);
+    elementData[index] = getValueToStore(null, element);
+    size++;
+    fire(new ArrayChangeData().add(element));
+  }
+  
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.util.ArrayList#remove(int)
+   */
+  @Override
+  public T remove(int index) {
+    if (index < 0 || index >= size)
+      throw new IndexOutOfBoundsException("Cannot remove with index=" + index + " when size=" + size);
+    T result = get(index);
+    if (index < size - 1) {
+      System.arraycopy(elementData, index + 1, elementData, index, size - index);
+    }
+    elementData[size] = null;
+    size--;
+    
+    fire(new ArrayChangeData().remove(result));
+    return result;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.util.ArrayList#set(int, java.lang.Object)
+   */
+  @Override
+  public T set(int index, T element) {
+    T result = get(index);
+    
+    elementData[index] = getValueToStore(elementData[index], element);
+    
+    fire(new ArrayChangeData().remove(result).add(element));
+    return result;
+  }
+  
+  private Object getValueToStore(Object oldValue, Object element) {
+    if (element == null)
+      return null;
+    if (element instanceof OnDemandReference<?>)
+      return element;
+    if (oldValue instanceof OnDemandReference<?>) {
+      ((OnDemandReference<T>)oldValue).set((T)element);
+      return oldValue;
+    }
+    if (OnDemandReferenceFactory.INSTANCE != null && storeReferences)
+      return OnDemandReferenceFactory.INSTANCE.createReference(element);
+    return element;
+  }
+  
+  public boolean isStoreReferences() {
+    return storeReferences;
+  }
+
+  public void setStoreReferences(boolean storeReferences) {
+    this.storeReferences = storeReferences;
   }
 
   @Override
@@ -155,29 +268,6 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied, Eve
   /*
    * (non-Javadoc)
    * 
-   * @see java.util.ArrayList#add(int, java.lang.Object)
-   */
-  @Override
-  public void add(int index, T element) {
-    super.add(index, element);
-    fire(new ArrayChangeData().add(element));
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.util.ArrayList#add(java.lang.Object)
-   */
-  @Override
-  public boolean add(T e) {
-    boolean result = super.add(e);
-    fire(new ArrayChangeData().add(e));
-    return result;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
    * @see java.util.ArrayList#addAll(java.util.Collection)
    */
   @Override
@@ -228,31 +318,6 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied, Eve
   /*
    * (non-Javadoc)
    * 
-   * @see java.util.ArrayList#remove(int)
-   */
-  @Override
-  public T remove(int index) {
-    T result = super.remove(index);
-    fire(new ArrayChangeData().remove(result));
-    return result;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.util.ArrayList#remove(java.lang.Object)
-   */
-  @Override
-  public boolean remove(Object o) {
-    boolean result = super.remove(o);
-    if (result)
-      fire(new ArrayChangeData().remove(o));
-    return result;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
    * @see java.util.ArrayList#removeRange(int, int)
    */
   @Override
@@ -271,18 +336,6 @@ public class ArrayList<T> extends java.util.ArrayList<T> implements Proxied, Eve
       event.remove(this.get(i));
     super.removeRange(fromIndex, toIndex);
     fire(event);
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.util.ArrayList#set(int, java.lang.Object)
-   */
-  @Override
-  public T set(int index, T element) {
-    T result = super.set(index, element);
-    fire(new ArrayChangeData().remove(result).add(element));
-    return result;
   }
 
   /*

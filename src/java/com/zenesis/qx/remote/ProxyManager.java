@@ -52,6 +52,8 @@ import com.zenesis.qx.event.Event;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.remote.CommandId.CommandType;
 import com.zenesis.qx.remote.collections.ChangeData;
+import com.zenesis.qx.remote.collections.OnDemandReference;
+import com.zenesis.qx.remote.collections.OnDemandReferenceFactory;
 
 /**
  * This class needs to be implemented by whatever software hosts the proxies
@@ -312,7 +314,17 @@ public class ProxyManager implements EventListener {
 
     return false;
   }
+  
+  public static <T,S extends OnDemandReference> OnDemandReference<T> changeProperty(Proxied keyObject, String propertyName, T newValue, OnDemandReference<T> ref) {
+    T oldValue = ref != null ? ref.get() : null;
 
+    if (same(newValue, oldValue))
+      return ref;
+    ref = OnDemandReferenceFactory.INSTANCE.createReference(newValue);
+    propertyChanged(keyObject, propertyName, newValue, oldValue);
+    return ref;
+  }
+  
   /**
    * Changes a value, but only fires the event if the value is changed
    * 
