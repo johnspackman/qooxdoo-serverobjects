@@ -14,6 +14,9 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
   private String uuid;
   private SoftReference<T> ref;
   
+  public AbstractOnDemandReference() {
+  }
+  
   public AbstractOnDemandReference(String uuid) {
     this.uuid = uuid;
   }

@@ -33,6 +33,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   private transient Object[] elementData;
   private int size;
   private boolean storeReferences;
+  private Object containerObject;
 
   public ArrayList() {
     this(5);
@@ -65,6 +66,12 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       obj = ((OnDemandReference<T>)obj).get();
     }
     return (T)obj;
+  }
+  
+  public Object getRawElement(int index) {
+    if (index < 0 || index > size)
+      throw new IndexOutOfBoundsException("Index " + size + " out of bounds, max=" + size);
+    return elementData[index];
   }
 
   @Override
@@ -146,8 +153,11 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       ((OnDemandReference<T>)oldValue).set((T)element);
       return oldValue;
     }
-    if (OnDemandReferenceFactory.INSTANCE != null && storeReferences)
-      return OnDemandReferenceFactory.INSTANCE.createReference(element);
+    OnDemandReference ref = OnDemandReferenceFactory.createReferenceFor(element.getClass(), containerObject);
+    if (ref != null) {
+      ref.set(element);
+      return ref;
+    }
     return element;
   }
   
@@ -202,6 +212,14 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   @Override
   public void fireDataEvent(String eventName, Object data) {
     eventStore.fireDataEvent(eventName, data);
+  }
+
+  public Object getContainerObject() {
+    return containerObject;
+  }
+
+  public void setContainerObject(Object containerObject) {
+    this.containerObject = containerObject;
   }
 
   @SerializeConstructorArgs

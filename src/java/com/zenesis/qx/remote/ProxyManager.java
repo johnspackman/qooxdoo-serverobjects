@@ -320,7 +320,13 @@ public class ProxyManager implements EventListener {
 
     if (same(newValue, oldValue))
       return ref;
-    ref = OnDemandReferenceFactory.INSTANCE.createReference(newValue);
+
+    if (ref != null) {
+      ref.set(newValue);
+    } else if (newValue != null) {
+      ref = OnDemandReferenceFactory.createReferenceFor(newValue.getClass(), keyObject);
+      ref.set(newValue);
+    }
     propertyChanged(keyObject, propertyName, newValue, oldValue);
     return ref;
   }
