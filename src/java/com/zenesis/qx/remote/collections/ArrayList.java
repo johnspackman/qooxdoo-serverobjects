@@ -120,9 +120,9 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       throw new IndexOutOfBoundsException("Cannot remove with index=" + index + " when size=" + size);
     T result = get(index);
     if (index < size - 1) {
-      System.arraycopy(elementData, index + 1, elementData, index, size - index);
+      System.arraycopy(elementData, index + 1, elementData, index, size - index - 1);
     }
-    elementData[size] = null;
+    elementData[size - 1] = null;
     size--;
     
     fire(new ArrayChangeData().remove(result));
@@ -461,6 +461,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     @Override
     public void remove() {
       fire(new ArrayChangeData().remove(last));
+      iterator.remove();
     }
 
   }

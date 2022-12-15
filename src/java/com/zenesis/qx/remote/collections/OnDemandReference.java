@@ -1,7 +1,5 @@
 package com.zenesis.qx.remote.collections;
 
-import com.zenesis.qx.remote.annotations.OnDemandReferenceFactoryType;
-
 /**
  * On demand reference; every object has a UUID, which can be used to get an object on demand.
  * 
