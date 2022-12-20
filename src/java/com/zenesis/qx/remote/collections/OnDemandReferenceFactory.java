@@ -1,8 +1,5 @@
 package com.zenesis.qx.remote.collections;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-
 import com.zenesis.qx.remote.annotations.OnDemandReferenceFactoryType;
 
 public abstract class OnDemandReferenceFactory<T> {

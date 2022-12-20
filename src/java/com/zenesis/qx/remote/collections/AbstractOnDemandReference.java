@@ -11,8 +11,8 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
 
   private static final Logger log = LogManager.getLogger(AbstractOnDemandReference.class);
   
-  private String uuid;
-  private SoftReference<T> ref;
+  protected String uuid;
+  protected SoftReference<T> ref;
   
   public AbstractOnDemandReference() {
   }
@@ -21,13 +21,13 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
     this.uuid = uuid;
   }
   
-  public AbstractOnDemandReference(HasUuid doc) {
-    uuid = doc.getUuid();
+  public AbstractOnDemandReference(T doc) {
+    uuid = getUuidFromObject(doc);
     ref = new SoftReference<T>((T)doc);
   }
   
-  public static <T extends HasUuid> boolean sameAs(OnDemandReference ref, T doc) {
-    return sameAs(ref, doc.getUuid());
+  public boolean sameAs(T doc) {
+    return sameAs(this, getUuidFromObject(doc));
   }
   
   public static boolean sameAs(OnDemandReference ref, String uuid) {
@@ -91,13 +91,17 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
       ref = null;
       return;
     }
-    String uuid = obj.getUuid();
+    String uuid = getUuidFromObject(obj);
     if (uuid == this.uuid)
       return;
     if (uuid != null && this.uuid != null && uuid.equals(this.uuid))
       return;
     this.uuid = uuid;
     ref = new SoftReference<>(obj);
+  }
+  
+  public String getUuidFromObject(T obj) {
+    return obj.getUuid();
   }
 
   @Override
