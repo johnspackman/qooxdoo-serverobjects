@@ -7,6 +7,7 @@ import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.zenesis.core.HasUuid;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.event.EventStore;
@@ -53,6 +54,70 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   public ArrayList(int initialCapacity) {
     hashCode = new Object().hashCode();
     elementData = new Object[initialCapacity];
+  }
+
+  @Override
+  public boolean contains(Object obj) {
+    String uuid;
+    T target = null;
+    OnDemandReference<T> ref = null;
+    if (obj instanceof OnDemandReference<?>) {
+      ref = (OnDemandReference) obj;
+      uuid = ref.getUuid();
+    } else if (obj instanceof HasUuid) {
+      uuid = ((HasUuid)obj).getUuid();
+      target = (T)obj;
+    } else 
+      return super.contains(obj);
+    
+    for (Object element : elementData) {
+      if (element instanceof OnDemandReference) {
+        String refUuid = ((OnDemandReference)element).getUuid();
+        if (refUuid.equals(uuid))
+          return true;
+      } else {
+        if (target == null) {
+          target = ref.get();
+        }
+        if (element == target || element.equals(target))
+          return true;
+      }
+    }
+    
+    return false;
+  }
+
+  @Override
+  public int indexOf(Object obj) {
+    String uuid;
+    T target = null;
+    OnDemandReference<T> ref = null;
+    if (obj instanceof OnDemandReference<?>) {
+      ref = (OnDemandReference) obj;
+      uuid = ref.getUuid();
+    } else if (obj instanceof HasUuid) {
+      uuid = ((HasUuid)obj).getUuid();
+      target = (T)obj;
+    } else 
+      return super.indexOf(obj);
+    
+    for (int i = 0; i < size; i++) {
+      Object element = elementData[i];
+
+      if (element instanceof OnDemandReference) {
+        String refUuid = ((OnDemandReference)element).getUuid();
+        if (refUuid.equals(uuid))
+          return i;
+      } else {
+        if (target == null) {
+          target = ref.get();
+        }
+        if (element == target || element.equals(target))
+          return i;
+      }
+    }
+    
+    return -1;
   }
 
   @Override
