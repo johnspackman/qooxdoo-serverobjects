@@ -22,21 +22,21 @@
 
 /**
  * Implementation of Map, which is a set of key:value pairs with event handlers
- * for changes to the keys, values, and the entries (where an "entry" is a key/value 
- * pair); this class is to <code>{}</code> as <code>qx.data.Array</code> is to 
+ * for changes to the keys, values, and the entries (where an "entry" is a key/value
+ * pair); this class is to <code>{}</code> as <code>qx.data.Array</code> is to
  * <code>[]</code>
- * 
+ *
  * By default, the keys are stored in a native object which means that only native
- * types which can be converted to a String can be used as keys; however, by 
+ * types which can be converted to a String can be used as keys; however, by
  * specifying the `keysAreHashed` parameter to the constructor, the class will
  * require that all keys are instance of <code>qx.core.Object</code> and will
  * use the object's hash code.
- * 
+ *
  * This has a side effect when importing and exporting the Map into an external
  * form, via the <code>replace()</code> and <code>toObject()</code> methods; Maps
  * which have <code>keysAreHashed===true</code> are imported and exported as an array of
  * native objects with key & value properties.
- * 
+ *
  * @see com.zenesis.qx.remote.Entry
  */
 qx.Class.define("com.zenesis.qx.remote.Map", {
@@ -45,18 +45,17 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
   /**
    * Constructor.
    * @param values {Object?} values to import
-   * @param keysAreHashed {Boolean?} whether keys are objects and according to their hash  
+   * @param keysAreHashed {Boolean?} whether keys are objects and according to their hash
    */
-  construct: function(values, keysAreHashed, keyClass, valueClass) {
-    this.base(arguments);
+  construct(values, keysAreHashed, keyClass, valueClass) {
+    super();
     var args = qx.lang.Array.fromArguments(arguments);
-    if (typeof args[0] == "boolean")
-      args.unshift(undefined);
+    if (typeof args[0] == "boolean") args.unshift(undefined);
     values = args.shift();
     keysAreHashed = args.shift();
     keyClass = args.shift();
     valueClass = args.shift();
-    
+
     this.__keysAreHashed = keysAreHashed;
     this.__lookupEntries = {};
     this.set({
@@ -64,25 +63,24 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       values: new qx.data.Array(),
       entries: new qx.data.Array()
     });
-    if (keyClass !== undefined)
-      this.setKeyClass(keyClass);
-    if (valueClass !== undefined)
-      this.setValueClass(valueClass);
+
+    if (keyClass !== undefined) this.setKeyClass(keyClass);
+    if (valueClass !== undefined) this.setValueClass(valueClass);
     if (values !== undefined) {
       this.replace(values);
     }
   },
-  
+
   events: {
     /**
-     * Fired when the map changes, data is a map containing: 
-     * type {String} one of "put", "remove" 
-     * values {Object[]} values which had changed, each map contains: 
-     *  key {String} 
-     *  value {Object} 
+     * Fired when the map changes, data is a map containing:
+     * type {String} one of "put", "remove"
+     * values {Object[]} values which had changed, each map contains:
+     *  key {String}
+     *  value {Object}
      *  oldValue {Object?}
      */
-    "change": "qx.event.type.Data"
+    change: "qx.event.type.Data"
   },
 
   properties: {
@@ -105,7 +103,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       event: "changeValues",
       apply: "_applyValues"
     },
-    
+
     /** List of all Entry's in the map */
     entries: {
       nullable: false,
@@ -113,7 +111,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       event: "changeEntries",
       apply: "_applyEntries"
     },
-    
+
     /** Class of keys (ignored for native key types) */
     keyClass: {
       nullable: true,
@@ -121,7 +119,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       check: "Class",
       transform: "_transformToClass"
     },
-    
+
     /** Class of values */
     valueClass: {
       nullable: true,
@@ -134,41 +132,41 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
   members: {
     // Implementation of the map
     __lookupEntries: null,
-    
+
     // Whether keys are objects and the hashcode is stored (as opposed to native values, ie string)
     __keysAreHashed: false,
-    
+
     // Anti recursion mutex
     __changingValue: false,
-    
+
     /**
      * Gets a value from the map
-     * 
+     *
      * @param key
      *          {String} the key to lookup
      * @returns {Object?} the object that was found, or undefined
      */
-    get: function(key) {
+    get(key) {
       var id = this.__getKey(key);
       var entry = this.__lookupEntries[id];
       return entry ? entry.getValue() : undefined;
     },
-    
+
     /**
      * Gets an entry from the map
-     * 
+     *
      * @param key
      *          {String} the key to lookup
      * @returns {Entry?} the entry that was found, or null
      */
-    getEntry: function(key) {
+    getEntry(key) {
       var id = this.__getKey(key);
       return this.__lookupEntries[id] || null;
     },
 
     /**
      * Puts a new value in the map
-     * 
+     *
      * @param key
      *          {String} the key to assign
      * @param value
@@ -176,7 +174,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      *          removed
      * @returns {Object?} the previous object for the key, or undefined
      */
-    put: function(key, value) {
+    put(key, value) {
       if (value === undefined) {
         return this.remove(key);
       }
@@ -185,37 +183,37 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
 
       this.fireDataEvent("change", {
         type: "put",
-        values: [ {
-          key: key,
-          value: value,
-          oldValue: data.oldValue
-        } ]
+        values: [
+          {
+            key: key,
+            value: value,
+            oldValue: data.oldValue
+          }
+        ]
       });
+
       return data.oldValue;
     },
-    
-    __getKey: function(key) {
+
+    __getKey(key) {
       if (this.__keysAreHashed) {
-        if (key === null || key === undefined)
-          throw new Error("Invalid key passed to Map.__getKey");
+        if (key === null || key === undefined) throw new Error("Invalid key passed to Map.__getKey");
         var hash = qx.core.ObjectRegistry.toHashCode(key);
         return hash;
       }
       return key;
     },
-    
+
     /**
      * Internal implementation of put
      * @param key {String} the key
      * @param value {Object} the object
      */
-    __putImpl:function(key, value) {
+    __putImpl(key, value) {
       var keyClass = this.getKeyClass();
       var valueClass = this.getValueClass();
-      if (keyClass && !(key instanceof keyClass))
-        throw new Error("Cannot put key into map because key is the wrong class, expected " + keyClass + ", given key=" + key);
-      if (valueClass && !(value instanceof valueClass))
-        throw new Error("Cannot put value into map because value is the wrong class, expected " + valueClass + ", given value=" + value);
+      if (keyClass && !(key instanceof keyClass)) throw new Error("Cannot put key into map because key is the wrong class, expected " + keyClass + ", given key=" + key);
+      if (valueClass && !(value instanceof valueClass)) throw new Error("Cannot put value into map because value is the wrong class, expected " + valueClass + ", given value=" + value);
       qx.core.Assert.assertFalse(this.__changingValue);
       this.__changingValue = true;
       try {
@@ -223,17 +221,16 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         var keys = this.getKeys();
         var entries = this.getEntries();
         var id = this.__getKey(key);
-        
+
         var entry = this.__lookupEntries[id];
         var oldValue = null;
         var result;
-        
+
         if (entry) {
           oldValue = entry.getValue();
           values.remove(oldValue);
           entry.setValue(value);
-          if (!values.contains(value))
-            values.push(value);
+          if (!values.contains(value)) values.push(value);
           result = {
             key: key,
             value: value,
@@ -243,49 +240,46 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         } else {
           entry = new com.zenesis.qx.remote.Entry(key, value);
           this.__attachEntry(entry);
-          if (!values.contains(value))
-            values.push(value);
-          if (!keys.contains(key))
-            keys.push(key);
+          if (!values.contains(value)) values.push(value);
+          if (!keys.contains(key)) keys.push(key);
           result = {
             key: key,
             value: value,
             entry: entry
           };
         }
-        
+
         return result;
       } finally {
         this.__changingValue = false;
       }
     },
-    
+
     /**
      * Attaches an entry
      */
-    __attachEntry: function(entry) {
+    __attachEntry(entry) {
       entry.addListener("changeValue", this.__onEntryChangeValue, this);
       this.getEntries().push(entry);
       var id = this.__getKey(entry.getKey());
       this.__lookupEntries[id] = entry;
     },
-    
+
     /**
      * Detaches an entry
      */
-    __detachEntry: function(entry) {
+    __detachEntry(entry) {
       entry.removeListener("changeValue", this.__onEntryChangeValue, this);
       this.getEntries().remove(entry);
       var id = this.__getKey(entry.getKey());
       delete this.__lookupEntries[id];
     },
-    
+
     /**
      * Event handler for changes to an entry's value property
      */
-    __onEntryChangeValue: function(evt) {
-      if (this.__changingValue)
-        return;
+    __onEntryChangeValue(evt) {
+      if (this.__changingValue) return;
       var entry = evt.getTarget();
       var value = entry.getValue();
       var oldValue = evt.getOldData();
@@ -297,51 +291,49 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         }
       }
       var values = this.getValues();
-      if (remove)
-        values.remove(oldValue);
-      if (!values.contains(value))
-        values.push(value);
-      
+      if (remove) values.remove(oldValue);
+      if (!values.contains(value)) values.push(value);
+
       this.fireDataEvent("change", {
         type: "put",
-        values: [ {
-          key: entry.getKey(),
-          value: entry.getValue(),
-          oldValue: oldValue,
-          entry: entry
-        } ]
+        values: [
+          {
+            key: entry.getKey(),
+            value: entry.getValue(),
+            oldValue: oldValue,
+            entry: entry
+          }
+        ]
       });
     },
-    
-    
+
     /**
      * Replaces all of the elements in this map with another, firing only one or
      * two "change" events for "put" and/or "remove"
-     * 
+     *
      * @param src
      *          {com.zenesis.qx.remote.Map|Object} the map or object to copy
      *          from
      */
-    replace: function(src) {
+    replace(src) {
       var t = this;
-      if (src instanceof com.zenesis.qx.remote.Map)
-        src = src.toObject();
-      
+      if (src instanceof com.zenesis.qx.remote.Map) src = src.toObject();
+
       var values = this.getValues();
       var keys = this.getKeys();
       var entries = this.getEntries();
 
       var removed = [];
       var changed = [];
-      
+
       var srcEntries = {};
       if (this.__keysAreHashed) {
-        src.forEach(function(entry) {
+        src.forEach(function (entry) {
           var id = t.__getKey(entry.key);
           srcEntries[id] = entry;
         });
       } else if (qx.lang.Type.isArray(src)) {
-        src.forEach(function(entry) {
+        src.forEach(function (entry) {
           var id = entry.key;
           srcEntries[id] = entry;
         });
@@ -359,12 +351,13 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
             value: tmp.getValue(),
             entry: tmp
           });
+
           values.remove(tmp.getValue());
           keys.remove(id);
           this.__detachEntry(tmp);
         }
       }
-      
+
       for (var id in srcEntries) {
         var entry = srcEntries[id];
         changed.push(this.__putImpl(entry.key, entry.value));
@@ -386,12 +379,12 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
 
     /**
      * Removes a key:value pair
-     * 
+     *
      * @param key
      *          {String|Entry} the key to remove
      * @returns {Object} the previous value for the key, or undefined
      */
-    remove: function(key) {
+    remove(key) {
       var entry;
       if (key instanceof com.zenesis.qx.remote.Entry) {
         if (qx.core.Environment.get("qx.debug")) {
@@ -402,28 +395,30 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         var id = this.__getKey(key);
         entry = this.__lookupEntries[id];
       }
-      
+
       if (entry) {
         this.__detachEntry(entry);
         this.getValues().remove(entry.getValue());
         this.getKeys().remove(entry.getKey());
         this.fireDataEvent("change", {
           type: "remove",
-          values: [ {
-            key: entry.getKey(),
-            value: entry.getValue(),
-            entry: entry
-          } ]
+          values: [
+            {
+              key: entry.getKey(),
+              value: entry.getValue(),
+              entry: entry
+            }
+          ]
         });
       }
-      
+
       return entry ? entry.getValue() : undefined;
     },
 
     /**
      * Removes all entries from the map
      */
-    removeAll: function() {
+    removeAll() {
       var old = [];
       for (var id in this.__lookupEntries) {
         var entry = this.__lookupEntries[id];
@@ -432,6 +427,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
           value: entry.getValue(),
           entry: entry
         });
+
         this.__detachEntry(entry);
       }
       this.getValues().removeAll();
@@ -441,12 +437,12 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         values: old
       });
     },
-    
+
     /**
      * Equivalent of Array.forEach for every key/value pair
      * @param cb {Function} called with (key, value, entry)
      */
-    forEach: function(cb) {
+    forEach(cb) {
       return Object.keys(this.__lookupEntries).forEach(id => {
         var entry = this.__lookupEntries[id];
         return cb(entry.getKey(), entry.getValue(), entry);
@@ -457,7 +453,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * Equivalent of Array.some for every key/value pair
      * @param cb {Function} called with (key, value)
      */
-    some: function(cb) {
+    some(cb) {
       return Object.keys(this.__lookupEntries).some(id => {
         var entry = this.__lookupEntries[id];
         return cb(entry.getKey(), entry.getValue(), entry);
@@ -468,7 +464,7 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * Equivalent of Array.every for every key/value pair
      * @param cb {Function} called with (key, value)
      */
-    every: function(cb) {
+    every(cb) {
       return Object.keys(this.__lookupEntries).every(id => {
         var entry = this.__lookupEntries[id];
         return cb(entry.getKey(), entry.getValue(), entry);
@@ -477,42 +473,42 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
 
     /**
      * Number of entries in the map
-     * 
+     *
      * @returns {Integer}
      */
-    getLength: function() {
+    getLength() {
       return this.getKeys().getLength();
     },
 
     /**
      * Returns true if the map is empty
-     * 
+     *
      * @returns {Boolean}
      */
-    isEmpty: function() {
+    isEmpty() {
       return this.getLength() == 0;
     },
 
     /**
      * Detects whether the key is in use
-     * 
+     *
      * @param key
      *          {String}
      * @returns {Boolean}
      */
-    containsKey: function(key) {
+    containsKey(key) {
       var id = this.__getKey(key);
       return this.__lookupEntries[id] !== undefined;
     },
 
     /**
      * Detects whether the value is in use
-     * 
+     *
      * @param value
      *          {Object}
      * @returns {Boolean}
      */
-    containsValue: function(value) {
+    containsValue(value) {
       return this.getValues().indexOf(value) > -1;
     },
 
@@ -521,25 +517,25 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * work (and will throw an exception) if the keys are hashed, because it is not possible
      * to use objects as keys in a native map (@see toArray instead)
      */
-    toObject: function() {
+    toObject() {
       if (this.__keysAreHashed) {
         throw new Error("Cannot export as an object because the map uses keys which are objects");
       }
-      
+
       var result = {};
       this.getKeys().forEach(id => {
         var entry = this.__lookupEntries[id];
         result[entry.getKey()] = entry.getValue();
       });
-      
+
       return result;
     },
-    
+
     /**
      * Outputs the map as an array of objects with key & value properties; this is a guaranteed
      * export mechanism because it will work whether the keys are hashed or not
      */
-    toArray: function() {
+    toArray() {
       var result = [];
       for (var id in this.__lookupEntries) {
         var entry = this.__lookupEntries[id];
@@ -553,51 +549,46 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
 
     /**
      * Apply method for values property
-     * 
+     *
      * @param value
      *          {Object}
      * @param oldValue
      *          {Object}
      */
-    _applyValues: function(value, oldValue) {
-      if (oldValue)
-        throw new Error("Cannot change property values of com.zenesis.qx.remote.Map");
+    _applyValues(value, oldValue) {
+      if (oldValue) throw new Error("Cannot change property values of com.zenesis.qx.remote.Map");
     },
 
     /**
      * Apply method for keys property
-     * 
+     *
      * @param value
      *          {Object}
      * @param oldValue
      *          {Object}
      */
-    _applyKeys: function(value, oldValue) {
-      if (oldValue)
-        throw new Error("Cannot change property keys of com.zenesis.qx.remote.Map");
+    _applyKeys(value, oldValue) {
+      if (oldValue) throw new Error("Cannot change property keys of com.zenesis.qx.remote.Map");
     },
 
     /**
      * Apply method for entries property
-     * 
+     *
      * @param value
      *          {Object}
      * @param oldValue
      *          {Object}
      */
-    _applyEntries : function(value, oldValue) {
-      if (oldValue)
-        throw new Error("Cannot change property entries of com.zenesis.qx.remote.Map");
+    _applyEntries(value, oldValue) {
+      if (oldValue) throw new Error("Cannot change property entries of com.zenesis.qx.remote.Map");
     },
-    
+
     /**
      * Transform for keyClass and valueClass, converts strings to classes
      */
-    _transformToClass: function(value) {
-      if (value)
-        value = qx.Class.getByName(value);
+    _transformToClass(value) {
+      if (value) value = qx.Class.getByName(value);
       return value;
     }
-
   }
 });

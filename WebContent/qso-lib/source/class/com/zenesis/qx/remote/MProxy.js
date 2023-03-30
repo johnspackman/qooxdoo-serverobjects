@@ -22,12 +22,11 @@
 
 /**
  * Proxy class
- * 
+ *
  * Base class for proxy objects to mirror Proxied objects on the server
  */
 qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
-
-  destruct: function() {
+  destruct() {
     if (this.__serverId > 0) {
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       PM.disposeServerObject(this);
@@ -35,8 +34,8 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
   },
 
   events: {
-    "changeServerId": "qx.event.type.Data",
-    "sentToServer": "qx.event.type.Event"
+    changeServerId: "qx.event.type.Data",
+    sentToServer: "qx.event.type.Event"
   },
 
   members: {
@@ -46,27 +45,25 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     /**
      * Called by the constructor to initialise the instance
      */
-    initialiseProxy: function() {
+    initialiseProxy() {
       if (this.$$proxy === undefined) {
         this.$$proxy = {};
         this.setServerId(com.zenesis.qx.remote.ProxyManager.getInstance().getCurrentNewServerId());
       }
       if (this.__initialisers !== undefined) {
-        this.__initialisers.forEach(function(cb) {
+        this.__initialisers.forEach(function (cb) {
           cb.call(this, this);
         });
         delete this.__initialisers;
       }
     },
-    
-    proxyAddInitialiser: function(cb, context) {
-      if (context)
-        cb = qx.lang.Function.bind(cb, context);
+
+    proxyAddInitialiser(cb, context) {
+      if (context) cb = qx.lang.Function.bind(cb, context);
       if (this.__serverId !== null) {
         cb.call(this, this);
       } else {
-        if (this.__initialisers === undefined)
-          this.__initialisers = [];
+        if (this.__initialisers === undefined) this.__initialisers = [];
         this.__initialisers.push(cb);
       }
     },
@@ -74,7 +71,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     /**
      * Returns the server ID for this object
      */
-    getServerId: function() {
+    getServerId() {
       if (this.__serverId === undefined || this.__serverId === null) {
         var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
         this.__isPending = true;
@@ -82,11 +79,11 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       }
       return this.__serverId;
     },
-    
+
     /**
      * Detects whether the object has a server id assigned
      */
-    hasServerId: function() {
+    hasServerId() {
       return this.__serverId !== null;
     },
 
@@ -95,23 +92,21 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      * the server has returned a new server ID for it; to be called by
      * ProxyManager only
      */
-    setServerId: function(serverId) {
+    setServerId(serverId) {
       qx.core.Assert.assertTrue(this.__serverId === null || (serverId > 0 && this.__serverId < 0));
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       delete this.__isPending;
-      if (serverId > 0 && this.__serverId < 0)
-        PM.unregisterClientObject(this);
+      if (serverId > 0 && this.__serverId < 0) PM.unregisterClientObject(this);
       var oldValue = this.__serverId;
       this.__serverId = serverId;
-      if (this.hasListener("changeServerId"))
-        this.fireDataEvent("changeServerId", serverId, oldValue);
+      if (this.hasListener("changeServerId")) this.fireDataEvent("changeServerId", serverId, oldValue);
     },
 
     /**
      * Called by ProxyManager when a Proxy instance that was created on the
      * client has been sent to the server
      */
-    setSentToServer: function() {
+    setSentToServer() {
       qx.core.Assert.assertTrue(this.__isPending);
       delete this.__isPending;
       this.fireEvent("sentToServer");
@@ -120,16 +115,16 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     /**
      * Detects whether this object has already been sent to the server
      */
-    getSentToServer: function() {
+    getSentToServer() {
       return !this.__isPending;
     },
 
     /**
      * Called by methods to invoke the server method call
      */
-    _callServer: function(name, args) {
+    _callServer(name, args) {
       if (qx.core.Environment.get("com.zenesis.qx.remote.traceMethodSync")) {
-        var async = args.some(function(arg) {
+        var async = args.some(function (arg) {
           return typeof arg == "function";
         });
         if (!async) {
@@ -140,44 +135,41 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var result = PM.callServerMethod(this, name, args);
-      
+
       var ex = PM.clearException();
-      if (ex)
-        throw ex;
+      if (ex) throw ex;
       return result;
     },
-    
+
     _transformProperty(propertyName, value, oldValue) {
       // Skip changing date instances if they are equivalent
-      if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime())
-        return oldValue;
-      
+      if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime()) return oldValue;
+
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var pd = qx.Class.getPropertyDefinition(this.constructor, propertyName);
-      
+
       if (value && pd.check === "Date") {
-        qx.Annotation.getProperty(this.constructor, propertyName, com.zenesis.qx.remote.annotations.PropertyDate)
-          .forEach(annoDate => {
-            if (annoDate.getValue() == "date") {
-              if (annoDate.isZeroTime()) {
-                if (value.getHours() != 0 || value.getMinutes() != 0 || value.getSeconds() != 0 || value.getMilliseconds() != 0) {
-                  value = new Date(value.getFullYear(), value.getMonth(), value.getDate());
-                }
-              } else {
-                if (value.getHours() != 23 || value.getMinutes() != 59 || value.getSeconds() != 59 || value.getMilliseconds() != 0) {
-                  value = new Date(value.getFullYear(), value.getMonth(), value.getDate(), 23, 59, 59, 0);
-                }
+        qx.Annotation.getProperty(this.constructor, propertyName, com.zenesis.qx.remote.annotations.PropertyDate).forEach(annoDate => {
+          if (annoDate.getValue() == "date") {
+            if (annoDate.isZeroTime()) {
+              if (value.getHours() != 0 || value.getMinutes() != 0 || value.getSeconds() != 0 || value.getMilliseconds() != 0) {
+                value = new Date(value.getFullYear(), value.getMonth(), value.getDate());
+              }
+            } else {
+              if (value.getHours() != 23 || value.getMinutes() != 59 || value.getSeconds() != 59 || value.getMilliseconds() != 0) {
+                value = new Date(value.getFullYear(), value.getMonth(), value.getDate(), 23, 59, 59, 0);
               }
             }
-          });
+          }
+        });
       }
-      
+
       return value;
     },
 
     /**
      * Called when a property value is applied
-     * 
+     *
      * @param propertyName
      *          {String} the name of the property
      * @param value
@@ -186,15 +178,15 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      *          {Object?} the previous value, only applicable to onDemand
      *          properties
      */
-    _applyProperty: function(propertyName, value, oldValue) {
+    _applyProperty(propertyName, value, oldValue) {
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var propDef = qx.Class.getPropertyDefinition(this.constructor, propertyName);
-      
+
       if (oldValue && oldValue instanceof qx.core.Object) {
         oldValue.$$proxyOwnerDetached = this;
         delete oldValue.$$proxyOwner;
       }
-      
+
       if (value && value instanceof qx.core.Object) {
         value.$$proxyOwner = this;
       }
@@ -202,37 +194,31 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       // Add change handler for arrays; note that this works for maps too
       // because they are also "wrapped"
       if (propDef.array == "wrap") {
-        if (oldValue)
-          oldValue.removeListenerById(propDef.changeListenerId);
+        if (oldValue) oldValue.removeListenerById(propDef.changeListenerId);
 
         if (value) {
-          propDef.changeListenerId = value.addListener("change", function(evt) {
+          propDef.changeListenerId = value.addListener("change", evt => {
             PM.onWrappedArrayChange(evt, this, propDef);
-          }, this);
-        } else
-          propDef.changeListenerId = null;
+          });
+        } else propDef.changeListenerId = null;
       }
 
       // We mustn't tell the server anything if it does not yet know about this
       // object
-      if (this.__isPending)
-        return;
+      if (this.__isPending) return;
       PM.setPropertyValue(this, propertyName, value, oldValue);
       var ex = PM.clearException();
-      if (ex)
-        throw ex;
+      if (ex) throw ex;
     },
-    
-    _getPropertyOnDemandAsync: function(propName) {
-      if (this.$$proxy.onDemandPromise === undefined)
-        this.$$proxy.onDemandPromise = {};
+
+    _getPropertyOnDemandAsync(propName) {
+      if (this.$$proxy.onDemandPromise === undefined) this.$$proxy.onDemandPromise = {};
       var promise = this.$$proxy.onDemandPromise[propName];
-      if (promise)
-        return promise;
-      
-      return this.$$proxy.onDemandPromise[propName] = new qx.Promise(function(resolve) {
+      if (promise) return promise;
+
+      return (this.$$proxy.onDemandPromise[propName] = new qx.Promise(function (resolve) {
         this._getPropertyOnDemand(propName, resolve);
-      }, this);
+      }, this));
     },
 
     /**
@@ -240,18 +226,16 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      * @param propName {String} name of the property to get
      * @param async {Boolean|Function} whether asynchronous or not
      */
-    _getPropertyOnDemand: function(propName, async) {
+    _getPropertyOnDemand(propName, async) {
       // Check the cache
       if (this.$$proxy.onDemand) {
         var value = this.$$proxy.onDemand[propName];
         if (value !== undefined) {
-          if (typeof async == "function")
-            async.call(this, value);
+          if (typeof async == "function") async.call(this, value);
           return value;
         }
-      } else
-        this.$$proxy.onDemand = {};
-      
+      } else this.$$proxy.onDemand = {};
+
       if (qx.core.Environment.get("com.zenesis.qx.remote.traceOnDemandSync")) {
         if (async === undefined) {
           var trace = qx.dev.StackTrace.getStackTrace();
@@ -263,23 +247,20 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       var upname = qx.lang.String.firstUp(propName);
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
-      
-      if (async) {
-        PM.callServerMethod(this, "get" + upname, [function(value){
-          var ex = PM.clearException();
-          if (!ex)
-            value = this.__storePropertyOnDemand(propDef, value);
-          else
-            value = undefined;
-          if (typeof async == "function")
-            async(value, ex);
 
-        }]);
+      if (async) {
+        PM.callServerMethod(this, "get" + upname, [
+          function (value) {
+            var ex = PM.clearException();
+            if (!ex) value = this.__storePropertyOnDemand(propDef, value);
+            else value = undefined;
+            if (typeof async == "function") async(value, ex);
+          }
+        ]);
       } else {
         var value = PM.callServerMethod(this, "get" + upname, []);
         var ex = PM.clearException();
-        if (ex)
-          throw ex;
+        if (ex) throw ex;
 
         // Update the cache and done
         return this.__storePropertyOnDemand(propDef, value);
@@ -289,14 +270,14 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     /**
      * Stores a value for an on-demand property, adding and removing listeners
      * as required
-     * 
+     *
      * @param propDef
      *          {Map}
      * @param value
      *          {Object}
      * @returns
      */
-    __storePropertyOnDemand: function(propDef, value) {
+    __storePropertyOnDemand(propDef, value) {
       var oldValue;
       if (this.$$proxy.onDemand && (oldValue = this.$$proxy.onDemand[propDef.name])) {
         if (propDef.array == "wrap" && propDef.changeListenerId) {
@@ -308,15 +289,12 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       if (value !== undefined) {
         if (value && propDef.array == "wrap") {
           if (!!propDef.map) {
-            if (!(value instanceof com.zenesis.qx.remote.Map))
-              value = new com.zenesis.qx.remote.Map(value);
-
-          } else if (!(value instanceof qx.data.Array))
-            value = new qx.data.Array(value);
-          propDef.changeListenerId = value.addListener("change", function(evt) {
+            if (!(value instanceof com.zenesis.qx.remote.Map)) value = new com.zenesis.qx.remote.Map(value);
+          } else if (!(value instanceof qx.data.Array)) value = new qx.data.Array(value);
+          propDef.changeListenerId = value.addListener("change", evt => {
             var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
             PM.onWrappedArrayChange(evt, this, propDef);
-          }, this);
+          });
         }
         this.$$proxy.onDemand[propDef.name] = value;
       }
@@ -326,7 +304,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     /**
      * Called when an on-demand property's expire method is called
      */
-    _expirePropertyOnDemand: function(propName, sendToServer) {
+    _expirePropertyOnDemand(propName, sendToServer) {
       if (this.$$proxy.onDemand && this.$$proxy.onDemand[propName]) {
         var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
         this.__storePropertyOnDemand(propDef, undefined);
@@ -341,18 +319,15 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     /**
      * Called when an on-demand property's set method is called
      */
-    _setPropertyOnDemand: function(propName, value) {
+    _setPropertyOnDemand(propName, value) {
       // Update the cache
       var oldValue;
-      if (!this.$$proxy.onDemand)
-        this.$$proxy.onDemand = {};
-      else
-        oldValue = this.$$proxy.onDemand[propName];
+      if (!this.$$proxy.onDemand) this.$$proxy.onDemand = {};
+      else oldValue = this.$$proxy.onDemand[propName];
 
       // Don't use __storePropertyOnDemand here - use _applyProperty instead
       var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
-      if (propDef.array == "wrap" && !(value instanceof qx.data.Array))
-        value = new qx.data.Array(value);
+      if (propDef.array == "wrap" && !(value instanceof qx.data.Array)) value = new qx.data.Array(value);
 
       this.$$proxy.onDemand[propName] = value;
       this._applyProperty(propName, value, oldValue);
@@ -361,8 +336,8 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     /*
      * @Override
      */
-    addListener: function(name, listener, context, capture) {
-      var result = this.base(arguments, name, listener, context, capture);
+    addListener(name, listener, context, capture) {
+      var result = super.addListener(name, listener, context, capture);
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       PM.addServerListener(this, name);
       return result;
@@ -371,28 +346,26 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     /*
      * @Override
      */
-    removeListener: function(name, listener, context, capture) {
-      var existed = this.base(arguments, name, listener, context, capture);
-      if (!existed)
-        return;
+    removeListener(name, listener, context, capture) {
+      var existed = super.removeListener(name, listener, context, capture);
+      if (!existed) return;
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       PM.removeServerListener(this, name);
       return existed;
     }
   },
-  
+
   statics: {
-    
     /**
      * Patches a normal property so that it can take a callback as the parameter and have the
      * value passed to the callback; this is important because it allows a uniform coding pattern
      * which is the same for on demand and normal properties
      */
-    patchNormalProperty: function(clazz, name) {
+    patchNormalProperty(clazz, name) {
       var upname = qx.lang.String.firstUp(name);
       var get = clazz.prototype["get" + upname];
-      var fn = clazz.prototype["get" + upname] = function(cb) {
-        // qx.core.Property.executeOptimisedSetter changes the implementation of the 
+      var fn = (clazz.prototype["get" + upname] = function (cb) {
+        // qx.core.Property.executeOptimisedSetter changes the implementation of the
         //  get method the first time it is called; we detect that and swap our overridden
         //  method back in
         var currentGet = clazz.prototype["get" + upname];
@@ -402,103 +375,87 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
           get = newGet;
           clazz.prototype["get" + upname] = currentGet;
         }
-        if (typeof cb == "function")
-          cb(value);
+        if (typeof cb == "function") cb(value);
         return value;
-      };
-      if (get.$$install)
-        fn.$$install = get.$$install;
+      });
+      if (get.$$install) fn.$$install = get.$$install;
     },
-    
+
     /**
      * Adds an on-demand property
      */
-    addOnDemandProperty: function(clazz, propName, readOnly) {
+    addOnDemandProperty(clazz, propName, readOnly) {
       var upname = qx.lang.String.firstUp(propName);
       clazz.prototype["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
       clazz.prototype["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
       clazz.prototype["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
-      clazz.prototype["get" + upname + "Async"] = new Function(
-          "return new qx.Promise(function(resolve) {" +
-            "this._getPropertyOnDemand('" + propName + "', function(result) {" +
-              "resolve(result);" + 
-            "});" +
-          "}, this);");
+      clazz.prototype["get" + upname + "Async"] = new Function("return new qx.Promise(function(resolve) {" + "this._getPropertyOnDemand('" + propName + "', function(result) {" + "resolve(result);" + "});" + "}, this);");
     },
 
-    deferredClassInitialisation: function(clazz) {
-    	// Make sure it has this mixin - but check first because a super class may have already
-    	//	included it
+    deferredClassInitialisation(clazz) {
+      // Make sure it has this mixin - but check first because a super class may have already
+      //	included it
       if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy)) {
-    	  qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
-    	  clazz = qx.Class.getByName(clazz.classname);
+        qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
+        clazz = qx.Class.getByName(clazz.classname);
       }
-    	
-    	for (var name in clazz.$$properties) {
-    		var def = clazz.$$properties[name];
-    		if (def.isServer) {
-    			if (def.onDemand)
-    				this.addOnDemandProperty(clazz, name, !!def.readOnly);
-    			else
-    				this.patchNormalProperty(clazz, name);
-    		}
-    	}
-    	
-    	// Update Packages global - this is for compatibility with Rhino server apps
+
+      for (var name in clazz.$$properties) {
+        var def = clazz.$$properties[name];
+        if (def.isServer) {
+          if (def.onDemand) this.addOnDemandProperty(clazz, name, !!def.readOnly);
+          else this.patchNormalProperty(clazz, name);
+        }
+      }
+
+      // Update Packages global - this is for compatibility with Rhino server apps
       var tld = clazz.classname.match(/^[^.]+/)[0];
       if (tld) {
-        if (window.Packages === undefined)
-          window.Packages = {};
+        if (window.Packages === undefined) window.Packages = {};
         window.Packages[tld] = window[tld];
       }
-      
+
       return clazz;
     },
-    
+
     /**
      * Used as the transform property for arrays to make sure that the value is
      * always a qx.data.Array or derived
      */
-    transformToDataArray: function(value, clazz) {
-      if (!value)
-        return new clazz();
-      if (qx.Class.isSubClassOf(value.constructor, clazz))
-        return value;
+    transformToDataArray(value, clazz) {
+      if (!value) return new clazz();
+      if (qx.Class.isSubClassOf(value.constructor, clazz)) return value;
       var result = new clazz();
-      if (value instanceof qx.data.Array || qx.lang.Type.isArray(value))
-        result.append(value);
-      else
-        result.push(value);
+      if (value instanceof qx.data.Array || qx.lang.Type.isArray(value)) result.append(value);
+      else result.push(value);
       return result;
     },
-    
-    getEventDefinition: function(clazz, name) {
-    	while (clazz.superclass) {
-    		if (clazz.$$eventMeta && clazz.$$eventMeta[name]) {
-    			return clazz.$$eventMeta[name];
-    		}
-    		if (clazz.$$events && clazz.$$events[name] !== undefined) {
+
+    getEventDefinition(clazz, name) {
+      while (clazz.superclass) {
+        if (clazz.$$eventMeta && clazz.$$eventMeta[name]) {
+          return clazz.$$eventMeta[name];
+        }
+        if (clazz.$$events && clazz.$$events[name] !== undefined) {
           return {};
         }
         clazz = clazz.superclass;
-    	}
-    	return null;
+      }
+      return null;
     },
-    
-    getMethodDefinition: function(clazz, name) {
-    	var exists = false;
-    	while (clazz.superclass) {
-    		if (clazz.$$methodMeta && clazz.$$methodMeta[name]) {
-    			return clazz.$$methodMeta[name];
-    		}
-    		if (typeof clazz[name] == "function") {
+
+    getMethodDefinition(clazz, name) {
+      var exists = false;
+      while (clazz.superclass) {
+        if (clazz.$$methodMeta && clazz.$$methodMeta[name]) {
+          return clazz.$$methodMeta[name];
+        }
+        if (typeof clazz[name] == "function") {
           exists = true;
         }
-    		clazz = clazz.superclass;
-    	}
-    	return exists ? {} : null;
+        clazz = clazz.superclass;
+      }
+      return exists ? {} : null;
     }
-
   }
-
 });
