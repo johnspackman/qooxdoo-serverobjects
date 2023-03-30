@@ -22,22 +22,20 @@
 
 /**
  * IProxyIO
- * 
+ *
  * IO provider for ProxyManager
- * 
+ *
  */
 qx.Interface.define("com.zenesis.qx.remote.IProxyIO", {
   members: {
     /**
      * @param options {Map} containing:
-     *  headers {Map} of headers to send 
+     *  headers {Map} of headers to send
      *  body {String} body to send
      *  async {Boolean} true if async (default: true)
      *  proxyData {Object} proxyData to return to handler
      *  handler {Function} callback
      */
-    send(options) {
-      
-    }
+    send(options) {}
   }
 });

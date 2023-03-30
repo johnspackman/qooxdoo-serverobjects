@@ -22,26 +22,26 @@
 
 /**
  * ProxyIOXhr
- * 
+ *
  * Implementation of IProxyIO for XHR
- * 
+ *
  */
 qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
   extend: qx.core.Object,
-  
-  implement: [ com.zenesis.qx.remote.IProxyIO ],
-  
+
+  implement: [com.zenesis.qx.remote.IProxyIO],
+
   construct(url) {
-    this.base(arguments);
+    super();
     this.setUrl(url);
   },
-  
+
   properties: {
     /** URL to communicate with */
     url: {
       check: "String"
     },
-    
+
     /** Timeout to allow on XHR */
     timeout: {
       init: null,
@@ -49,7 +49,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
       check: "Integer"
     }
   },
-  
+
   members: {
     /**
      * @Override
@@ -57,22 +57,25 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
     send(options) {
       let { headers, body, async, proxyData, handler } = options;
       headers = qx.lang.Object.clone(headers);
-      
+
       let req = null;
-      
+
       const getResponseHeaders = () => {
         let headers = {};
-        req.getAllResponseHeaders().split(/\n/).forEach(line => {
-          let m = line.trim().match(/^([^:]+)\s*:\s*(.*)$/);
-          if (m) {
-            let key = m[1];
-            let value = m[2];
-            headers[key] = value;
-          }  
-        });
+        req
+          .getAllResponseHeaders()
+          .split(/\n/)
+          .forEach(line => {
+            let m = line.trim().match(/^([^:]+)\s*:\s*(.*)$/);
+            if (m) {
+              let key = m[1];
+              let value = m[2];
+              headers[key] = value;
+            }
+          });
         return headers;
       };
-      
+
       const onFailure = evt => {
         let data = {
           content: req.getResponseText(),
@@ -80,14 +83,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
           type: evt.getType(),
           proxyData: proxyData
         };
+
         req.dispose();
         handler(data);
       };
-      
+
       const onSuccess = evt => {
         let responseHeaders = getResponseHeaders();
         let content = req.getResponseText();
-        
+
         if (qx.core.Environment.get("qx.debug")) {
           var sha = responseHeaders["x-proxymanager-sha1"];
           if (sha != null) {
@@ -97,23 +101,23 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
             }
           }
         }
-        
+
         let data = {
           content: content,
           responseHeaders: responseHeaders,
           statusCode: req.getStatus(),
           proxyData: proxyData
         };
-        
+
         req.dispose();
         handler(data);
-      }
-      
+      };
+
       const createRequest = () => {
         var req = new qx.io.request.Xhr(this.getUrl(), "POST", "text/plain");
         req.setAsync(async);
         req.setTimeout(this.getTimeout());
-        
+
         // You must set the character encoding explicitly; even if the page is
         // served as UTF8 and everything else is
         // UTF8, not specifying will lead to the server screwing up decoding
@@ -121,30 +125,29 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
         // JVM).
         var charset = document.characterSet || document.charset || "UTF-8";
         headers["Content-Type"] = "application/x-www-form-urlencoded; charset=" + charset;
-  
+
         // Send it
         if (qx.core.Environment.get("com.zenesis.qx.remote.trace")) {
           // Use console.log because LogAppender would cause recursive logging
-          console.log && console.log("Sending to server: " + body); 
+          console.log && console.log("Sending to server: " + body);
         }
-        
-        if (qx.core.Environment.get("qx.debug"))
-          headers["X-ProxyManager-SHA1"] = com.zenesis.qx.remote.Sha1.digest(body);
-          
+
+        if (qx.core.Environment.get("qx.debug")) headers["X-ProxyManager-SHA1"] = com.zenesis.qx.remote.Sha1.digest(body);
+
         headers["X-ProxyManager-ClientTime"] = new Date().getTime();
         Object.keys(headers).forEach(key => req.setRequestHeader(key, headers[key]));
-        
+
         req.addListener("success", onSuccess);
         req.addListener("fail", onFailure);
         req.addListener("timeout", onFailure);
-        
+
         req.setRequestData(body);
         return req;
       };
-      
+
       req = createRequest();
-      
-      req.send();      
+
+      req.send();
     }
   }
 });
