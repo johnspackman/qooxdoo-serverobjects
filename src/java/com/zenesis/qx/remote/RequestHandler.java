@@ -1448,9 +1448,9 @@ public class RequestHandler {
     if (clazz == null)
       clazz = Object.class;
     boolean isProxyClass = Proxied.class.isAssignableFrom(clazz);
-    ArrayList result;
+    Collection result;
     try {
-      result = (ArrayList) arrayClass.newInstance();
+      result = (Collection) arrayClass.newInstance();
     } catch (InstantiationException e) {
       throw new IOException("Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
     } catch (IllegalAccessException e) {
@@ -1476,8 +1476,9 @@ public class RequestHandler {
     }
 
     Object arr = Array.newInstance(clazz, result.size());
-    for (int i = 0; i < result.size(); i++)
-      Array.set(arr, i, result.get(i));
+    int index = 0;
+    for (Object obj : result)
+      Array.set(arr, index++, obj);
     return arr;
     // return result.toArray(Array.newInstance(clazz, result.size()));
   }
