@@ -70,7 +70,8 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     } else 
       return super.contains(obj);
     
-    for (Object element : elementData) {
+    for (int i = 0; i < size; i++) {
+      Object element = elementData[i];
       if (element instanceof OnDemandReference) {
         String refUuid = ((OnDemandReference)element).getUuid();
         if (refUuid.equals(uuid))
