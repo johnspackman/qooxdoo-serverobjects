@@ -1023,10 +1023,15 @@ public class RequestHandler {
         ArrayUtils.addAll(list, currentArray);
       }
 
-      Proxied mutating = null;
+      Proxied mutating = null; 
       try {
         if (list instanceof Proxied)
           tracker.beginMutate(mutating = (Proxied) list, null);
+        if (list instanceof com.zenesis.qx.remote.collections.ArrayList && 
+            ((com.zenesis.qx.remote.collections.ArrayList)list).isDetectDuplicates() && 
+            ((com.zenesis.qx.remote.collections.ArrayList)list).detectDuplicates()) {
+          System.out.println("Duplicates detected before updating array");
+        }
 
         ArrayUtils.removeAll(list, removed);
         ArrayUtils.addAll(list, added);
@@ -1055,6 +1060,12 @@ public class RequestHandler {
         if (observer != null)
           observer.observeEditArray(serverObject, prop, list);
 
+        if (list instanceof com.zenesis.qx.remote.collections.ArrayList && 
+            ((com.zenesis.qx.remote.collections.ArrayList)list).isDetectDuplicates() && 
+            ((com.zenesis.qx.remote.collections.ArrayList)list).detectDuplicates()) {
+          System.out.println("Duplicates detected after updating array");
+        }
+        
         jp.nextToken();
       } finally {
         if (mutating != null)

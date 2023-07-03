@@ -16,6 +16,7 @@ import com.zenesis.qx.event.Eventable;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
+import com.zenesis.qx.remote.annotations.Mixin;
 import com.zenesis.qx.remote.annotations.Properties;
 
 /**
@@ -26,6 +27,7 @@ import com.zenesis.qx.remote.annotations.Properties;
  */
 @SuppressWarnings("serial")
 @Properties(extend = "qx.data.Array")
+@Mixin(value = "com.zenesis.qx.remote.MArrayList")
 public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, Eventable, EventVerifiable {
 
   private final EventStore eventStore = new EventStore(this);
@@ -35,6 +37,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   private int size;
   private boolean storeReferences;
   private Object containerObject;
+  private boolean detectDuplicates;
 
   public ArrayList() {
     this(5);
@@ -54,6 +57,27 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   public ArrayList(int initialCapacity) {
     hashCode = new Object().hashCode();
     elementData = new Object[initialCapacity];
+  }
+
+  public boolean isDetectDuplicates() {
+    return detectDuplicates;
+  }
+
+  public void setDetectDuplicates(boolean detectDuplicates) {
+    this.detectDuplicates = detectDuplicates;
+  }
+  
+  public boolean detectDuplicates() {
+    for (int i = 0; i < size; i++) {
+      Object check = elementData[i];
+      for (int j = i + 1; j < size; j++) {
+        if (elementData[j] == check) {
+          System.out.println("Duplicate detected!");
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   @Override
@@ -160,6 +184,9 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   }
 
   private void addImpl(int index, Object element) {
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates before adding");
+    }
     if (index < -1 || index > size)
       throw new IndexOutOfBoundsException("Cannot add with index=" + index + " when size=" + size);
     if (size == this.elementData.length) {
@@ -173,6 +200,9 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     elementData[index] = getValueToStore(null, element);
     size++;
     fire(new ArrayChangeData().add(element));
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after adding");
+    }
   }
   
   /*
@@ -184,6 +214,9 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   public T remove(int index) {
     if (index < 0 || index >= size)
       throw new IndexOutOfBoundsException("Cannot remove with index=" + index + " when size=" + size);
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates before removing");
+    }
     T result = get(index);
     if (index < size - 1) {
       System.arraycopy(elementData, index + 1, elementData, index, size - index - 1);
@@ -192,6 +225,9 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     size--;
     
     fire(new ArrayChangeData().remove(result));
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after removing");
+    }
     return result;
   }
 
@@ -204,9 +240,15 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   public T set(int index, T element) {
     T result = get(index);
     
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates before setting");
+    }
     elementData[index] = getValueToStore(elementData[index], element);
     
     fire(new ArrayChangeData().remove(result).add(element));
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after setting");
+    }
     return result;
   }
   
@@ -316,6 +358,9 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     clear();
     for (T x : c)
       add(x);
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after replace");
+    }
   }
 
   /**
@@ -325,11 +370,17 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
    */
   @Override
   public void sort(Comparator<? super T> comp) {
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates before sort");
+    }
     sorting = true;
     try {
       super.sort(comp);
     } finally {
       sorting = false;
+    }
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after sort");
     }
   }
 
@@ -359,10 +410,16 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     boolean result = super.addAll(c);
     if (!result)
       return false;
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates before addAll");
+    }
     ArrayChangeData event = new ArrayChangeData();
     for (Object o : c)
       event.add(o);
     fire(event);
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after addAll");
+    }
     return result;
   }
 
@@ -376,10 +433,16 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     boolean result = super.addAll(index, c);
     if (!result)
       return false;
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates before addAll(i,c)");
+    }
     ArrayChangeData event = new ArrayChangeData();
     for (Object o : c)
       event.add(o);
     fire(event);
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after addAll(i,c)");
+    }
     return result;
   }
 
@@ -406,20 +469,22 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
    */
   @Override
   public void removeRange(int fromIndex, int toIndex) {
-    if (toIndex >= size())
-      toIndex = size() - 1;
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates before removeRange");
+    }
     if (toIndex < fromIndex || fromIndex < 0)
       throw new IllegalArgumentException();
     if (toIndex == fromIndex)
       return;
-    if (toIndex >= size())
-      toIndex = size() - 1;
 
     ArrayChangeData event = new ArrayChangeData();
     for (int i = fromIndex; i < toIndex; i++)
       event.remove(this.get(i));
     super.removeRange(fromIndex, toIndex);
     fire(event);
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after removeRange");
+    }
   }
 
   /*
@@ -431,12 +496,18 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   public boolean removeAll(Collection c) {
     if (isEmpty() || c.isEmpty())
       return false;
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates before removeAll");
+    }
     ArrayChangeData event = new ArrayChangeData<T>();
     for (Object o : c)
       if (contains(o))
         event.remove(o);
     boolean result = super.removeAll(c);
     fire(event);
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after removeAll");
+    }
     return result;
   }
 
@@ -449,12 +520,18 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   public boolean retainAll(Collection c) {
     if (isEmpty())
       return false;
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates before retainAll");
+    }
     ArrayChangeData event = new ArrayChangeData<T>();
     for (Object o : this)
       if (!c.contains(o))
         event.remove(o);
     boolean result = super.retainAll(c);
     fire(event);
+    if (detectDuplicates && detectDuplicates()) {
+      System.out.println("detected duplicates after retainAll");
+    }
     return result;
   }
 
