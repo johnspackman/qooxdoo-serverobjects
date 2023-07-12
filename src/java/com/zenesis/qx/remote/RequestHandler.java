@@ -40,6 +40,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1358,7 +1360,11 @@ public class RequestHandler {
         value = (int) val;
       else if (targetClass == long.class || targetClass == Long.class)
         value = (long) val;
-
+      else if (targetClass == BigDecimal.class)
+        value = new BigDecimal(val);
+      else if (targetClass == BigInteger.class)
+        value = BigInteger.valueOf((int)val);
+      
     } else if (vClazz == float.class || vClazz == Float.class) {
       float val = (Float) value;
       if (targetClass == double.class || targetClass == Double.class)
@@ -1367,6 +1373,10 @@ public class RequestHandler {
         value = (int) Math.round(val);
       else if (targetClass == long.class || targetClass == Long.class)
         value = (long) Math.round(val);
+      else if (targetClass == BigDecimal.class)
+        value = new BigDecimal(val);
+      else if (targetClass == BigInteger.class)
+        value = BigInteger.valueOf((int)val);
 
     } else if (vClazz == long.class || vClazz == Long.class) {
       long val = (Long) value;
@@ -1376,6 +1386,10 @@ public class RequestHandler {
         value = (double) val;
       else if (targetClass == int.class || targetClass == Integer.class)
         value = (int) val;
+      else if (targetClass == BigDecimal.class)
+        value = new BigDecimal(val);
+      else if (targetClass == BigInteger.class)
+        value = BigInteger.valueOf((int)val);
 
     } else if (vClazz == int.class || vClazz == Integer.class) {
       int val = (Integer) value;
@@ -1385,6 +1399,10 @@ public class RequestHandler {
         value = (double) val;
       else if (targetClass == long.class || targetClass == Long.class)
         value = (long) val;
+      else if (targetClass == BigDecimal.class)
+        value = new BigDecimal(val);
+      else if (targetClass == BigInteger.class)
+        value = BigInteger.valueOf((int)val);
     }
 
     return value;
