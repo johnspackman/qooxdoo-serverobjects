@@ -42,7 +42,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -1450,7 +1452,34 @@ public class RequestHandler {
           String str = Helpers.deserialiseEnum(obj.toString());
           obj = Enum.valueOf(type, str);
           result.add(obj);
-        }
+        } else
+          result.add(null);
+        
+      } else if (type != null && Date.class.isAssignableFrom(type)) {
+        Object obj = jp.readValueAs(Object.class);
+        if (obj != null) {
+          if (obj instanceof String) {
+            try {
+              Instant instant = Instant.parse(obj.toString());
+              Date dt = Date.from(instant);
+              result.add(dt);
+            } catch (Throwable e) {
+              log.error("Invalid ISO date: " + obj);
+              result.add(null);
+            }
+          } else {
+            try {
+              long time = Long.parseLong(obj.toString());
+              Date dt = new Date(time);
+              result.add(dt);
+            } catch(NumberFormatException e) {
+              log.error("Invalid date time: " + obj);
+              result.add(null);
+            }
+          }
+        } else
+          result.add(null);
+        
       } else {
         Object obj = jp.readValueAs(type != null ? type : Object.class);
         result.add(obj);

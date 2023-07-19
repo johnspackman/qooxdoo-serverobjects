@@ -1235,10 +1235,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Serialises a value for sending to the server
      */
     serializeValue(value, opts) {
-      if (!value) return value;
+      if (!value) {
+        return value;
+      }
       opts = opts || {};
       var to = typeof value;
-      if (["boolean", "number", "string"].indexOf(to) > -1) return value;
+      if (["boolean", "number", "string"].indexOf(to) > -1) {
+        return value;
+      }
       if (["function", "symbol"].indexOf(to) > -1) {
         this.error("Cannot serialize an object of type " + to + " to the server");
         return null;
@@ -1260,7 +1264,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var result = {};
         for (var keys = value.getKeys(), i = 0; i < keys.getLength(); i++) {
           var key = keys.getItem(i);
-          result[key] = this.serializeValue(value.get(key));
+          result[key] = this.serializeValue(value.get(key), opts);
         }
         return result;
       }
@@ -1270,20 +1274,30 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (qx.lang.Type.isArray(value)) {
         var send = [];
         for (var j = 0; j < value.length; j++) {
-          if (typeof value[j] === "undefined" || value[j] === null) send[j] = null;
-          else send[j] = this.serializeValue(value[j]);
+          if (typeof value[j] === "undefined" || value[j] === null) {
+            send[j] = null;
+          } else {
+            send[j] = this.serializeValue(value[j], opts);
+          }
         }
         return send;
       }
 
       if (qx.lang.Type.isDate(value)) {
-        if (opts.dateValue !== "date") return value.getTime();
+        if (opts.dateValue === "isoDate") {
+          return value.toISOString();
+        }
+        if (opts.dateValue !== "date") {
+          return value.getTime();
+        }
         return com.zenesis.qx.remote.ProxyManager.__DF_NO_TIME.format(value);
       }
 
       if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
         var id = value.getServerId();
-        if (id < 0) this._queueClientObject(0 - id);
+        if (id < 0) {
+          this._queueClientObject(0 - id);
+        }
         return value.getServerId();
       }
 
@@ -1296,7 +1310,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // hasOwnProperty()
       var result = {};
       for (var name in value) {
-        result[name] = this.serializeValue(value[name]);
+        result[name] = this.serializeValue(value[name], opts);
       }
       return result;
     },
@@ -1318,7 +1332,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (isClass) {
         methodDef = com.zenesis.qx.remote.MProxy.getMethodDefinition(serverObject, methodName);
       } else {
-        if (serverObject.isDisposed()) throw new Error("Cannot call method " + serverObject.classname + "." + methodName + " on [" + serverObject.toHashCode() + "] because it is disposed, object=" + serverObject);
+        if (serverObject.isDisposed()) {
+          throw new Error("Cannot call method " + serverObject.classname + "." + methodName + " on [" + serverObject.toHashCode() + "] because it is disposed, object=" + serverObject);
+        }
 
         methodDef = com.zenesis.qx.remote.MProxy.getMethodDefinition(serverObject.constructor, methodName);
 
@@ -1332,8 +1348,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var parameters = [];
       var notify = [];
       for (var i = 0; i < args.length; i++) {
-        if (typeof args[i] == "function") notify.push(args[i]);
-        else parameters.push(this.serializeValue(args[i]));
+        if (typeof args[i] == "function") {
+          notify.push(args[i]);
+        } else {
+          parameters.push(this.serializeValue(args[i], { dateValue: "isoDate" }));
+        }
       }
       var data = {
         cmd: "call",

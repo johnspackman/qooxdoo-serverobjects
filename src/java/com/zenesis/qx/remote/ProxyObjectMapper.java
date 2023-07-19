@@ -54,7 +54,7 @@ public class ProxyObjectMapper extends BasicObjectMapper {
   private static final SimpleDateFormat DF = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
   /*
-   * Serialises a Date as the JS equivelant
+   * Serialises a Date as the JS equivalent
    */
   private static final class DateSerializer extends JsonSerializer<Date> {
 
