@@ -158,6 +158,52 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     return (T)obj;
   }
   
+  /**
+   * Finds an object by UUID; only loads on demand objects if they match the UUID
+   * 
+   * @param uuid
+   * @return
+   */
+  public T findByUuid(String uuid) {
+    for (int i = 0; i < size; i++) {
+      Object obj = elementData[i];
+      if (obj instanceof OnDemandReference<?>) {
+        OnDemandReference<T> odr = (OnDemandReference<T>)obj;
+        if (odr.getUuid().equals(uuid)) {
+          return odr.get();
+        }
+      } else if (obj instanceof HasUuid) {
+        if (((HasUuid)obj).getUuid().equals(uuid)) {
+          return (T)obj;
+        }
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * Tests whether object with a UUID exists; never loads on demand objects
+   * 
+   * @param uuid
+   * @return
+   */
+  public boolean containsUuid(String uuid) {
+    for (int i = 0; i < size; i++) {
+      Object obj = elementData[i];
+      if (obj instanceof OnDemandReference<?>) {
+        OnDemandReference<T> odr = (OnDemandReference<T>)obj;
+        if (odr.getUuid().equals(uuid)) {
+          return true;
+        }
+      } else if (obj instanceof HasUuid) {
+        if (((HasUuid)obj).getUuid().equals(uuid)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
   public Object getRawElement(int index) {
     if (index < 0 || index > size)
       throw new IndexOutOfBoundsException("Index " + size + " out of bounds, max=" + size);
