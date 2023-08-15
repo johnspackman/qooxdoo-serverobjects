@@ -123,6 +123,7 @@ public class Helpers {
     if (str == null)
       return null;
     StringBuilder sb = new StringBuilder(str);
+    char lastC = 0;
     for (int i = 0; i < sb.length(); i++) {
       char c = sb.charAt(i);
       boolean wordBreak = false;
@@ -130,6 +131,9 @@ public class Helpers {
         if (Character.isUpperCase(c)) {
           wordBreak = true;
         }
+      } else if (Character.isDigit(c)) {
+        if (Character.isLetter(lastC))
+          wordBreak = true;
       }
       if (wordBreak) {
         sb.insert(i, '_');
@@ -137,6 +141,7 @@ public class Helpers {
       }
       if (Character.isLowerCase(c))
         sb.setCharAt(i, Character.toUpperCase(c));
+      lastC = c;
     }
     return sb.toString();
   }
