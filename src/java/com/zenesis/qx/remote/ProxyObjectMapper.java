@@ -29,6 +29,7 @@ package com.zenesis.qx.remote;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.apache.logging.log4j.Logger;
@@ -76,6 +77,29 @@ public class ProxyObjectMapper extends BasicObjectMapper {
     }
   }
 
+  /*
+   * Serialises a BigDecimal as the JS equivalent
+   */
+  private static final class BigDecimalSerializer extends JsonSerializer<BigDecimal> {
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.fasterxml.jackson.databind.JsonSerializer#serialize(java.lang.Object,
+     * com.fasterxml.jackson.core.JsonGenerator,
+     * com.fasterxml.jackson.databind.SerializerProvider)
+     */
+    @Override
+    public void serialize(BigDecimal value, JsonGenerator gen, SerializerProvider sp)
+        throws IOException, JsonProcessingException {
+      if (value == null)
+        gen.writeNull();
+      else
+        gen.writeRawValue("new BigNumber(\"" + value + "\")");
+    }
+  }
+
   /** the tracker */
   private final ProxySessionTracker tracker;
 
@@ -115,6 +139,7 @@ public class ProxyObjectMapper extends BasicObjectMapper {
     module.addSerializer(Proxied.class, new ProxiedSerializer());
     module.addDeserializer(Proxied.class, new ProxiedDeserializer());
     module.addSerializer(Date.class, new DateSerializer());
+    module.addSerializer(BigDecimal.class, new BigDecimalSerializer());
   }
 
   /**

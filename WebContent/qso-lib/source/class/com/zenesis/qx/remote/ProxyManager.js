@@ -30,6 +30,7 @@
  *
  * @author John Spackman [john.spackman@zenesis.com]
  * @ignore(com.zenesis.qx.remote.LogEntrySink)
+ * @ignore(BigNumber)
  */
 /*
  * @require(qx.core.Aspect
@@ -758,7 +759,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * (creating classes as required) or returns an existing one
      */
     readProxyObject(data, stats) {
-      if (typeof data == "undefined" || data === null) return null;
+      if (typeof data == "undefined" || data === null) {
+        return null;
+      }
       var result = null;
       var t = this;
 
@@ -767,14 +770,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Do we really have to process each element?
         var ok = true;
-        for (var i = 0; ok && i < data.length; i++) if (typeof data[i] == "object") ok = false;
+        for (var i = 0; ok && i < data.length; i++) {
+          if (typeof data[i] == "object") {
+            ok = false;
+          }
+        }
 
         // All simple values, just use the parsed data
-        if (ok) result = data;
-        // Copy values by hand
-        else {
+        if (ok) {
+          result = data;
+          // Copy values by hand
+        } else {
           result = [];
-          for (var i = 0; i < data.length; i++) result[i] = t.readProxyObject(data[i], stats);
+          for (var i = 0; i < data.length; i++) {
+            result[i] = t.readProxyObject(data[i], stats);
+          }
         }
 
         return result;
@@ -936,6 +946,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       if (qx.lang.Type.isArray(data)) {
         result = readArray(data);
+      } else if (data instanceof BigNumber) {
+        result = data;
       } else if (typeof data == "object") {
         // Object - is it a server object or a map?
         if (data.serverId !== undefined) {
@@ -1235,8 +1247,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Serialises a value for sending to the server
      */
     serializeValue(value, opts) {
+      const PM = com.zenesis.qx.remote.ProxyManager;
+
       if (!value) {
         return value;
+      }
+      if (value instanceof BigNumber) {
+        return PM.__PREFIX + "BigNumber(" + value + ")" + PM.__SUFFIX;
       }
       opts = opts || {};
       var to = typeof value;
@@ -1284,13 +1301,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       if (qx.lang.Type.isDate(value)) {
-        if (opts.dateValue === "isoDate") {
-          return value.toISOString();
+        try {
+          value = PM.__PREFIX + "Date(" + PM.formatISO(value) + ")" + PM.__SUFFIX;
+        } catch (ex) {
+          qx.log.Logger.error("Error while formatting date=" + value + ", ex=" + ex + ", stack=" + JSON.stringify(qx.dev.StackTrace.getStackTrace(), null, 2));
+
+          value = null;
         }
-        if (opts.dateValue !== "date") {
-          return value.getTime();
-        }
-        return com.zenesis.qx.remote.ProxyManager.__DF_NO_TIME.format(value);
+        return value;
       }
 
       if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
@@ -1351,7 +1369,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (typeof args[i] == "function") {
           notify.push(args[i]);
         } else {
-          parameters.push(this.serializeValue(args[i], { dateValue: "isoDate" }));
+          parameters.push(this.serializeValue(args[i]));
         }
       }
       var data = {
@@ -2143,6 +2161,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     __instance: null,
     __DF_NO_TIME: new qx.util.format.DateFormat("yyyy-MM-dd"),
 
+    __PREFIX: "[__QOOXDOO_SERVER_OBJECTS__[",
+    __SUFFIX: "]]",
+
     __NON_NULLABLE_DEFAULTS: {
       Boolean: false,
       Number: 0,
@@ -2151,6 +2172,42 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       Date() {
         return new Date();
       }
+    },
+
+    /**
+     * Formats a date as ISO
+     * @param dt {Date} the date to format
+     * @return {String} the formatted datetime or null is dt was null
+     */
+    formatISO(dt) {
+      if (!dt) {
+        return null;
+      }
+      function dp2(v) {
+        if (v < 10) return "0" + v;
+        return "" + v;
+      }
+      function dp3(v) {
+        if (v < 10) return "00" + v;
+        if (v < 100) return "0" + v;
+        return "" + v;
+      }
+      var str =
+        dt.getUTCFullYear() +
+        "-" +
+        dp2(dt.getUTCMonth() + 1) +
+        "-" +
+        dp2(dt.getUTCDate()) +
+        "T" +
+        dp2(dt.getUTCHours()) +
+        ":" +
+        dp2(dt.getUTCMinutes()) +
+        ":" +
+        dp2(dt.getUTCSeconds()) +
+        "." +
+        dp3(dt.getUTCMilliseconds()) +
+        "Z";
+      return str;
     },
 
     /**

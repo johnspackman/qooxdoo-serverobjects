@@ -4,6 +4,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
@@ -478,7 +479,21 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
                 proxied + " because value '" + value + "' is not a valid string");
           }
 
-        } else {
+        } else if (!(value instanceof Date)) {
+          throw new IllegalArgumentException("Cannot write property " + name + " in class " + clazz + " in object " +
+              proxied + " because value '" + value + "' is not compatible");
+        }
+        
+      } else if (value != null && propertyClass.isSubclassOf(BigDecimal.class)) {
+        if (value instanceof Number || value instanceof String) {
+          try {
+            value = new BigDecimal(value.toString());
+          } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Cannot write property " + name + " in class " + clazz + " in object " +
+                proxied + " because value '" + value + "' is not a valid decimal");
+          }
+
+        } else if (!(value instanceof BigDecimal)) {
           throw new IllegalArgumentException("Cannot write property " + name + " in class " + clazz + " in object " +
               proxied + " because value '" + value + "' is not compatible");
         }

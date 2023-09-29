@@ -42,7 +42,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -58,6 +57,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.Logger;
+import org.bson.Document;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -908,11 +908,7 @@ public class RequestHandler {
         value = readMap(jp, propClass.getCollectionClass(), propClass.getKeyClass(), propClass.getJavaType());
 
       } else {
-        value = jp.readValueAs(Object.class);
-        if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
-          String str = Helpers.deserialiseEnum(value.toString());
-          value = Enum.valueOf(propClass.getJavaType(), str);
-        }
+        value = readSimpleValue(jp, propClass.getJavaType());
       }
     }
 
@@ -1422,14 +1418,18 @@ public class RequestHandler {
   private Object[] readArray(JsonParser jp, Class[] types) throws IOException {
     if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
       return null;
-
+    
     ArrayList result = new ArrayList();
     for (int paramIndex = 0; jp.nextToken() != JsonToken.END_ARRAY; paramIndex++) {
       Class type = null;
       if (types != null && paramIndex < types.length)
         type = types[paramIndex];
 
-      if (type != null && type.isArray()) {
+      if (type != null && Document.class.isAssignableFrom(type)) {
+        Document doc = readBsonDocument(jp);
+        result.add(doc);
+        
+      } else if (type != null && type.isArray()) {
         if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
           result.add(null);
         else if (jp.getCurrentToken() == JsonToken.START_ARRAY) {
@@ -1481,11 +1481,32 @@ public class RequestHandler {
           result.add(null);
         
       } else {
-        Object obj = jp.readValueAs(type != null ? type : Object.class);
+        Object obj = readSimpleValue(jp, type != null ? type : Object.class);
         result.add(obj);
       }
     }
     return result.toArray(new Object[result.size()]);
+  }
+  
+  protected Document readBsonDocument(JsonParser jp) throws IOException {
+    if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
+      return null;
+    if (jp.getCurrentToken() != JsonToken.START_OBJECT)
+      throw new IllegalArgumentException("Cannot read org.bdon.Document without an object to read from");
+    Document result = new Document();
+    while (jp.nextToken() != JsonToken.END_OBJECT) {
+      String key = jp.getCurrentName();
+      JsonToken token = jp.nextToken();
+      Object value = null;
+      if (token == JsonToken.START_OBJECT)
+        value = readBsonDocument(jp);
+      else if (token == JsonToken.START_ARRAY)
+        value = readArray(jp, null);
+      else if (token != JsonToken.VALUE_NULL)
+        value = readSimpleValue(jp, Object.class);
+      result.append(key, value);
+    }
+    return result;
   }
 
   /**
@@ -1499,7 +1520,7 @@ public class RequestHandler {
    * @return
    * @throws IOException
    */
-  private Object readArray(JsonParser jp, Class arrayClass, Class clazz) throws IOException {
+  protected Object readArray(JsonParser jp, Class arrayClass, Class clazz) throws IOException {
     if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
       return null;
 
@@ -1551,7 +1572,7 @@ public class RequestHandler {
    * @return
    * @throws IOException
    */
-  private Object readOptionalArray(JsonParser jp, Class arrayClass, String name, Class clazz) throws IOException {
+  protected Object readOptionalArray(JsonParser jp, Class arrayClass, String name, Class clazz) throws IOException {
     if (jp.nextToken() == JsonToken.FIELD_NAME && jp.getCurrentName().equals(name) &&
         jp.nextToken() == JsonToken.START_ARRAY) {
       return readArray(jp, arrayClass, clazz);
@@ -1559,7 +1580,7 @@ public class RequestHandler {
     return null;
   }
 
-  private Map readOptionalExpandedMap(JsonParser jp, String name, Class keyClazz, Class valueClazz) throws IOException {
+  protected Map readOptionalExpandedMap(JsonParser jp, String name, Class keyClazz, Class valueClazz) throws IOException {
     if (jp.nextToken() == JsonToken.FIELD_NAME && jp.getCurrentName().equals(name) &&
         jp.nextToken() == JsonToken.START_OBJECT) {
       return readExpandedMap(jp, keyClazz, valueClazz);
@@ -1567,7 +1588,7 @@ public class RequestHandler {
     return null;
   }
 
-  private Map readExpandedMap(JsonParser jp, Class keyClazz, Class clazz) throws IOException {
+  protected Map readExpandedMap(JsonParser jp, Class keyClazz, Class clazz) throws IOException {
     if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
       return null;
 
@@ -1589,7 +1610,7 @@ public class RequestHandler {
     return result;
   }
 
-  private Map<String, Object> readExpandedMapEntry(JsonParser jp, Class keyType, Class valueType) throws IOException {
+  protected Map<String, Object> readExpandedMapEntry(JsonParser jp, Class keyType, Class valueType) throws IOException {
     HashMap<String, Object> map = new HashMap<>();
     for (; jp.nextToken() != JsonToken.END_OBJECT;) {
       String key = jp.getCurrentName();
@@ -1619,7 +1640,7 @@ public class RequestHandler {
    * @return
    * @throws IOException
    */
-  private Map readMap(JsonParser jp, Class mapClass, Class keyClazz, Class clazz) throws IOException {
+  protected Map readMap(JsonParser jp, Class mapClass, Class keyClazz, Class clazz) throws IOException {
     if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
       return null;
 
@@ -1669,7 +1690,7 @@ public class RequestHandler {
    * @return
    * @throws IOException
    */
-  private Map readOptionalMap(JsonParser jp, Class mapClass, String name, Class keyClazz, Class valueClazz)
+  protected Map readOptionalMap(JsonParser jp, Class mapClass, String name, Class keyClazz, Class valueClazz)
       throws IOException {
     if (jp.nextToken() == JsonToken.FIELD_NAME && jp.getCurrentName().equals(name) &&
         jp.nextToken() == JsonToken.START_OBJECT) {
@@ -1686,7 +1707,7 @@ public class RequestHandler {
    * @return
    * @throws IOException
    */
-  private Object readSimpleValue(JsonParser jp, Class clazz) throws IOException {
+  protected Object readSimpleValue(JsonParser jp, Class clazz) throws IOException {
     if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
       return null;
 
@@ -1700,16 +1721,53 @@ public class RequestHandler {
         String str = Helpers.deserialiseEnum(obj.toString());
         obj = Enum.valueOf(clazz, str);
       }
+      
+    } else if (Date.class.isAssignableFrom(clazz)) {
+      if (jp.getCurrentToken() == JsonToken.FIELD_NAME)
+        obj = jp.getCurrentName();
+      else
+        obj = jp.readValueAs(Object.class);
+      
     } else {
       if (jp.getCurrentToken() == JsonToken.FIELD_NAME)
         obj = jp.getCurrentName();
       else
         obj = jp.readValueAs(clazz);
     }
+    
+    if (obj instanceof String) {
+      String str = (String)obj;
+      if (str.startsWith(PREFIX) && str.endsWith(SUFFIX)) {
+        str = str.substring(PREFIX.length(), str.length() - SUFFIX.length());
+        
+        if (str.startsWith("Date(") && str.endsWith(")")) {
+          str = str.substring(5, str.length() - 1);
+          try {
+            Instant instant = Instant.parse(str);
+            Date dt = Date.from(instant);
+            return dt;
+          } catch (Throwable e) {
+            log.error("Invalid date: " + str);
+          }
+          
+        } else if (str.startsWith("BigNumber(") && str.endsWith(")")) {
+          str = str.substring(10, str.length() - 1);
+          try {
+            return new BigDecimal(str);
+          } catch (Throwable e) {
+            log.error("Invalid BigNumber: " + str);
+          }
+          
+        }
+      }
+    }
+    
     return obj;
   }
+  public static final String PREFIX = "[__QOOXDOO_SERVER_OBJECTS__[";
+  public static final String SUFFIX = "]]";
 
-  private Object readComplexValue(JsonParser jp, Class clazz) throws IOException {
+  protected Object readComplexValue(JsonParser jp, Class clazz) throws IOException {
     if (Proxied.class.isAssignableFrom(clazz)) {
       Integer id = jp.readValueAs(Integer.class);
       if (id != null) {
@@ -1736,7 +1794,7 @@ public class RequestHandler {
    * @throws ServletException
    * @throws IOException
    */
-  private <T> T getFieldValue(JsonParser jp, String fieldName, Class<T> clazz) throws ServletException, IOException {
+  protected <T> T getFieldValue(JsonParser jp, String fieldName, Class<T> clazz) throws ServletException, IOException {
     skipFieldName(jp, fieldName);
 
     T obj = (T) jp.readValueAs(clazz);
@@ -1753,7 +1811,7 @@ public class RequestHandler {
    * @throws ServletException
    * @throws IOException
    */
-  private void skipFieldName(JsonParser jp, String fieldName) throws ServletException, IOException {
+  protected void skipFieldName(JsonParser jp, String fieldName) throws ServletException, IOException {
     if (jp.nextToken() != JsonToken.FIELD_NAME)
       throw new ServletException(
           "Cannot find field name - looking for " + fieldName + " found " + jp.getCurrentToken() + ":" + jp.getText());
