@@ -1455,31 +1455,6 @@ public class RequestHandler {
         } else
           result.add(null);
         
-      } else if (type != null && Date.class.isAssignableFrom(type)) {
-        Object obj = jp.readValueAs(Object.class);
-        if (obj != null) {
-          if (obj instanceof String) {
-            try {
-              Instant instant = Instant.parse(obj.toString());
-              Date dt = Date.from(instant);
-              result.add(dt);
-            } catch (Throwable e) {
-              log.error("Invalid ISO date: " + obj);
-              result.add(null);
-            }
-          } else {
-            try {
-              long time = Long.parseLong(obj.toString());
-              Date dt = new Date(time);
-              result.add(dt);
-            } catch(NumberFormatException e) {
-              log.error("Invalid date time: " + obj);
-              result.add(null);
-            }
-          }
-        } else
-          result.add(null);
-        
       } else {
         Object obj = readSimpleValue(jp, type != null ? type : Object.class);
         result.add(obj);
@@ -1722,7 +1697,7 @@ public class RequestHandler {
         obj = Enum.valueOf(clazz, str);
       }
       
-    } else if (Date.class.isAssignableFrom(clazz)) {
+    } else if (Date.class.isAssignableFrom(clazz) || BigDecimal.class.isAssignableFrom(clazz)) {
       if (jp.getCurrentToken() == JsonToken.FIELD_NAME)
         obj = jp.getCurrentName();
       else
