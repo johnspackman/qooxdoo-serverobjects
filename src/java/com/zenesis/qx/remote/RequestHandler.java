@@ -1204,11 +1204,7 @@ public class RequestHandler {
             value = getProxied(id);
 
         } else {
-          value = jp.readValueAs(Object.class);
-          if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
-            String str = Helpers.deserialiseEnum(value.toString());
-            value = Enum.valueOf(propClass.getJavaType(), str);
-          }
+          value = readSimpleValue(jp, propClass.getJavaType());
         }
         setPropertyValue(type, proxied, propertyName, value);
       }
