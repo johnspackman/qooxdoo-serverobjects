@@ -100,7 +100,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
     String componentTypeName;
     String check;
     ProxyType clazz;
-    String isEqual;
+    RawValue isEqual;
   }
 
   protected Spec analyse() {
@@ -165,7 +165,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
       }
       
       if (clazz == BigDecimal.class) {
-        spec.isEqual = "zx.utils.BigNumber.compare";
+        spec.isEqual = new RawValue("zx.utils.BigNumber.compare");
       }
     } else {
       spec.nullable = true;
@@ -255,7 +255,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
         break;
         
       case "BigNumber":
-        pdef.put("init", new RawValue("BigNumber(0)"));
+        pdef.put("init", new RawValue("new BigNumber(0)"));
       }
     }
 
