@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.apache.logging.log4j.Logger;
+import org.bson.Document;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -74,6 +75,15 @@ public class ProxyObjectMapper extends BasicObjectMapper {
         gen.writeNull();
       else
         gen.writeRawValue("new Date(\"" + DF.format(value) + "\")");
+    }
+  }
+  
+  private static final class BsonSerializer extends JsonSerializer<Document> {
+
+    @Override
+    public void serialize(Document value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+      String str = value.toJson();
+      gen.writeRawValue(str);
     }
   }
 
@@ -136,6 +146,7 @@ public class ProxyObjectMapper extends BasicObjectMapper {
 
   @Override
   protected void addToModule(SimpleModule module) {
+    module.addSerializer(Document.class, new BsonSerializer());
     module.addSerializer(Proxied.class, new ProxiedSerializer());
     module.addDeserializer(Proxied.class, new ProxiedDeserializer());
     module.addSerializer(Date.class, new DateSerializer());

@@ -1204,11 +1204,7 @@ public class RequestHandler {
             value = getProxied(id);
 
         } else {
-          value = jp.readValueAs(Object.class);
-          if (value != null && Enum.class.isAssignableFrom(propClass.getJavaType())) {
-            String str = Helpers.deserialiseEnum(value.toString());
-            value = Enum.valueOf(propClass.getJavaType(), str);
-          }
+          value = readSimpleValue(jp, propClass.getJavaType());
         }
         setPropertyValue(type, proxied, propertyName, value);
       }
@@ -1446,15 +1442,6 @@ public class RequestHandler {
         } else
           result.add(null);
 
-      } else if (type != null && Enum.class.isAssignableFrom(type)) {
-        Object obj = jp.readValueAs(Object.class);
-        if (obj != null) {
-          String str = Helpers.deserialiseEnum(obj.toString());
-          obj = Enum.valueOf(type, str);
-          result.add(obj);
-        } else
-          result.add(null);
-        
       } else {
         Object obj = readSimpleValue(jp, type != null ? type : Object.class);
         result.add(obj);
