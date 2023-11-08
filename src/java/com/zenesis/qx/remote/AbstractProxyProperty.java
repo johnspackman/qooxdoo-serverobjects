@@ -2,6 +2,7 @@ package com.zenesis.qx.remote;
 
 import java.io.IOException;
 import java.lang.reflect.AccessibleObject;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -99,6 +100,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
     String componentTypeName;
     String check;
     ProxyType clazz;
+    RawValue isEqual;
   }
 
   protected Spec analyse() {
@@ -110,7 +112,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
       // clazz = clazz;
       if (this.nullable == null) {
         if (clazz == Boolean.TYPE || clazz == Character.TYPE || clazz == Byte.TYPE || clazz == Short.TYPE ||
-            clazz == Integer.TYPE || clazz == Long.TYPE || clazz == Float.TYPE || clazz == Double.TYPE)
+            clazz == Integer.TYPE || clazz == Long.TYPE || clazz == Float.TYPE || clazz == Double.TYPE || clazz == BigDecimal.class)
           spec.nullable = false;
         else
           spec.nullable = true;
@@ -154,10 +156,16 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
           spec.check = "Number";
         else if (clazz == float.class || clazz == Float.class)
           spec.check = "Number";
+        else if (clazz == BigDecimal.class)
+          spec.check = "BigNumber";                  
         else if (clazz == char.class || clazz == String.class)
           spec.check = "String";
         else if (Date.class.isAssignableFrom(clazz))
           spec.check = "Date";
+      }
+      
+      if (clazz == BigDecimal.class) {
+        spec.isEqual = new RawValue("zx.utils.BigNumber.compare");
       }
     } else {
       spec.nullable = true;
@@ -245,6 +253,9 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
       case "Date":
         pdef.put("init", new Function("new Date()"));
         break;
+        
+      case "BigNumber":
+        pdef.put("init", new RawValue("new BigNumber(0)"));
       }
     }
 
@@ -355,6 +366,9 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
       cw.member("_transform" + upname,
           new Function("value", "oldValue", "return this._transformProperty(\"" + name + "\", value, oldValue);"));
     }
+    
+    if (spec.isEqual != null)
+      pdef.put("isEqual", spec.isEqual);
   }
 
   private static final HashSet<String> NATIVE_KEY_TYPES;

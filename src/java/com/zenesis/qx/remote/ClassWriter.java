@@ -78,6 +78,8 @@ public class ClassWriter {
     for (ProxyType type : use) {
       code += " * @use(" + type.getClassName() + ")\n";
     }
+    code += " * @use(zx.utils.BigNumber)\n";
+    code += " * @ignore(BigNumber)\n";
     code += " */\n\n";
     code += (isInterface() ? "qx.Interface" : "qx.Class") + ".define(\"" + proxyType.getClassName() + "\", " +
         ow.writeValueAsString(map) + ");\n";
