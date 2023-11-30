@@ -304,7 +304,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             this.__sessionId = sessionId;
           }
           reqIndex = parseInt(ioData.responseHeaders["x-proxymanager-requestindex"], 10);
-          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) console.log && console.log("__onResponseReceived 1: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
+          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) {
+            console.log && console.log("__onResponseReceived 1: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
+          }
 
           qx.core.Assert.assertTrue(isNaN(reqIndex) || reqIndex === proxyData.reqIndex);
           result = this.__processResponse(proxyData);
@@ -1893,7 +1895,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       this.__numActiveRequests++;
 
       let headers = {};
-      if (this.__sessionId) headers["X-ProxyManager-SessionId"] = this.__sessionId;
+      if (this.__sessionId) {
+        headers["X-ProxyManager-SessionId"] = this.__sessionId;
+      }
       var reqIndex = this.__numberOfCalls++;
       headers["X-ProxyManager-RequestIndex"] = reqIndex;
 

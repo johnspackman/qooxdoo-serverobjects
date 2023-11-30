@@ -1710,6 +1710,7 @@ public class RequestHandler {
             return dt;
           } catch (Throwable e) {
             log.error("Invalid date: " + str);
+            return null;
           }
           
         } else if (str.startsWith("BigNumber(") && str.endsWith(")")) {
@@ -1718,6 +1719,7 @@ public class RequestHandler {
             return new BigDecimal(str);
           } catch (Throwable e) {
             log.error("Invalid BigNumber: " + str);
+            return new BigDecimal(0);
           }
           
         }
