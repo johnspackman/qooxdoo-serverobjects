@@ -1,28 +1,28 @@
 /**
  * ************************************************************************
- * 
- *    server-objects - a contrib to the Qooxdoo project that makes server 
- *    and client objects operate seamlessly; like Qooxdoo, server objects 
+ *
+ *    server-objects - a contrib to the Qooxdoo project that makes server
+ *    and client objects operate seamlessly; like Qooxdoo, server objects
  *    have properties, events, and methods all of which can be access from
  *    either server or client, regardless of where the original object was
  *    created.
- * 
+ *
  *    http://qooxdoo.org
- * 
+ *
  *    Copyright:
  *      2010 Zenesis Limited, http://www.zenesis.com
- * 
+ *
  *    License:
  *      LGPL: http://www.gnu.org/licenses/lgpl.html
  *      EPL: http://www.eclipse.org/org/documents/epl-v10.php
- *      
+ *
  *      This software is provided under the same licensing terms as Qooxdoo,
- *      please see the LICENSE file in the Qooxdoo project's top-level directory 
+ *      please see the LICENSE file in the Qooxdoo project's top-level directory
  *      for details.
- * 
+ *
  *    Authors:
  *      * John Spackman (john.spackman@zenesis.com)
- * 
+ *
  * ************************************************************************
  */
 package com.zenesis.qx.remote;
@@ -73,7 +73,7 @@ import com.zenesis.qx.utils.ArrayUtils;
 
 /**
  * Handles the request and responses for a client.
- * 
+ *
  * This uses the Jackson JSON parser to pull data incrementally from the
  * request; this makes the code harder to read/write and means that we expect
  * the JSON data to occur in a particular order even though the JSON
@@ -83,7 +83,7 @@ import com.zenesis.qx.utils.ArrayUtils;
  * at the types of a method's parameters and use that type information to change
  * the way we parse. In this way, we can support any arbitrary mapping between
  * JSON and Java thanks to Jackson.
- * 
+ *
  * @author "John Spackman <john.spackman@zenesis.com>"
  *
  */
@@ -207,7 +207,7 @@ public class RequestHandler {
   /**
    * Sets the temporary output directory (if null, disables logging and repeatable
    * requests)
-   * 
+   *
    * @param traceLogDir
    */
   public static void setTemporaryDir(File temporaryDir) {
@@ -216,7 +216,7 @@ public class RequestHandler {
 
   /**
    * Returns the temporary output directory
-   * 
+   *
    * @return
    */
   public static File getTemporaryDir() {
@@ -226,7 +226,7 @@ public class RequestHandler {
   /**
    * Returns the time to wait for an exclusive lock on the request, in
    * milliseconds
-   * 
+   *
    * @return
    */
   public static int getRequestLockTimeout() {
@@ -235,7 +235,7 @@ public class RequestHandler {
 
   /**
    * Sets the time to wait for an exclusive lock on the request, in milliseconds.
-   * 
+   *
    * @param requestLockTimeout
    */
   public static void setRequestLockTimeout(int requestLockTimeout) {
@@ -244,7 +244,7 @@ public class RequestHandler {
 
   /**
    * Returns the headers
-   * 
+   *
    * @param request
    * @return
    */
@@ -261,7 +261,7 @@ public class RequestHandler {
 
   /**
    * Returns the body
-   * 
+   *
    * @param request
    * @return
    * @throws IOException
@@ -281,7 +281,7 @@ public class RequestHandler {
 
   /**
    * Writes the reponse
-   * 
+   *
    * @param response
    * @param headers
    * @param body
@@ -359,15 +359,15 @@ public class RequestHandler {
   /**
    * Handles the callback from the client; expects either an object or an array of
    * objects
-   * 
+   *
    * This method needs to be synchronized because if there are multiple requests
    * (where one or more are probably asynchronous) then we could serialise
    * serverObjects in a slow response and the the faster response only gets a
    * server object ID ... except that the slow response has not completed yet and
    * therefore the fast response has not told the client about the server object.
-   * 
+   *
    * The same is true for client IDs
-   * 
+   *
    * @param request
    * @param response
    * @param sessionId session id passed from the client for validation, ignored if
@@ -524,7 +524,7 @@ public class RequestHandler {
 
   /**
    * Called to handle exceptions during processRequest
-   * 
+   *
    * @param response
    * @param objectMapper
    * @param e
@@ -545,7 +545,7 @@ public class RequestHandler {
 
   /**
    * Returns the request handler for the current thread
-   * 
+   *
    * @return
    */
   public static RequestHandler getCurrentHandler() {
@@ -555,7 +555,7 @@ public class RequestHandler {
   /**
    * Handles an object from the client; expects the object to have a property
    * "cmd" which is the type of command
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -599,7 +599,7 @@ public class RequestHandler {
 
   /**
    * Resets the application session and returns the bootstrap object to the client
-   * 
+   *
    * @param jp
    */
   protected void cmdBootstrap(JsonParser jp) throws ServletException, IOException {
@@ -612,7 +612,7 @@ public class RequestHandler {
   /**
    * Handles a server method call from the client; expects a serverId, methodName,
    * and an optional array of parameters
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -778,7 +778,7 @@ public class RequestHandler {
 
   /**
    * Called when the client has disposed of
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -799,7 +799,7 @@ public class RequestHandler {
    * enclosing classes are located by looking for methods named in the form
    * "getXxxx" which have no parameters and return an instance of Proxied, or
    * which have the EnclosingThisMethod annotation.
-   * 
+   *
    * @param proxied
    * @return null if not found
    */
@@ -870,7 +870,7 @@ public class RequestHandler {
   /**
    * Handles setting a server object property from the client; expects a serverId,
    * propertyName, and a value
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -919,7 +919,7 @@ public class RequestHandler {
   /**
    * Sent when the client expires a cached property value, allowing the server
    * property to also its flush caches; expects a serverId and propertyName
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -941,7 +941,7 @@ public class RequestHandler {
    * Handles dynamic changes to a qa.data.Array instance without having a complete
    * replacement; expects a serverId, propertyName, type (one of "add", "remove",
    * "order"), start, end, and optional array of items
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -1023,13 +1023,13 @@ public class RequestHandler {
         ArrayUtils.addAll(list, currentArray);
       }
 
-      Proxied mutating = null; 
+      Proxied mutating = null;
       try {
         if (list instanceof Proxied)
           tracker.beginMutate(mutating = (Proxied) list, null);
-        if (list instanceof com.zenesis.qx.remote.collections.ArrayList && 
-            ((com.zenesis.qx.remote.collections.ArrayList)list).isDetectDuplicates() && 
-            ((com.zenesis.qx.remote.collections.ArrayList)list).detectDuplicates()) {
+        if (list instanceof com.zenesis.qx.remote.collections.ArrayList &&
+            ((com.zenesis.qx.remote.collections.ArrayList) list).isDetectDuplicates() &&
+            ((com.zenesis.qx.remote.collections.ArrayList) list).detectDuplicates()) {
           System.out.println("Duplicates detected before updating array");
         }
 
@@ -1060,12 +1060,12 @@ public class RequestHandler {
         if (observer != null)
           observer.observeEditArray(serverObject, prop, list);
 
-        if (list instanceof com.zenesis.qx.remote.collections.ArrayList && 
-            ((com.zenesis.qx.remote.collections.ArrayList)list).isDetectDuplicates() && 
-            ((com.zenesis.qx.remote.collections.ArrayList)list).detectDuplicates()) {
+        if (list instanceof com.zenesis.qx.remote.collections.ArrayList &&
+            ((com.zenesis.qx.remote.collections.ArrayList) list).isDetectDuplicates() &&
+            ((com.zenesis.qx.remote.collections.ArrayList) list).detectDuplicates()) {
           System.out.println("Duplicates detected after updating array");
         }
-        
+
         jp.nextToken();
       } finally {
         if (mutating != null)
@@ -1136,7 +1136,7 @@ public class RequestHandler {
   /**
    * Handles creating a server object to match one created on the client; expects
    * className, clientId, properties
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -1217,7 +1217,7 @@ public class RequestHandler {
   /**
    * Handles creating a server object to match one created on the client; expects
    * className, clientId, properties
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -1228,7 +1228,7 @@ public class RequestHandler {
 
   /**
    * Handles adding an event listener; expects serverId, eventName
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -1244,7 +1244,7 @@ public class RequestHandler {
 
   /**
    * Handles removing an event listener; expects serverId, eventName
-   * 
+   *
    * @param jp
    * @throws ServletException
    * @throws IOException
@@ -1260,7 +1260,7 @@ public class RequestHandler {
 
   /**
    * Returns the proxied object, by serverID or client ID
-   * 
+   *
    * @param id
    * @return
    */
@@ -1273,7 +1273,7 @@ public class RequestHandler {
 
   /**
    * Finds a property in a type, recursing up the class hierarchy
-   * 
+   *
    * @param type
    * @param name
    * @return
@@ -1291,7 +1291,7 @@ public class RequestHandler {
   /**
    * Sets a property value, tracking which property is being set so that
    * isSettingProperty can detect recursive sets
-   * 
+   *
    * @param type
    * @param proxied
    * @param propertyName
@@ -1333,7 +1333,7 @@ public class RequestHandler {
    * Attempts to convert a native type - Jackson will interpret floating point
    * numbers as Double, which will cause an exception if the destination only
    * accepts float.
-   * 
+   *
    * @param clazz
    * @param value
    * @return
@@ -1357,8 +1357,8 @@ public class RequestHandler {
       else if (targetClass == BigDecimal.class)
         value = new BigDecimal(val);
       else if (targetClass == BigInteger.class)
-        value = BigInteger.valueOf((int)val);
-      
+        value = BigInteger.valueOf((int) val);
+
     } else if (vClazz == float.class || vClazz == Float.class) {
       float val = (Float) value;
       if (targetClass == double.class || targetClass == Double.class)
@@ -1370,7 +1370,7 @@ public class RequestHandler {
       else if (targetClass == BigDecimal.class)
         value = new BigDecimal(val);
       else if (targetClass == BigInteger.class)
-        value = BigInteger.valueOf((int)val);
+        value = BigInteger.valueOf((int) val);
 
     } else if (vClazz == long.class || vClazz == Long.class) {
       long val = (Long) value;
@@ -1383,7 +1383,7 @@ public class RequestHandler {
       else if (targetClass == BigDecimal.class)
         value = new BigDecimal(val);
       else if (targetClass == BigInteger.class)
-        value = BigInteger.valueOf((int)val);
+        value = BigInteger.valueOf((int) val);
 
     } else if (vClazz == int.class || vClazz == Integer.class) {
       int val = (Integer) value;
@@ -1396,7 +1396,7 @@ public class RequestHandler {
       else if (targetClass == BigDecimal.class)
         value = new BigDecimal(val);
       else if (targetClass == BigInteger.class)
-        value = BigInteger.valueOf((int)val);
+        value = BigInteger.valueOf((int) val);
     }
 
     return value;
@@ -1405,7 +1405,7 @@ public class RequestHandler {
   /**
    * Reads an array from JSON, where each value is of the listed in types; EG the
    * first element is class type[0], the second element is class type[1] etc
-   * 
+   *
    * @param jp
    * @param types
    * @return
@@ -1414,7 +1414,7 @@ public class RequestHandler {
   private Object[] readArray(JsonParser jp, Class[] types) throws IOException {
     if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
       return null;
-    
+
     ArrayList result = new ArrayList();
     for (int paramIndex = 0; jp.nextToken() != JsonToken.END_ARRAY; paramIndex++) {
       Class type = null;
@@ -1424,7 +1424,7 @@ public class RequestHandler {
       if (type != null && Document.class.isAssignableFrom(type)) {
         Document doc = readBsonDocument(jp);
         result.add(doc);
-        
+
       } else if (type != null && type.isArray()) {
         if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
           result.add(null);
@@ -1449,12 +1449,12 @@ public class RequestHandler {
     }
     return result.toArray(new Object[result.size()]);
   }
-  
+
   protected Document readBsonDocument(JsonParser jp) throws IOException {
     if (jp.getCurrentToken() == JsonToken.VALUE_NULL)
       return null;
     if (jp.getCurrentToken() != JsonToken.START_OBJECT)
-      throw new IllegalArgumentException("Cannot read org.bdon.Document without an object to read from");
+      throw new IllegalArgumentException("Cannot read org.bson.Document without an object to read from");
     Document result = new Document();
     while (jp.nextToken() != JsonToken.END_OBJECT) {
       String key = jp.getCurrentName();
@@ -1476,7 +1476,7 @@ public class RequestHandler {
    * while the result is an array, you cannot assume that it is an array of
    * Object, or use generics because generics are always Objects - this is because
    * arrays of primitive types are not arrays of Objects
-   * 
+   *
    * @param jp
    * @param clazz
    * @return
@@ -1527,7 +1527,7 @@ public class RequestHandler {
   /**
    * Reads an array from JSON, where each value is of the class clazz; only if the
    * property exists
-   * 
+   *
    * @param jp    parser
    * @param name  name of the property
    * @param clazz class of each instance
@@ -1542,7 +1542,8 @@ public class RequestHandler {
     return null;
   }
 
-  protected Map readOptionalExpandedMap(JsonParser jp, String name, Class keyClazz, Class valueClazz) throws IOException {
+  protected Map readOptionalExpandedMap(JsonParser jp, String name, Class keyClazz, Class valueClazz)
+      throws IOException {
     if (jp.nextToken() == JsonToken.FIELD_NAME && jp.getCurrentName().equals(name) &&
         jp.nextToken() == JsonToken.START_OBJECT) {
       return readExpandedMap(jp, keyClazz, valueClazz);
@@ -1596,7 +1597,7 @@ public class RequestHandler {
    * while the result is an array, you cannot assume that it is an array of
    * Object, or use generics because generics are always Objects - this is because
    * arrays of primitive types are not arrays of Objects
-   * 
+   *
    * @param jp
    * @param clazz
    * @return
@@ -1644,7 +1645,7 @@ public class RequestHandler {
 
   /**
    * Reads a map, if the property exists
-   * 
+   *
    * @param jp         parser
    * @param name       name of the property
    * @param keyClazz   class of keys
@@ -1663,7 +1664,7 @@ public class RequestHandler {
 
   /**
    * Reads the current token value, with special consideration for enums
-   * 
+   *
    * @param jp
    * @param clazz
    * @return
@@ -1683,25 +1684,25 @@ public class RequestHandler {
         String str = Helpers.deserialiseEnum(obj.toString());
         obj = Enum.valueOf(clazz, str);
       }
-      
+
     } else if (Date.class.isAssignableFrom(clazz) || BigDecimal.class.isAssignableFrom(clazz)) {
       if (jp.getCurrentToken() == JsonToken.FIELD_NAME)
         obj = jp.getCurrentName();
       else
         obj = jp.readValueAs(Object.class);
-      
+
     } else {
       if (jp.getCurrentToken() == JsonToken.FIELD_NAME)
         obj = jp.getCurrentName();
       else
         obj = jp.readValueAs(clazz);
     }
-    
+
     if (obj instanceof String) {
-      String str = (String)obj;
+      String str = (String) obj;
       if (str.startsWith(PREFIX) && str.endsWith(SUFFIX)) {
         str = str.substring(PREFIX.length(), str.length() - SUFFIX.length());
-        
+
         if (str.startsWith("Date(") && str.endsWith(")")) {
           str = str.substring(5, str.length() - 1);
           try {
@@ -1712,7 +1713,7 @@ public class RequestHandler {
             log.error("Invalid date: " + str);
             return null;
           }
-          
+
         } else if (str.startsWith("BigNumber(") && str.endsWith(")")) {
           str = str.substring(10, str.length() - 1);
           try {
@@ -1721,13 +1722,14 @@ public class RequestHandler {
             log.error("Invalid BigNumber: " + str);
             return new BigDecimal(0);
           }
-          
+
         }
       }
     }
-    
+
     return obj;
   }
+
   public static final String PREFIX = "[__QOOXDOO_SERVER_OBJECTS__[";
   public static final String SUFFIX = "]]";
 
@@ -1749,7 +1751,7 @@ public class RequestHandler {
 
   /**
    * Gets a field value from the parser, checking that it is the type expected
-   * 
+   *
    * @param <T>       The desired type of object returned
    * @param jp        the parser
    * @param fieldName the name of the field to get
@@ -1769,7 +1771,7 @@ public class RequestHandler {
    * Reads the next token and ensures that it is a field name called
    * <code>fieldName</code>; leaves the current token on the start of the field
    * value
-   * 
+   *
    * @param jp
    * @param fieldName
    * @throws ServletException
