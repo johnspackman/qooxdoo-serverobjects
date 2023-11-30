@@ -168,6 +168,23 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     return false;
   }
 
+  /**
+   * Gets the UUIDs of each item in the ArrayList
+   * @return ArrayList containing all UUIDs
+   */
+  public ArrayList<String> getUuids() {
+    detectNulls();
+    ArrayList<String> uuids = new ArrayList<String>();
+    for (T obj : this) {
+      if (obj instanceof OnDemandReference<?>) {
+        uuids.add(((OnDemandReference) obj).getUuid());
+      } else if (obj instanceof HasUuid) {
+        uuids.add(((HasUuid)obj).getUuid());
+      }
+    }
+    return uuids;
+  }
+
   @Override
   public int indexOf(Object obj) {
     detectNulls();
