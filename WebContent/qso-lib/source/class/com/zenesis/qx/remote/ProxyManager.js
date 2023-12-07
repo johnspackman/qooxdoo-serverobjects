@@ -1436,19 +1436,25 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Map} the property definition
      */
     onWrappedArrayChange(evt, serverObject, propDef) {
-      if (propDef.readOnly) return;
+      if (propDef.readOnly) {
+        return;
+      }
       // Changing a property from the server
-      if (serverObject === this.__setPropertyObject && propDef.name == this.__setPropertyName) return;
+      if (serverObject === this.__setPropertyObject && propDef.name == this.__setPropertyName) {
+        return;
+      }
       // Server is updating the array or map
-      if (this.__setPropertyObject && !this.__setPropertyName && this.__setPropertyObject === evt.getTarget()) return;
+      if (this.__setPropertyObject && !this.__setPropertyName && this.__setPropertyObject === evt.getTarget()) {
+        return;
+      }
       var data = evt.getData();
 
       // The change event for qx.data.Array doesn't give enough information to
-      // replicate
-      // the change, so for now we just hack it by remembering the array is
-      // dirty and
-      // copying the whole thing on the next server flush
-      if (!this.__dirtyArrays) this.__dirtyArrays = {};
+      // replicate the change, so for now we just hack it by remembering the array is
+      // dirty and copying the whole thing on the next server flush
+      if (!this.__dirtyArrays) {
+        this.__dirtyArrays = {};
+      }
       var array = evt.getTarget();
       var data = evt.getData();
       var info = this.__dirtyArrays[array.toHashCode()];
@@ -1460,25 +1466,37 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         };
 
       if (array instanceof qx.data.Array) {
-        if (!info.added) info.added = [];
-        if (!info.removed) info.removed = [];
-        if (data.removed)
+        if (!info.added) {
+          info.added = [];
+        }
+        if (!info.removed) {
+          info.removed = [];
+        }
+        if (data.removed) {
           data.removed.forEach(function (item) {
             if (qx.lang.Array.remove(info.added, item) === undefined) {
               info.removed.push(item);
             }
           });
-        if (data.added)
+        }
+        if (data.added) {
           data.added.forEach(function (item) {
             if (qx.lang.Array.remove(info.removed, item) === undefined) {
               info.added.push(item);
             }
           });
+        }
       } else {
-        if (!info.put) info.put = {};
-        if (!info.removed) info.removed = [];
+        if (!info.put) {
+          info.put = {};
+        }
+        if (!info.removed) {
+          info.removed = [];
+        }
         function keyToId(key) {
-          if (propDef.nativeKeyType) return key;
+          if (propDef.nativeKeyType) {
+            return key;
+          }
           return qx.core.ObjectRegistry.toHashCode(key);
         }
         if (data.type == "put") {

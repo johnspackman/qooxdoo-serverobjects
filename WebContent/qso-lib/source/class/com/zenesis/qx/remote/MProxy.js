@@ -194,18 +194,24 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       // Add change handler for arrays; note that this works for maps too
       // because they are also "wrapped"
       if (propDef.array == "wrap") {
-        if (oldValue) oldValue.removeListenerById(propDef.changeListenerId);
+        if (oldValue) {
+          oldValue.removeListenerById(propDef.changeListenerId);
+        }
 
         if (value) {
           propDef.changeListenerId = value.addListener("change", evt => {
             PM.onWrappedArrayChange(evt, this, propDef);
           });
-        } else propDef.changeListenerId = null;
+        } else {
+          propDef.changeListenerId = null;
+        }
       }
 
       // We mustn't tell the server anything if it does not yet know about this
-      // object
-      if (this.__isPending) return;
+      // object[]
+      if (this.__isPending) {
+        return;
+      }
       PM.setPropertyValue(this, propertyName, value, oldValue);
       var ex = PM.clearException();
       if (ex) throw ex;
