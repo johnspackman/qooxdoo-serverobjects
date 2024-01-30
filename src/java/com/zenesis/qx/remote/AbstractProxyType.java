@@ -119,6 +119,7 @@ public abstract class AbstractProxyType implements ProxyType {
         for (Mixin mixin : getMixins())
           if (mixin.patch()) {
             fn.code += "clazz = qx.Class.patch(clazz, " + mixin.value() + ");\n";
+            cw.require(mixin.value());
           }
         ArrayList<String> arr = new ArrayList<>();
         for (Mixin mixin : getMixins())
