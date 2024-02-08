@@ -271,6 +271,18 @@ public class ClassWriter {
       this.code = code;
       this.args = args;
     }
+    
+    @Override
+    public String toString() {
+      String str = "function(";
+      for (int i = 0; i < args.length; i++) {
+        if (i > 0)
+          str += ", ";
+        str += args[i];
+      }
+      str += ") { " + code + "}";
+      return str;
+    }
   }
 
   @SuppressWarnings("serial")

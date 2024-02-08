@@ -310,15 +310,17 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
         new Function("value", "oldValue", "name", "this._applyProperty(\"" + name + "\", value, oldValue, name);"));
 
     if (onDemand) {
-      cw.member("get" + upname, new Function("async", "return this._getPropertyOnDemand('" + name + "', async);"));
-      cw.member("expire" + upname,
-          new Function("sendToServer", "return this._expirePropertyOnDemand('" + name + "', sendToServer);"));
-      cw.member("set" + upname,
-          new Function("value", "async", "return this._setPropertyOnDemand('" + name + "', value, async);"));
-      cw.member("get" + upname + "Async", new Function("return this._getPropertyOnDemandAsync('" + name + "');"));
-    } else
-      cw.member("get" + upname + "Async",
-          new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);"));
+      cw.method("defer").code += "clazz.prototype.get" + upname + "=" + 
+          new Function("async", "return this._getPropertyOnDemand('" + name + "', async);") + "\n";
+      cw.method("defer").code += "clazz.prototype.get" + upname + "Async=" +
+          new Function("return this._getPropertyOnDemandAsync('" + name + "');") + "\n";
+      cw.method("defer").code += "clazz.prototype.expire" + upname + "=" +
+          new Function("sendToServer", "return this._expirePropertyOnDemand('" + name + "', sendToServer);") + "\n";
+      cw.method("defer").code += "clazz.prototype.set" + upname + "=" +
+          new Function("value", "async", "return this._setPropertyOnDemand('" + name + "', value, async);") + "\n";
+      cw.method("defer").code += "clazz.prototype.set" + upname + "Async=" +
+          new Function("value", "async", "return qx.Promise.resolve(this._setPropertyOnDemand('" + name + "', value, async));") + "\n";
+    }
 
     ArrayList<RawValue> arr = new ArrayList<>();
     if (!annoSets.isEmpty()) {
