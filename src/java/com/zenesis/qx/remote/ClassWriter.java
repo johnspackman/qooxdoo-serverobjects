@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 public class ClassWriter {
 
   private final ProxyType proxyType;
-  private final HashMap<String, Object> def;
+  private final LinkedHashMap<String, Object> def;
   private final BasicObjectMapper objectMapper;
   private final HashSet<ProxyType> use;
 
@@ -40,7 +40,7 @@ public class ClassWriter {
     module.addSerializer(Function.class, new FunctionSerializer());
     objectMapper.registerModule(module);
 
-    def = new HashMap<String, Object>();
+    def = new LinkedHashMap<String, Object>();
     if (!isInterface()) {
       method("defer",
           new Function(new String[] { "clazz" }, "clazz.$$eventMeta = {};\n" + "clazz.$$methodMeta = {};\n"));
@@ -124,36 +124,36 @@ public class ClassWriter {
   }
 
   public void event(String name, String type) {
-    HashMap<String, Object> map = (HashMap<String, Object>) def.get("events");
+    LinkedHashMap<String, Object> map = (LinkedHashMap<String, Object>) def.get("events");
     if (map == null) {
-      map = new HashMap<>();
+      map = new LinkedHashMap<>();
       def.put("events", map);
     }
     map.put(name, type);
   }
 
   public void member(String name, Object obj) {
-    HashMap<String, Object> map = (HashMap<String, Object>) def.get("members");
+    LinkedHashMap<String, Object> map = (LinkedHashMap<String, Object>) def.get("members");
     if (map == null) {
-      map = new HashMap<>();
+      map = new LinkedHashMap<>();
       def.put("members", map);
     }
     map.put(name, obj);
   }
 
   public void statics(String name, Object obj) {
-    HashMap<String, Object> map = (HashMap<String, Object>) def.get("statics");
+    LinkedHashMap<String, Object> map = (LinkedHashMap<String, Object>) def.get("statics");
     if (map == null) {
-      map = new HashMap<>();
+      map = new LinkedHashMap<>();
       def.put("statics", map);
     }
     map.put(name, obj);
   }
 
   public void property(String name, Object obj) {
-    HashMap<String, Object> map = (HashMap<String, Object>) def.get("properties");
+    LinkedHashMap<String, Object> map = (LinkedHashMap<String, Object>) def.get("properties");
     if (map == null) {
-      map = new HashMap<>();
+      map = new LinkedHashMap<>();
       def.put("properties", map);
     }
     if (name.charAt(0) == '@' && obj instanceof ArrayList) {
