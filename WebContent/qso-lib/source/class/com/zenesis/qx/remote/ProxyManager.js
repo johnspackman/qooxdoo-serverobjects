@@ -182,13 +182,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Can be called multiple times, the first object is always returned.
      */
     getBootstrapObject() {
-      if (this.__serverObjects.length) return this.__serverObjects[0];
+      if (this.__serverObjects.length) {
+        let value = this.__serverObjects[0];
+        console.log("debug: getBootstrapObject: returning existing object: " + value.toHashCode());
+        return value;
+      }
+      console.log("debug: getBootstrapObject: this.__serverObjects.length before: " + this.__serverObjects.length);
+      console.log("debug: getBootstrapObject: sending bootstrap command");
       var result = null;
       var msg = {
         cmd: "bootstrap"
       };
 
       this._sendCommandToServer(msg);
+      console.log("debug: getBootstrapObject: this.__serverObjects.length after: " + this.__serverObjects.length);
       var ex = this.clearException();
       if (ex) throw ex;
       this.fireDataEvent("connected", this.__serverObjects[0]);
@@ -278,6 +285,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     __expectedRequestIndex: 0,
     __unprocessedResponses: null,
     __onResponseReceived(ioData) {
+      console.log("debug: __onResponseReceived: start");
       this.__numActiveRequests--;
       var txt = ioData.content;
       var statusCode = ioData.statusCode;
@@ -320,6 +328,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) console.log && console.log("__onResponseReceived 2: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
         this.__inProcessData--;
         if (this.__shutdownPromise && this.__numActiveRequests === 0) this.__shutdownPromise.resolve();
+        console.log("debug: __onResponseReceived: finished");
       }
     },
 
@@ -477,7 +486,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         qx.core.Assert.assertEquals(elem.data.clientId, clientObject.getServerId());
 
         clientObject.setServerId(elem.data.serverId);
-        this.__serverObjects[elem.data.serverId] = clientObject;
+        console.log("debug: processdata: added new object: " + clientObject);
+        this.__serverObjects[elem.data.serverId] = clientObject; //note
       }
 
       var stats = null;
@@ -869,7 +879,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           } else result = new clazz();
           t.__inConstructor = false;
           qx.core.Assert.assertEquals(serverId, result.getServerId());
-          t.__serverObjects[serverId] = result;
+          console.log("debug: readServerObject: added new object: " + result.toHashCode());
+          t.__serverObjects[serverId] = result; //note: is called from responsereceived
 
           if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
             var ms = new Date().getTime() - startTime;
