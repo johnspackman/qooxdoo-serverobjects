@@ -32,7 +32,9 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
    */
   construct(info) {
     super();
-    if (info) this.set({ absolutePath: info.absolutePath, name: info.name, type: info.type, lastModified: info.lastModified, size: info.size });
+    if (info) {
+      this.set({ absolutePath: info.absolutePath, name: info.name, type: info.type, lastModified: info.lastModified, size: info.size });
+    }
   },
 
   properties: {
@@ -110,11 +112,15 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
       var name = this.getAbsolutePath();
 
       // Root folder has no parent
-      if (name == "/") return null;
+      if (name == "/") {
+        return null;
+      }
 
       // No slashes means improperly formatted (an error)
       var pos = name.lastIndexOf("/");
-      if (pos < 0) return null;
+      if (pos < 0) {
+        return null;
+      }
 
       // Get the folder
       var folder = name.substring(0, pos);
@@ -133,11 +139,15 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
      * Apply for name
      */
     _applyName(value, oldValue) {
-      if (!value) this.setAbsolutePath("/");
-      else {
+      if (!value) {
+        this.setAbsolutePath("/");
+      } else {
         var abs = this.getParentFolder();
-        if (!abs) abs = "/";
-        else if (!abs.match(/\/$/)) abs += "/";
+        if (!abs) {
+          abs = "/";
+        } else if (!abs.match(/\/$/)) {
+          abs += "/";
+        }
         this.setAbsolutePath(abs + value);
       }
     },
@@ -147,10 +157,13 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
      */
     _applyAbsolutePath(value, oldValue) {
       var name;
-      if (value == "/" || value == "") name = "";
-      else {
+      if (value == "/" || value == "") {
+        name = "";
+      } else {
         var m = value.match(/([^/]+)$/);
-        if (!m || !m.length) throw new Error("Cannot interpret absolutePath " + value);
+        if (!m || !m.length) {
+          throw new Error("Cannot interpret absolutePath " + value);
+        }
         name = m[0];
       }
       this.setName(name);
@@ -162,7 +175,9 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
      * @param oldValue
      */
     _apply(value, oldValue) {
-      if (oldValue) throw new Error("Do not change the properties of grasshopper.app.FileInfo (get a new instance from the server)");
+      if (oldValue) {
+        throw new Error("Do not change the properties of grasshopper.app.FileInfo (get a new instance from the server)");
+      }
     },
 
     /**
@@ -171,7 +186,9 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
      * @returns
      */
     _transformAbsolutePath(value) {
-      if (value) value = value.replace("\\", "/");
+      if (value) {
+        value = value.replace("\\", "/");
+      }
       return value;
     }
   }

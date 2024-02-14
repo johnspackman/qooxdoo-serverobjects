@@ -132,7 +132,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
           console.log && console.log("Sending to server: " + body);
         }
 
-        if (qx.core.Environment.get("qx.debug")) headers["X-ProxyManager-SHA1"] = com.zenesis.qx.remote.Sha1.digest(body);
+        if (qx.core.Environment.get("qx.debug")) {
+          headers["X-ProxyManager-SHA1"] = com.zenesis.qx.remote.Sha1.digest(body);
+        }
 
         headers["X-ProxyManager-ClientTime"] = new Date().getTime();
         Object.keys(headers).forEach(key => req.setRequestHeader(key, headers[key]));

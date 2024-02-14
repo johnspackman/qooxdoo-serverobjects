@@ -50,7 +50,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
   construct(values, keysAreHashed, keyClass, valueClass) {
     super();
     var args = qx.lang.Array.fromArguments(arguments);
-    if (typeof args[0] == "boolean") args.unshift(undefined);
+    if (typeof args[0] == "boolean") {
+      args.unshift(undefined);
+    }
     values = args.shift();
     keysAreHashed = args.shift();
     keyClass = args.shift();
@@ -64,8 +66,12 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
       entries: new qx.data.Array()
     });
 
-    if (keyClass !== undefined) this.setKeyClass(keyClass);
-    if (valueClass !== undefined) this.setValueClass(valueClass);
+    if (keyClass !== undefined) {
+      this.setKeyClass(keyClass);
+    }
+    if (valueClass !== undefined) {
+      this.setValueClass(valueClass);
+    }
     if (values !== undefined) {
       this.replace(values);
     }
@@ -197,7 +203,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
 
     __getKey(key) {
       if (this.__keysAreHashed) {
-        if (key === null || key === undefined) throw new Error("Invalid key passed to Map.__getKey");
+        if (key === null || key === undefined) {
+          throw new Error("Invalid key passed to Map.__getKey");
+        }
         var hash = qx.core.ObjectRegistry.toHashCode(key);
         return hash;
       }
@@ -212,8 +220,12 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
     __putImpl(key, value) {
       var keyClass = this.getKeyClass();
       var valueClass = this.getValueClass();
-      if (keyClass && !(key instanceof keyClass)) throw new Error("Cannot put key into map because key is the wrong class, expected " + keyClass + ", given key=" + key);
-      if (valueClass && !(value instanceof valueClass)) throw new Error("Cannot put value into map because value is the wrong class, expected " + valueClass + ", given value=" + value);
+      if (keyClass && !(key instanceof keyClass)) {
+        throw new Error("Cannot put key into map because key is the wrong class, expected " + keyClass + ", given key=" + key);
+      }
+      if (valueClass && !(value instanceof valueClass)) {
+        throw new Error("Cannot put value into map because value is the wrong class, expected " + valueClass + ", given value=" + value);
+      }
       qx.core.Assert.assertFalse(this.__changingValue);
       this.__changingValue = true;
       try {
@@ -230,7 +242,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
           oldValue = entry.getValue();
           values.remove(oldValue);
           entry.setValue(value);
-          if (!values.contains(value)) values.push(value);
+          if (!values.contains(value)) {
+            values.push(value);
+          }
           result = {
             key: key,
             value: value,
@@ -240,8 +254,12 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         } else {
           entry = new com.zenesis.qx.remote.Entry(key, value);
           this.__attachEntry(entry);
-          if (!values.contains(value)) values.push(value);
-          if (!keys.contains(key)) keys.push(key);
+          if (!values.contains(value)) {
+            values.push(value);
+          }
+          if (!keys.contains(key)) {
+            keys.push(key);
+          }
           result = {
             key: key,
             value: value,
@@ -279,7 +297,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      * Event handler for changes to an entry's value property
      */
     __onEntryChangeValue(evt) {
-      if (this.__changingValue) return;
+      if (this.__changingValue) {
+        return;
+      }
       var entry = evt.getTarget();
       var value = entry.getValue();
       var oldValue = evt.getOldData();
@@ -291,8 +311,12 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
         }
       }
       var values = this.getValues();
-      if (remove) values.remove(oldValue);
-      if (!values.contains(value)) values.push(value);
+      if (remove) {
+        values.remove(oldValue);
+      }
+      if (!values.contains(value)) {
+        values.push(value);
+      }
 
       this.fireDataEvent("change", {
         type: "put",
@@ -317,7 +341,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      */
     replace(src) {
       var t = this;
-      if (src instanceof com.zenesis.qx.remote.Map) src = src.toObject();
+      if (src instanceof com.zenesis.qx.remote.Map) {
+        src = src.toObject();
+      }
 
       var values = this.getValues();
       var keys = this.getKeys();
@@ -556,7 +582,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      *          {Object}
      */
     _applyValues(value, oldValue) {
-      if (oldValue) throw new Error("Cannot change property values of com.zenesis.qx.remote.Map");
+      if (oldValue) {
+        throw new Error("Cannot change property values of com.zenesis.qx.remote.Map");
+      }
     },
 
     /**
@@ -568,7 +596,9 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      *          {Object}
      */
     _applyKeys(value, oldValue) {
-      if (oldValue) throw new Error("Cannot change property keys of com.zenesis.qx.remote.Map");
+      if (oldValue) {
+        throw new Error("Cannot change property keys of com.zenesis.qx.remote.Map");
+      }
     },
 
     /**
@@ -580,14 +610,18 @@ qx.Class.define("com.zenesis.qx.remote.Map", {
      *          {Object}
      */
     _applyEntries(value, oldValue) {
-      if (oldValue) throw new Error("Cannot change property entries of com.zenesis.qx.remote.Map");
+      if (oldValue) {
+        throw new Error("Cannot change property entries of com.zenesis.qx.remote.Map");
+      }
     },
 
     /**
      * Transform for keyClass and valueClass, converts strings to classes
      */
     _transformToClass(value) {
-      if (value) value = qx.Class.getByName(value);
+      if (value) {
+        value = qx.Class.getByName(value);
+      }
       return value;
     }
   }

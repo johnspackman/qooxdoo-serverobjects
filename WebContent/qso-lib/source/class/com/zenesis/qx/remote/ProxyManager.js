@@ -51,8 +51,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     if (!com.zenesis.qx.remote.ProxyManager.__initialised) {
       com.zenesis.qx.remote.ProxyManager.__initialised = true;
     }
-    if (this.constructor.__instance) this.warn("Not setting ProxyManager instance because one is already defined");
-    else com.zenesis.qx.remote.ProxyManager.setInstance(this);
+    if (this.constructor.__instance) {
+      this.warn("Not setting ProxyManager instance because one is already defined");
+    } else com.zenesis.qx.remote.ProxyManager.setInstance(this);
 
     this.__onPollTimeoutBinding = qx.lang.Function.bind(this.__onPollTimeout, this);
 
@@ -203,7 +204,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         console.log("debug: getBootstrapObject: this.__serverObjects.length after: " + this.__serverObjects.length);
       }
       var ex = this.clearException();
-      if (ex) throw ex;
+      if (ex) {
+        throw ex;
+      }
       this.fireDataEvent("connected", this.__serverObjects[0]);
       return this.__serverObjects[0];
     },
@@ -246,7 +249,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (!this.__shutdownPromise) {
         this.__shutdownPromise = new qx.Promise();
         this.fireEvent("shutdown");
-        if (this.__numActiveRequests === 0) this.__shutdownPromise.resolve();
+        if (this.__numActiveRequests === 0) {
+          this.__shutdownPromise.resolve();
+        }
       }
       return this.__shutdownPromise;
     },
@@ -258,7 +263,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     registerClientObject(obj) {
       qx.core.Assert.assertTrue(!obj.hasServerId());
-      if (!this.__clientObjects) this.__clientObjects = {};
+      if (!this.__clientObjects) {
+        this.__clientObjects = {};
+      }
       var index = ++this.__clientObjectsLastId;
       this.__clientObjects[index] = obj;
       /*
@@ -328,13 +335,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           result = this.__processResponse(proxyData);
         } else {
           this._handleIoError(ioData);
-          if (typeof proxyData.async == "function") proxyData.async(ioData);
+          if (typeof proxyData.async == "function") {
+            proxyData.async(ioData);
+          }
         }
 
         return result;
       } finally {
-        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps"))
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) {
           console.log && console.log("__onResponseReceived 2: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
+        }
         this.__inProcessData--;
         if (this.__shutdownPromise && this.__numActiveRequests === 0) {
           this.__shutdownPromise.resolve();
@@ -352,8 +362,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
           var txt = proxyData.txt.trim();
           var result;
-          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps"))
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) {
             console.log("process: start: " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex + ", outOfSequence=" + outOfSequence);
+          }
           try {
             if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.trace")) {
               console.log && console.log("received: txt=" + txt); // Use console.log because
@@ -364,11 +375,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               var data = eval("(" + txt + ")");
               result = t._processData(data);
             }
-            if (typeof proxyData.async == "function") proxyData.async();
+            if (typeof proxyData.async == "function") {
+              proxyData.async();
+            }
           } catch (e) {
             t.error("Exception during receive: " + t.__describeException(e), e);
             t._setException(e);
-            if (typeof proxyData.async == "function") proxyData.async();
+            if (typeof proxyData.async == "function") {
+              proxyData.async();
+            }
           } finally {
             if (t.getPollServer()) {
               t._killPollTimer();
@@ -384,16 +399,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           stats.peakTime = Math.max(stats.peakTime, time);
         }
 
-        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps"))
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) {
           console.log("process: loaded: " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex + ", outOfSequence=" + outOfSequence);
+        }
         if (!outOfSequence) {
           t.__expectedRequestIndex = proxyData.reqIndex + 1;
-          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) console.log("process: updated expected=" + t.__expectedRequestIndex);
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) {
+            console.log("process: updated expected=" + t.__expectedRequestIndex);
+          }
 
           for (var i = 0; i < t.__unprocessedResponses.length; i++) {
             if (t.__unprocessedResponses[i].reqIndex == t.__expectedRequestIndex) {
               var next = qx.lang.Array.removeAt(t.__unprocessedResponses, i--);
-              if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) console.log("process: shifting, next=" + next.reqIndex + ", next.processed=" + next.processed);
+              if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) {
+                console.log("process: shifting, next=" + next.reqIndex + ", next.processed=" + next.processed);
+              }
               if (!next.processed) {
                 process(next);
                 break;
@@ -404,7 +424,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           }
         }
 
-        if (t.__unprocessedResponses.length == 0) t.fireEvent("requestsComplete");
+        if (t.__unprocessedResponses.length == 0) {
+          t.fireEvent("requestsComplete");
+        }
         return result;
       }
 
@@ -419,7 +441,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           t.__unprocessedResponses.push(proxyData);
           process(proxyData, true);
         } else {
-          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) console.log("queuing " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex);
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) {
+            console.log("queuing " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex);
+          }
           t.__unprocessedResponses.push(proxyData);
         }
         return;
@@ -468,10 +492,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       txt = txt.trim();
       this.__inProcessData++;
       try {
-        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.trace")) console.log && console.log("received: txt=" + txt); // Use console.log because
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.trace")) {
+          console.log && console.log("received: txt=" + txt);
+        } // Use console.log because
         // LogAppender would cause
         // recursive logging
-        if (!txt.length) return null;
+        if (!txt.length) {
+          return null;
+        }
         var data = eval("(" + txt + ")");
         return this._processData(data);
       } catch (e) {
@@ -496,7 +524,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // Map client IDs first
       for (var i = 0, l = data.length; i < l; i++) {
         var elem = data[i];
-        if (elem.type != "mapClientId") continue;
+        if (elem.type != "mapClientId") {
+          continue;
+        }
 
         var index = 0 - elem.data.clientId;
         var clientObject = this.__clientObjects[index];
@@ -524,13 +554,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
           forProperty(propName) {
             var propStats = this.properties[propName];
-            if (!propStats) propStats = this.properties[propName] = { name: propName, numSets: 0, time: 0 };
+            if (!propStats) {
+              propStats = this.properties[propName] = { name: propName, numSets: 0, time: 0 };
+            }
             return propStats;
           }
 
           forPrefetch(methodName) {
             var prefetchStats = this.prefetch[methodName];
-            if (!prefetchStats) prefetchStats = this.prefetch[methodName] = { name: methodName, numSets: 0, time: 0 };
+            if (!prefetchStats) {
+              prefetchStats = this.prefetch[methodName] = { name: methodName, numSets: 0, time: 0 };
+            }
             return prefetchStats;
           }
         }
@@ -546,7 +580,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
           forClass(classname) {
             var classStats = this.statsByClass[classname];
-            if (!classStats) classStats = this.statsByClass[classname] = new ClassStats(classname);
+            if (!classStats) {
+              classStats = this.statsByClass[classname] = new ClassStats(classname);
+            }
             return classStats;
           }
 
@@ -557,22 +593,28 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           dumpStats() {
             const SPACES = "                    ";
             function rpad(str, len, spaces) {
-              if (spaces === undefined) spaces = SPACES;
+              if (spaces === undefined) {
+                spaces = SPACES;
+              }
               str = str + "";
               while (str.length < len) {
                 var add = len - str.length;
-                if (add >= spaces.length) str += spaces;
-                else str += spaces.substring(0, add);
+                if (add >= spaces.length) {
+                  str += spaces;
+                } else str += spaces.substring(0, add);
               }
               return str;
             }
             function lpad(str, len, spaces) {
-              if (spaces === undefined) spaces = SPACES;
+              if (spaces === undefined) {
+                spaces = SPACES;
+              }
               str = str + "";
               while (str.length < len) {
                 var add = len - str.length;
-                if (add >= spaces.length) str = spaces + str;
-                else str = spaces.substring(0, add) + str;
+                if (add >= spaces.length) {
+                  str = spaces + str;
+                } else str = spaces.substring(0, add) + str;
               }
               return str;
             }
@@ -612,7 +654,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
                 for (let i = 0; i < properties.length && i < 2; i++) {
                   let propStats = properties[i];
-                  if (i) str += ", ";
+                  if (i) {
+                    str += ", ";
+                  }
                   str += propStats.name + "= #" + propStats.numSets + " @ " + propStats.time + "ms";
                 }
                 console.log(str);
@@ -655,7 +699,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           // Upload
         } else if (type == "upload") {
           var fileInfos = this.readProxyObject(elem.data, stats);
-          if (!result) result = [];
+          if (!result) {
+            result = [];
+          }
           this.__inUploadReceived++;
           try {
             for (var j = 0; j < fileInfos.length; j++) {
@@ -687,21 +733,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             // Ignore it - we were only trying to recover from a server
             // exception
           }
-          this._handleServerException(elem.data, "property");
-
-          // A server property value changed, update the client
+          this._handleServerException(elem.data, "property"); // A server property value changed, update the client
         } else if (type == "set") {
           var obj = this.readProxyObject(elem.object, stats);
           var value = this.readProxyObject(elem.data, stats);
-          this.setPropertyValueFromServer(obj, elem.name, value);
-
-          // An on demand server property value changed, clear the cache
+          this.setPropertyValueFromServer(obj, elem.name, value); // An on demand server property value changed, clear the cache
         } else if (type == "expire") {
           var obj = this.readProxyObject(elem.object, stats);
           var upname = qx.lang.String.firstUp(elem.name);
-          obj["expire" + upname](false);
-
-          // A server property value changed, update the client
+          obj["expire" + upname](false); // A server property value changed, update the client
         } else if (type == "edit-array") {
           (function () {
             var serverObject = t.readProxyObject(elem.object, stats);
@@ -711,11 +751,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             t.__setPropertyName = null;
             try {
               elem.data.forEach(function (data) {
-                if (data.removed)
+                if (data.removed) {
                   data.removed.forEach(function (item) {
                     var obj = t.readProxyObject(item, stats);
                     serverObject.remove(obj);
                   });
+                }
                 if (data.added) {
                   data.added.forEach(function (item) {
                     var obj = t.readProxyObject(item, stats);
@@ -770,7 +811,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
         stats.end();
         // Only report stats that were at least 100ms
-        if (stats.totalTime >= 100) stats.dumpStats();
+        if (stats.totalTime >= 100) {
+          stats.dumpStats();
+        }
       }
       return result;
     },
@@ -833,9 +876,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           }
 
         // All simple values? then just use the already parsed data
-        if (ok) result = data;
-        // Copy one by one, recursively
-        else {
+        if (ok) {
+          result = data;
+          // Copy one by one, recursively
+        } else {
           /*
            * Note that ordering is not defined and if server objects with
            * recursive references are passed for the first time in a map, they
@@ -844,7 +888,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           result = {};
           for (var propName in data) {
             var propValue = data[propName];
-            if (propValue) propValue = t.readProxyObject(propValue, stats);
+            if (propValue) {
+              propValue = t.readProxyObject(propValue, stats);
+            }
             result[propName] = propValue;
           }
         }
@@ -882,7 +928,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           // and would conflict with __currentNewServerId being a single use
           // global
           var constructorArgs = undefined;
-          if (data.constructorArgs) constructorArgs = readArray(data.constructorArgs);
+          if (data.constructorArgs) {
+            constructorArgs = readArray(data.constructorArgs);
+          }
 
           t.__currentNewServerId = serverId;
           t.__inConstructor = true;
@@ -930,7 +978,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               }
             }
 
-            if (propValue) propValue = t.readProxyObject(propValue, stats);
+            if (propValue) {
+              propValue = t.readProxyObject(propValue, stats);
+            }
             t.setPropertyValueFromServer(result, propName, propValue);
 
             if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
@@ -954,8 +1004,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
 
             var value = data.prefetch[methodName];
-            if (!result.$$proxy.cachedResults) result.$$proxy.cachedResults = {};
-            if (value) value = t.readProxyObject(value, stats);
+            if (!result.$$proxy.cachedResults) {
+              result.$$proxy.cachedResults = {};
+            }
+            if (value) {
+              value = t.readProxyObject(value, stats);
+            }
             result.$$proxy.cachedResults[methodName] = value;
 
             if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
@@ -1008,13 +1062,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       // If it's a string, then it's an existing class we need to create
       if (typeof data == "string") {
-        if (this.__classesBeingDefined[data]) return null;
+        if (this.__classesBeingDefined[data]) {
+          return null;
+        }
         var clazz = eval(data);
         return clazz;
       }
 
       function cleanup(data) {
-        for (var name in data) if (data[name] === undefined) delete data[name];
+        for (var name in data)
+          if (data[name] === undefined) {
+            delete data[name];
+          }
         return data;
       }
 
@@ -1034,12 +1093,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         var strConstructorCode = null;
         var strDestructorCode = "";
         var strDeferCode = "clazz.$$eventMeta = {};\n" + "clazz.$$methodMeta = {};\n";
-        if (data.isInterface)
+        if (data.isInterface) {
           def = {
             members: {},
             statics: {}
           };
-        else {
+        } else {
           strConstructorCode = "var args = qx.lang.Array.fromArguments(arguments);\n" + "args.unshift(arguments);\n" + "this.base.apply(this, args);\n" + "this.initialiseProxy();\n";
           def = {
             members: {},
@@ -1056,10 +1115,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         // Add interfaces
         if (data.interfaces) {
           var interfaces = data.interfaces;
-          for (var i = 0; i < data.interfaces.length; i++) interfaces[i] = this.getClassOrCreate(interfaces[i], stats);
+          for (var i = 0; i < data.interfaces.length; i++) {
+            interfaces[i] = this.getClassOrCreate(interfaces[i], stats);
+          }
           if (interfaces.length) {
-            if (data.isInterface) def.extend = interfaces;
-            else def.implement = interfaces;
+            if (data.isInterface) {
+              def.extend = interfaces;
+            } else def.implement = interfaces;
           }
         }
 
@@ -1068,10 +1130,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           for (var methodName in data.methods) {
             var method = data.methods[methodName];
             method.name = methodName;
-            if (data.isInterface) def.members[methodName] = new Function("");
-            else if (method.staticMethod)
+            if (data.isInterface) {
+              def.members[methodName] = new Function("");
+            } else if (method.staticMethod) {
               def.statics[methodName] = new Function("return com.zenesis.qx.remote.ProxyManager._callServer(" + data.className + ', "' + methodName + '", qx.lang.Array.fromArguments(arguments));');
-            else {
+            } else {
               def.members[methodName] = new Function('return this._callServer("' + methodName + '", qx.lang.Array.fromArguments(arguments));');
               def.members[methodName + "Async"] = new Function(
                 "var args = qx.lang.Array.fromArguments(arguments);" +
@@ -1086,11 +1149,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               );
             }
 
-            if (method.returnType && typeof method.returnType == "object") deferredTypes.push(method.returnType);
+            if (method.returnType && typeof method.returnType == "object") {
+              deferredTypes.push(method.returnType);
+            }
 
             var params = method.parameters;
-            if (params) for (var i = 0; i < params.length; i++) if (params[i] && typeof params[i] == "object") deferredTypes.push(params[i]);
-            if (method.anno) def.members["@" + methodName] = method.anno;
+            if (params) {
+              for (var i = 0; i < params.length; i++) {
+                if (params[i] && typeof params[i] == "object") {
+                  deferredTypes.push(params[i]);
+                }
+              }
+            }
+            if (method.anno) {
+              def.members["@" + methodName] = method.anno;
+            }
 
             strDeferCode +=
               "clazz.$$methodMeta." +
@@ -1117,13 +1190,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             var fromDef = data.properties[propName];
             fromDef.name = propName;
 
-            if (fromDef.clazz && typeof fromDef.clazz == "object") deferredTypes.push(fromDef.clazz);
+            if (fromDef.clazz && typeof fromDef.clazz == "object") {
+              deferredTypes.push(fromDef.clazz);
+            }
 
             var toDef = (def.properties[propName] = { "@": [] });
             var propertyAnno = null;
 
             function getPropertyAnno() {
-              if (propertyAnno) return propertyAnno;
+              if (propertyAnno) {
+                return propertyAnno;
+              }
               propertyAnno = new com.zenesis.qx.remote.annotations.Property();
               toDef["@"].push(propertyAnno);
               return propertyAnno;
@@ -1131,15 +1208,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
             // Define the property
             toDef.nullable = fromDef.nullable;
-            if (fromDef.readOnly) getPropertyAnno().setReadOnly(true);
+            if (fromDef.readOnly) {
+              getPropertyAnno().setReadOnly(true);
+            }
             if (!toDef.nullable && fromDef.check) {
               var defaultValue = com.zenesis.qx.remote.ProxyManager.__NON_NULLABLE_DEFAULTS[fromDef.check];
               if (defaultValue !== undefined) {
-                if (typeof defaultValue == "function") toDef.init = defaultValue();
-                else toDef.init = defaultValue;
+                if (typeof defaultValue == "function") {
+                  toDef.init = defaultValue();
+                } else toDef.init = defaultValue;
               }
             }
-            if (fromDef.event) toDef.event = fromDef.event;
+            if (fromDef.event) {
+              toDef.event = fromDef.event;
+            }
 
             var arrayClassName = null;
             var needsTransform = false;
@@ -1157,9 +1239,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               };
 
               fromDef.nativeKeyType = !fromDef.keyTypeName || NATIVE_KEY_TYPES[fromDef.keyTypeName];
-              if (fromDef.array && fromDef.array == "wrap") toDef.check = arrayClassName || "com.zenesis.qx.remote.Map";
-              if (fromDef.keyTypeName) getPropertyAnno().setKeyTypeName(fromDef.keyTypeName);
-              if (fromDef.componentTypeName) getPropertyAnno().setComponentTypeName(fromDef.componentTypeName);
+              if (fromDef.array && fromDef.array == "wrap") {
+                toDef.check = arrayClassName || "com.zenesis.qx.remote.Map";
+              }
+              if (fromDef.keyTypeName) {
+                getPropertyAnno().setKeyTypeName(fromDef.keyTypeName);
+              }
+              if (fromDef.componentTypeName) {
+                getPropertyAnno().setComponentTypeName(fromDef.componentTypeName);
+              }
 
               // Checks
             } else if (fromDef.check) {
@@ -1171,7 +1259,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                 toDef.transform = "_transformToDataArray";
                 toDef.check = arrayClassName || "qx.data.Array";
               } else toDef.check = "Array";
-              if (fromDef.componentTypeName) getPropertyAnno().setComponentTypeName(fromDef.componentTypeName);
+              if (fromDef.componentTypeName) {
+                getPropertyAnno().setComponentTypeName(fromDef.componentTypeName);
+              }
             }
 
             if ((fromDef.map || fromDef.array) && fromDef.create) {
@@ -1183,7 +1273,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (fromDef.anno) {
               fromDef.anno.forEach(anno => toDef["@"].push(eval(anno)));
             }
-            if (toDef.check === "Date") needsTransform = true;
+            if (toDef.check === "Date") {
+              needsTransform = true;
+            }
 
             // Create an apply method
             toDef.apply = "_apply" + upname;
@@ -1232,7 +1324,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           def.events = {};
           for (var eventName in data.events) {
             var fromDef = data.events[eventName];
-            if (!fromDef.isProperty) def.events[eventName] = "qx.event.type.Data";
+            if (!fromDef.isProperty) {
+              def.events[eventName] = "qx.event.type.Data";
+            }
             strDeferCode +=
               "clazz.$$eventMeta." +
               eventName +
@@ -1251,7 +1345,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           clazz = qx.Interface.define(data.className, def) || qx.Interface.getByName(data.className);
         } else {
           def.construct = new Function(strConstructorCode);
-          if (strDestructorCode) def.destruct = new Function(strDestructorCode);
+          if (strDestructorCode) {
+            def.destruct = new Function(strDestructorCode);
+          }
           strDeferCode += "com.zenesis.qx.remote.MProxy.deferredClassInitialisation(clazz);\n";
           def.defer = new Function("clazz", strDeferCode);
           clazz = qx.Class.define(data.className, def);
@@ -1264,7 +1360,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       // Create dependent classes
-      for (var i = 0; i < deferredTypes.length; i++) this.getClassOrCreate(deferredTypes[i], stats);
+      for (var i = 0; i < deferredTypes.length; i++) {
+        this.getClassOrCreate(deferredTypes[i], stats);
+      }
 
       if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
         if (stats) {
@@ -1300,8 +1398,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       if (value instanceof qx.core.Object && value.isDisposed()) {
-        if (!value.$$proxy || (this.__disposedServerObjects && !this.__disposedServerObjects[value.getServerId()]))
+        if (!value.$$proxy || (this.__disposedServerObjects && !this.__disposedServerObjects[value.getServerId()])) {
           throw new Error("Cannot serialise " + value.classname + " [" + value.toHashCode() + "] because it is disposed, object=" + value);
+        }
       }
 
       // If serialising an entire array or map, then it will no longer be dirty;
@@ -1320,7 +1419,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return result;
       }
 
-      if (value instanceof qx.data.Array) value = value.toArray();
+      if (value instanceof qx.data.Array) {
+        value = value.toArray();
+      }
 
       if (qx.lang.Type.isArray(value)) {
         var send = [];
@@ -1434,11 +1535,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         //console.log(`asyncId=${data.asyncId} ${serverObject.classname}.${methodName}`);
 
-        for (var i = 0; i < notify.length; i++) notify[i].call(serverObject, result);
+        for (var i = 0; i < notify.length; i++) {
+          notify[i].call(serverObject, result);
+        }
 
         // Store in the cache and return (not available for static methods)
         if (methodDef && methodDef.cacheResult) {
-          if (!serverObject.$$proxy.cachedResults) serverObject.$$proxy.cachedResults = {};
+          if (!serverObject.$$proxy.cachedResults) {
+            serverObject.$$proxy.cachedResults = {};
+          }
           serverObject.$$proxy.cachedResults[methodName] = result;
         }
 
@@ -1447,7 +1552,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       // Call the server
       if (notify.length && (this.__numActiveRequests || this.__inProcessData)) {
-        if (!this.__queuedServerMethods) this.__queuedServerMethods = [];
+        if (!this.__queuedServerMethods) {
+          this.__queuedServerMethods = [];
+        }
         this.__queuedServerMethods.push(data);
       } else {
         this._sendCommandToServer(data, notify.length != 0);
@@ -1490,12 +1597,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var array = evt.getTarget();
       var data = evt.getData();
       var info = this.__dirtyArrays[array.toHashCode()];
-      if (!info)
+      if (!info) {
         info = this.__dirtyArrays[array.toHashCode()] = {
           array: array,
           serverObject: serverObject,
           propertyName: propDef.name
         };
+      }
 
       if (array instanceof qx.data.Array) {
         if (!info.added) {
@@ -1549,7 +1657,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Queues all the dirty arrays ready to flush them to the server
      */
     _queueDirtyArrays() {
-      if (!this.__dirtyArrays) return;
+      if (!this.__dirtyArrays) {
+        return;
+      }
       for (var arrHash in this.__dirtyArrays) {
         var info = this.__dirtyArrays[arrHash];
         var queue = {
@@ -1578,7 +1688,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Moves pending asynchronous method calls onto the queue
      */
     _queueServerMethodCalls() {
-      if (!this.__queuedServerMethods) return;
+      if (!this.__queuedServerMethods) {
+        return;
+      }
       var t = this;
       this.__queuedServerMethods.forEach(function (data) {
         t._queueCommandToServer(data);
@@ -1594,7 +1706,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Object}
      */
     disposeServerObject(obj) {
-      if (!this.__disposedServerObjects) this.__disposedServerObjects = {};
+      if (!this.__disposedServerObjects) {
+        this.__disposedServerObjects = {};
+      }
       var serverId = obj.getServerId();
       this.__disposedServerObjects[serverId] = obj;
     },
@@ -1604,7 +1718,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     _queueDisposedServerObjects() {
       var objects = this.__disposedServerObjects;
-      if (!objects) return;
+      if (!objects) {
+        return;
+      }
       var arr = [];
       for (var serverId in objects) arr.push(serverId);
       if (arr.length) {
@@ -1627,7 +1743,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Object?} the value to set the property to
      */
     setPropertyValue(serverObject, propertyName, value, oldValue) {
-      if (this.__inConstructor) return;
+      if (this.__inConstructor) {
+        return;
+      }
       let pd = qx.Class.getPropertyDefinition(serverObject.constructor, propertyName);
 
       if (!this.isSettingProperty(serverObject, propertyName)) {
@@ -1639,7 +1757,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }
 
         // Skip changing date instances if they are equivalent
-        if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime()) return;
+        if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime()) {
+          return;
+        }
 
         var data = {
           cmd: "set",
@@ -1652,7 +1772,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         if (pd.sync == "queue") {
           var queue = this.__queue;
-          if (queue)
+          if (queue) {
             for (var i = 0; i < queue.length; i++) {
               var qd = queue[i];
               if (qd.cmd == "set" && qd.serverId == serverObject.getServerId() && qd.propertyName == propertyName) {
@@ -1660,12 +1780,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                 break;
               }
             }
+          }
           this._queueCommandToServer(data);
         } else this._sendCommandToServer(data);
       }
 
       // OnDemand properties need to have their event fired for them
-      if (pd.onDemand && pd.event) serverObject.fireDataEvent(pd.event, value, oldValue);
+      if (pd.onDemand && pd.event) {
+        serverObject.fireDataEvent(pd.event, value, oldValue);
+      }
     },
 
     /**
@@ -1705,8 +1828,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (def && (!value || value.$$proxy === undefined)) {
           if (def.check && def.check == "Date") {
             if (value !== null) {
-              if (typeof value == "string") value = new Date(com.zenesis.qx.remote.ProxyManager.__DF_NO_TIME.parse(value));
-              else value = new Date(value);
+              if (typeof value == "string") {
+                value = new Date(com.zenesis.qx.remote.ProxyManager.__DF_NO_TIME.parse(value));
+              } else value = new Date(value);
             }
           } else if (def.array && def.array == "wrap") {
             if (value == null) {
@@ -1717,7 +1841,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               // edit the existing object if there is one.
               var current = undefined;
               if (def.onDemand === true) {
-                if (serverObject.$$proxy.onDemand) current = serverObject.$$proxy.onDemand[propertyName];
+                if (serverObject.$$proxy.onDemand) {
+                  current = serverObject.$$proxy.onDemand[propertyName];
+                }
               } else {
                 try {
                   current = serverObject["get" + upname]();
@@ -1725,10 +1851,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                   // Nothing - property not be ready yet
                 }
               }
-
-              var arrayClass = def.arrayClass ? qx.Class.getByName(def.arrayClass.className) : null;
-
-              // Maps
+              var arrayClass = def.arrayClass ? qx.Class.getByName(def.arrayClass.className) : null; // Maps
               if (!!def.map) {
                 if (current === null) {
                   //this.debug("creating Map for " + serverObject.classname + "." + propertyName + " [" + serverObject.toHashCode() + "]");
@@ -1736,20 +1859,21 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                   serverObject["set" + upname](value);
                 } else {
                   current.replace(value);
-                }
-
-                // Arrays
+                } // Arrays
               } else {
                 if (current === null || current === undefined) {
-                  if (value instanceof qx.data.Array) serverObject["set" + upname](value);
-                  else {
+                  if (value instanceof qx.data.Array) {
+                    serverObject["set" + upname](value);
+                  } else {
                     var dataArray = new (arrayClass || qx.data.Array)();
                     dataArray.append(value);
                     serverObject["set" + upname](dataArray);
                   }
                 } else {
                   var nativeArray = value;
-                  if (value instanceof qx.data.Array) nativeArray = value.toArray();
+                  if (value instanceof qx.data.Array) {
+                    nativeArray = value.toArray();
+                  }
                   nativeArray.unshift(0, current.getLength());
                   current.splice.apply(current, nativeArray);
                 }
@@ -1774,7 +1898,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * server)
      */
     isSettingProperty(serverObject, propertyName) {
-      if (!propertyName) return this.__setPropertyObject == serverObject;
+      if (!propertyName) {
+        return this.__setPropertyObject == serverObject;
+      }
       return this.__setPropertyObject == serverObject && this.__setPropertyName == propertyName;
     },
 
@@ -1809,10 +1935,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         this.error("No event handlers for " + serverObject.classname);
         return;
       }
-      if (!eventDef.isServer || eventDef.numListeners) return;
+      if (!eventDef.isServer || eventDef.numListeners) {
+        return;
+      }
       if (eventName.length > 6 && eventName.startsWith("change") && eventName[6] == eventName[6].toUpperCase()) {
         var propName = eventName[6].toLowerCase() + eventName.substring(7);
-        if (qx.Class.getPropertyDefinition(serverObject.constructor, propName)) return;
+        if (qx.Class.getPropertyDefinition(serverObject.constructor, propName)) {
+          return;
+        }
       }
 
       // Queue the addListener to the server
@@ -1841,10 +1971,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // If the event is not a server event or it's for a property then skip (property change
       //	events will be triggered automatically by Qx when the property change is synchronised)
       var eventDef = com.zenesis.qx.remote.MProxy.getEventDefinition(serverObject.constructor, eventName);
-      if (!eventDef.isServer) return;
+      if (!eventDef.isServer) {
+        return;
+      }
       if (eventName.length > 6 && eventName.startsWith("change") && eventName[6] == eventName[6].toUpperCase()) {
         var propName = eventName[6].toLowerCase() + eventName.substring(7);
-        if (qx.Class.getPropertyDefinition(serverObject.constructor, propName)) return;
+        if (qx.Class.getPropertyDefinition(serverObject.constructor, propName)) {
+          return;
+        }
       }
 
       // Queue the removeListener to the server
@@ -1894,14 +2028,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @return {String} the server response
      */
     _sendCommandToServer(obj, async, suppressWarnings) {
-      if (this.__shutdownPromise) throw new Error("Cannot connect to server because ProxyManager is shutdown");
+      if (this.__shutdownPromise) {
+        throw new Error("Cannot connect to server because ProxyManager is shutdown");
+      }
 
       var startTime = new Date().getTime();
 
       // We must not allow recursive commands, otherwise a partially formed
       // request can be sent to the server so we just queue it instead.
       if (this.__queuingCommandsForServer) {
-        if (!this.__queue) this.__queue = [];
+        if (!this.__queue) {
+          this.__queue = [];
+        }
         this.__queue.push(obj);
         return;
       }
@@ -1930,10 +2068,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var queue = this.__queue;
       if (queue && queue.length) {
         this.__queue = null;
-        if (obj) queue.push(obj);
+        if (obj) {
+          queue.push(obj);
+        }
         obj = queue;
       }
-      if (!obj) return;
+      if (!obj) {
+        return;
+      }
 
       // Set the data
       var text = qx.lang.Json.stringify(obj, function (key, value) {
@@ -1959,7 +2101,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }
       }
 
-      if (this.__preRequestCallback) this.__preRequestCallback.call(this, this.__proxyIo);
+      if (this.__preRequestCallback) {
+        this.__preRequestCallback.call(this, this.__proxyIo);
+      }
 
       if (!suppressWarnings && qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceRecursion")) {
         if (this.__inProcessData) {
@@ -1988,7 +2132,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     _queueCommandToServer(obj) {
       var queue = this.__queue;
-      if (!queue) this.__queue = queue = [];
+      if (!queue) {
+        this.__queue = queue = [];
+      }
       this._queueClientObjects();
       queue.push(obj);
     },
@@ -1999,14 +2145,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * pendingClientObject's).
      */
     _queueClientObjects() {
-      if (!this.__clientObjects) return;
+      if (!this.__clientObjects) {
+        return;
+      }
       var queue = this.__queue;
-      if (!queue) this.__queue = queue = [];
+      if (!queue) {
+        this.__queue = queue = [];
+      }
       for (var id in this.__clientObjects) {
         var clientObject = this.__clientObjects[id];
 
         // Array index is set to null when received back from the server
-        if (!clientObject || clientObject.getSentToServer()) continue;
+        if (!clientObject || clientObject.getSentToServer()) {
+          continue;
+        }
 
         this._queueClientObject(id);
       }
@@ -2020,12 +2172,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     _queueClientObject(clientId) {
       var clientObject = this.__clientObjects && this.__clientObjects[clientId];
-      if (!clientObject) throw new Error("Invalid client ID " + clientId);
-      if (clientObject.getSentToServer()) return;
+      if (!clientObject) {
+        throw new Error("Invalid client ID " + clientId);
+      }
+      if (clientObject.getSentToServer()) {
+        return;
+      }
       //this.debug("Queuing client object " + clientObject.toHashCode() + " client id " + clientId);
 
       var queue = this.__queue;
-      if (!queue) this.__queue = queue = [];
+      if (!queue) {
+        this.__queue = queue = [];
+      }
 
       // Send it
       clientObject.setSentToServer();
@@ -2050,9 +2208,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             // property values to the server unless necessary, so that server
             // defaults are not overridden
             var value = clientObject["$$runtime_" + propName];
-            if (value === undefined) value = clientObject["$$user_" + propName];
+            if (value === undefined) {
+              value = clientObject["$$user_" + propName];
+            }
 
-            if (value !== undefined) data.properties[propName] = this.serializeValue(value);
+            if (value !== undefined) {
+              data.properties[propName] = this.serializeValue(value);
+            }
           }
         }
         clazz = clazz.superclass;
@@ -2071,7 +2233,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     _applyPollServer(value, oldValue) {
       this._killPollTimer();
-      if (value) this._startPollTimer();
+      if (value) {
+        this._startPollTimer();
+      }
     },
 
     /**
@@ -2106,7 +2270,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         this.debug("ProxyManager poll timer already exists");
         this._killPollTimer();
       }
-      if (this.getPollServer()) this.__pollTimerId = setTimeout(this.__onPollTimeoutBinding, this.getPollFrequency());
+      if (this.getPollServer()) {
+        this.__pollTimerId = setTimeout(this.__onPollTimeoutBinding, this.getPollFrequency());
+      }
     },
 
     /**
@@ -2115,7 +2281,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     __onPollTimeout() {
       // this.debug("poll");
       this.__pollTimerId = null;
-      if (this.__numActiveRequests == 0) this.flushQueue(true, true);
+      if (this.__numActiveRequests == 0) {
+        this.flushQueue(true, true);
+      }
     },
 
     /**
@@ -2129,7 +2297,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * Returns the server object with a given ID
      */
     getServerObject(serverId) {
-      if (serverId < 0) return this.__clientObjects[0 - serverId];
+      if (serverId < 0) {
+        return this.__clientObjects[0 - serverId];
+      }
 
       return this.__serverObjects[serverId];
     },
@@ -2197,15 +2367,31 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      */
     __describeException(e) {
       var desc = "";
-      if (typeof e == "string") return e;
-      if (e.name) desc = e.name;
-      if (e.number) desc += "[#" + (e.number & 0xffff) + "]";
-      if (desc.length == 0) desc = "typeof Exception == " + typeof e + " " + e;
+      if (typeof e == "string") {
+        return e;
+      }
+      if (e.name) {
+        desc = e.name;
+      }
+      if (e.number) {
+        desc += "[#" + (e.number & 0xffff) + "]";
+      }
+      if (desc.length == 0) {
+        desc = "typeof Exception == " + typeof e + " " + e;
+      }
       desc += ": ";
-      if (e.message) desc += e.message;
-      if (e.description && e.description != e.message) desc += e.description;
-      if (e.fileName) desc += " in file " + e.fileName;
-      if (e.lineNumber) desc += " on line " + e.lineNumber;
+      if (e.message) {
+        desc += e.message;
+      }
+      if (e.description && e.description != e.message) {
+        desc += e.description;
+      }
+      if (e.fileName) {
+        desc += " in file " + e.fileName;
+      }
+      if (e.lineNumber) {
+        desc += " on line " + e.lineNumber;
+      }
       return desc;
     }
   },
@@ -2238,12 +2424,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return null;
       }
       function dp2(v) {
-        if (v < 10) return "0" + v;
+        if (v < 10) {
+          return "0" + v;
+        }
         return "" + v;
       }
       function dp3(v) {
-        if (v < 10) return "00" + v;
-        if (v < 100) return "0" + v;
+        if (v < 10) {
+          return "00" + v;
+        }
+        if (v < 100) {
+          return "0" + v;
+        }
         return "" + v;
       }
       var str =
@@ -2269,7 +2461,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * data
      */
     setInstance(instance) {
-      if (this.__instance && instance) this.warn("Overwriting existing instance " + this.__instance + " with " + instance);
+      if (this.__instance && instance) {
+        this.warn("Overwriting existing instance " + this.__instance + " with " + instance);
+      }
       this.__instance = instance;
     },
 
@@ -2287,7 +2481,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var result = PM.callServerMethod(clazz, name, args);
       var ex = PM.clearException();
-      if (ex) throw ex;
+      if (ex) {
+        throw ex;
+      }
       return result;
     }
   },

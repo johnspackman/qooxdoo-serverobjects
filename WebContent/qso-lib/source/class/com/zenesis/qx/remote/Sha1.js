@@ -9,7 +9,9 @@ qx.Class.define("com.zenesis.qx.remote.Sha1", {
      * Calculates the SHA1 for a string
      */
     digest(str) {
-      if (!this.__rusha) this.__rusha = new this.Rusha();
+      if (!this.__rusha) {
+        this.__rusha = new this.Rusha();
+      }
       var sha = this.__rusha.digest(this.utf16to8(str));
       return sha;
     },
@@ -165,11 +167,13 @@ qx.Class.define("com.zenesis.qx.remote.Sha1", {
     // Calculate the length of buffer that the sha1 routine uses
     // including the padding.
     var padlen = function (len) {
-      for (len += 9; len % 64 > 0; len += 1);
+      for (len += 9; len % 64 > 0; len += 1) {}
       return len;
     };
     var padZeroes = function (bin, len) {
-      for (var i = len >> 2; i < bin.length; i++) bin[i] = 0;
+      for (var i = len >> 2; i < bin.length; i++) {
+        bin[i] = 0;
+      }
     };
     var padData = function (bin, chunkLen, msgLen) {
       bin[chunkLen >> 2] |= 128 << (24 - (chunkLen % 4 << 3));
@@ -322,13 +326,15 @@ qx.Class.define("com.zenesis.qx.remote.Sha1", {
       var p;
       // If v is smaller than 2^16, the smallest possible solution
       // is 2^16.
-      if (v <= 65536) return 65536;
+      if (v <= 65536) {
+        return 65536;
+      }
       // If v < 2^24, we round up to 2^n,
       // otherwise we round up to 2^24 * n.
       if (v < 16777216) {
-        for (p = 1; p < v; p = p << 1);
+        for (p = 1; p < v; p = p << 1) {}
       } else {
-        for (p = 16777216; p < v; p += 16777216);
+        for (p = 16777216; p < v; p += 16777216) {}
       }
       return p;
     };

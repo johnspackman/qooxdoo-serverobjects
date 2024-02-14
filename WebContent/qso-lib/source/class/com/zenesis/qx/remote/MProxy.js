@@ -59,11 +59,15 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     },
 
     proxyAddInitialiser(cb, context) {
-      if (context) cb = qx.lang.Function.bind(cb, context);
+      if (context) {
+        cb = qx.lang.Function.bind(cb, context);
+      }
       if (this.__serverId !== null) {
         cb.call(this, this);
       } else {
-        if (this.__initialisers === undefined) this.__initialisers = [];
+        if (this.__initialisers === undefined) {
+          this.__initialisers = [];
+        }
         this.__initialisers.push(cb);
       }
     },
@@ -96,10 +100,14 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       qx.core.Assert.assertTrue(this.__serverId === null || (serverId > 0 && this.__serverId < 0));
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       delete this.__isPending;
-      if (serverId > 0 && this.__serverId < 0) PM.unregisterClientObject(this);
+      if (serverId > 0 && this.__serverId < 0) {
+        PM.unregisterClientObject(this);
+      }
       var oldValue = this.__serverId;
       this.__serverId = serverId;
-      if (this.hasListener("changeServerId")) this.fireDataEvent("changeServerId", serverId, oldValue);
+      if (this.hasListener("changeServerId")) {
+        this.fireDataEvent("changeServerId", serverId, oldValue);
+      }
     },
 
     /**
@@ -137,13 +145,17 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       var result = PM.callServerMethod(this, name, args);
 
       var ex = PM.clearException();
-      if (ex) throw ex;
+      if (ex) {
+        throw ex;
+      }
       return result;
     },
 
     _transformProperty(propertyName, value, oldValue) {
       // Skip changing date instances if they are equivalent
-      if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime()) return oldValue;
+      if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime()) {
+        return oldValue;
+      }
 
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       var pd = qx.Class.getPropertyDefinition(this.constructor, propertyName);
@@ -214,13 +226,19 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       }
       PM.setPropertyValue(this, propertyName, value, oldValue);
       var ex = PM.clearException();
-      if (ex) throw ex;
+      if (ex) {
+        throw ex;
+      }
     },
 
     _getPropertyOnDemandAsync(propName) {
-      if (this.$$proxy.onDemandPromise === undefined) this.$$proxy.onDemandPromise = {};
+      if (this.$$proxy.onDemandPromise === undefined) {
+        this.$$proxy.onDemandPromise = {};
+      }
       var promise = this.$$proxy.onDemandPromise[propName];
-      if (promise) return promise;
+      if (promise) {
+        return promise;
+      }
 
       return (this.$$proxy.onDemandPromise[propName] = new qx.Promise(function (resolve) {
         this._getPropertyOnDemand(propName, resolve);
@@ -237,7 +255,9 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       if (this.$$proxy.onDemand) {
         var value = this.$$proxy.onDemand[propName];
         if (value !== undefined) {
-          if (typeof async == "function") async.call(this, value);
+          if (typeof async == "function") {
+            async.call(this, value);
+          }
           return value;
         }
       } else this.$$proxy.onDemand = {};
@@ -258,15 +278,20 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
         PM.callServerMethod(this, "get" + upname, [
           function (value) {
             var ex = PM.clearException();
-            if (!ex) value = this.__storePropertyOnDemand(propDef, value);
-            else value = undefined;
-            if (typeof async == "function") async(value, ex);
+            if (!ex) {
+              value = this.__storePropertyOnDemand(propDef, value);
+            } else value = undefined;
+            if (typeof async == "function") {
+              async(value, ex);
+            }
           }
         ]);
       } else {
         var value = PM.callServerMethod(this, "get" + upname, []);
         var ex = PM.clearException();
-        if (ex) throw ex;
+        if (ex) {
+          throw ex;
+        }
 
         // Update the cache and done
         return this.__storePropertyOnDemand(propDef, value);
@@ -295,8 +320,12 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       if (value !== undefined) {
         if (value && propDef.array == "wrap") {
           if (!!propDef.map) {
-            if (!(value instanceof com.zenesis.qx.remote.Map)) value = new com.zenesis.qx.remote.Map(value);
-          } else if (!(value instanceof qx.data.Array)) value = new qx.data.Array(value);
+            if (!(value instanceof com.zenesis.qx.remote.Map)) {
+              value = new com.zenesis.qx.remote.Map(value);
+            }
+          } else if (!(value instanceof qx.data.Array)) {
+            value = new qx.data.Array(value);
+          }
           propDef.changeListenerId = value.addListener("change", evt => {
             var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
             PM.onWrappedArrayChange(evt, this, propDef);
@@ -328,12 +357,15 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     _setPropertyOnDemand(propName, value) {
       // Update the cache
       var oldValue;
-      if (!this.$$proxy.onDemand) this.$$proxy.onDemand = {};
-      else oldValue = this.$$proxy.onDemand[propName];
+      if (!this.$$proxy.onDemand) {
+        this.$$proxy.onDemand = {};
+      } else oldValue = this.$$proxy.onDemand[propName];
 
       // Don't use __storePropertyOnDemand here - use _applyProperty instead
       var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
-      if (propDef.array == "wrap" && !(value instanceof qx.data.Array)) value = new qx.data.Array(value);
+      if (propDef.array == "wrap" && !(value instanceof qx.data.Array)) {
+        value = new qx.data.Array(value);
+      }
 
       this.$$proxy.onDemand[propName] = value;
       this._applyProperty(propName, value, oldValue);
@@ -354,7 +386,9 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      */
     removeListener(name, listener, context, capture) {
       var existed = super.removeListener(name, listener, context, capture);
-      if (!existed) return;
+      if (!existed) {
+        return;
+      }
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
       PM.removeServerListener(this, name);
       return existed;
@@ -381,10 +415,14 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
           get = newGet;
           clazz.prototype["get" + upname] = currentGet;
         }
-        if (typeof cb == "function") cb(value);
+        if (typeof cb == "function") {
+          cb(value);
+        }
         return value;
       });
-      if (get.$$install) fn.$$install = get.$$install;
+      if (get.$$install) {
+        fn.$$install = get.$$install;
+      }
     },
 
     /**
@@ -409,15 +447,18 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       for (var name in clazz.$$properties) {
         var def = clazz.$$properties[name];
         if (def.isServer) {
-          if (def.onDemand) this.addOnDemandProperty(clazz, name, !!def.readOnly);
-          else this.patchNormalProperty(clazz, name);
+          if (def.onDemand) {
+            this.addOnDemandProperty(clazz, name, !!def.readOnly);
+          } else this.patchNormalProperty(clazz, name);
         }
       }
 
       // Update Packages global - this is for compatibility with Rhino server apps
       var tld = clazz.classname.match(/^[^.]+/)[0];
       if (tld) {
-        if (window.Packages === undefined) window.Packages = {};
+        if (window.Packages === undefined) {
+          window.Packages = {};
+        }
         window.Packages[tld] = window[tld];
       }
 
@@ -429,11 +470,16 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      * always a qx.data.Array or derived
      */
     transformToDataArray(value, clazz) {
-      if (!value) return new clazz();
-      if (qx.Class.isSubClassOf(value.constructor, clazz)) return value;
+      if (!value) {
+        return new clazz();
+      }
+      if (qx.Class.isSubClassOf(value.constructor, clazz)) {
+        return value;
+      }
       var result = new clazz();
-      if (value instanceof qx.data.Array || qx.lang.Type.isArray(value)) result.append(value);
-      else result.push(value);
+      if (value instanceof qx.data.Array || qx.lang.Type.isArray(value)) {
+        result.append(value);
+      } else result.push(value);
       return result;
     },
 

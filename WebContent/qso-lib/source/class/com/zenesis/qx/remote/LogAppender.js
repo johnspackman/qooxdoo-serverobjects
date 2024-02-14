@@ -46,11 +46,13 @@ qx.Class.define("com.zenesis.qx.remote.LogAppender", {
       function init() {
         var boot = PM.getBootstrapObject();
         var ifc = qx.Interface.getByName("com.zenesis.qx.remote.LogEntrySink");
-        if (!ifc || !qx.Interface.classImplements(boot.constructor, ifc)) this.error("Cannot send logs to " + boot.classname + " because it does not implement com.zenesis.qx.remote.LogEntrySink");
-        else PM.addListener("queuePending", t.__queuePending, t);
+        if (!ifc || !qx.Interface.classImplements(boot.constructor, ifc)) {
+          this.error("Cannot send logs to " + boot.classname + " because it does not implement com.zenesis.qx.remote.LogEntrySink");
+        } else PM.addListener("queuePending", t.__queuePending, t);
       }
-      if (PM.hasConnected()) init();
-      else {
+      if (PM.hasConnected()) {
+        init();
+      } else {
         PM.addListenerOnce("connected", init);
       }
     },
@@ -71,7 +73,9 @@ qx.Class.define("com.zenesis.qx.remote.LogAppender", {
     __queuePending() {
       // Get the entries
       var entries = this.__buffer.getAllEntries();
-      if (!entries.length) return;
+      if (!entries.length) {
+        return;
+      }
       this.__buffer.clear();
       var output = [];
       entries.forEach(function (entry) {
