@@ -127,7 +127,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
         headers["Content-Type"] = "application/x-www-form-urlencoded; charset=" + charset;
 
         // Send it
-        if (qx.core.Environment.get("com.zenesis.qx.remote.trace")) {
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.trace")) {
           // Use console.log because LogAppender would cause recursive logging
           console.log && console.log("Sending to server: " + body);
         }

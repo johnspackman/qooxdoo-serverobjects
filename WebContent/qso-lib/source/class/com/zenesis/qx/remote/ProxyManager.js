@@ -291,7 +291,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var statusCode = ioData.statusCode;
       var proxyData = ioData.proxyData;
 
-      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+      if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
         proxyData.receivedTime = new Date().getTime();
       }
       proxyData.txt = txt;
@@ -312,7 +312,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             this.__sessionId = sessionId;
           }
           reqIndex = parseInt(ioData.responseHeaders["x-proxymanager-requestindex"], 10);
-          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) {
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) {
             console.log && console.log("__onResponseReceived 1: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
           }
 
@@ -325,7 +325,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         return result;
       } finally {
-        if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) console.log && console.log("__onResponseReceived 2: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps"))
+          console.log && console.log("__onResponseReceived 2: request index=" + reqIndex + ", __expectedRequestIndex=" + this.__expectedRequestIndex);
         this.__inProcessData--;
         if (this.__shutdownPromise && this.__numActiveRequests === 0) this.__shutdownPromise.resolve();
         console.log("debug: __onResponseReceived: finished");
@@ -339,9 +340,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
           var txt = proxyData.txt.trim();
           var result;
-          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) console.log("process: start: " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex + ", outOfSequence=" + outOfSequence);
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps"))
+            console.log("process: start: " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex + ", outOfSequence=" + outOfSequence);
           try {
-            if (qx.core.Environment.get("com.zenesis.qx.remote.trace")) console.log && console.log("received: txt=" + txt); // Use console.log because
+            if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.trace")) console.log && console.log("received: txt=" + txt); // Use console.log because
             // LogAppender would cause
             // recursive logging
             if (txt.length) {
@@ -368,15 +370,16 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           stats.peakTime = Math.max(stats.peakTime, time);
         }
 
-        if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) console.log("process: loaded: " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex + ", outOfSequence=" + outOfSequence);
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps"))
+          console.log("process: loaded: " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex + ", outOfSequence=" + outOfSequence);
         if (!outOfSequence) {
           t.__expectedRequestIndex = proxyData.reqIndex + 1;
-          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) console.log("process: updated expected=" + t.__expectedRequestIndex);
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) console.log("process: updated expected=" + t.__expectedRequestIndex);
 
           for (var i = 0; i < t.__unprocessedResponses.length; i++) {
             if (t.__unprocessedResponses[i].reqIndex == t.__expectedRequestIndex) {
               var next = qx.lang.Array.removeAt(t.__unprocessedResponses, i--);
-              if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) console.log("process: shifting, next=" + next.reqIndex + ", next.processed=" + next.processed);
+              if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) console.log("process: shifting, next=" + next.reqIndex + ", next.processed=" + next.processed);
               if (!next.processed) {
                 process(next);
                 break;
@@ -402,7 +405,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           t.__unprocessedResponses.push(proxyData);
           process(proxyData, true);
         } else {
-          if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) console.log("queuing " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex);
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) console.log("queuing " + proxyData.reqIndex + ", expected=" + t.__expectedRequestIndex);
           t.__unprocessedResponses.push(proxyData);
         }
         return;
@@ -451,7 +454,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       txt = txt.trim();
       this.__inProcessData++;
       try {
-        if (qx.core.Environment.get("com.zenesis.qx.remote.trace")) console.log && console.log("received: txt=" + txt); // Use console.log because
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.trace")) console.log && console.log("received: txt=" + txt); // Use console.log because
         // LogAppender would cause
         // recursive logging
         if (!txt.length) return null;
@@ -491,7 +494,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       var stats = null;
-      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+      if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
         class ClassStats {
           constructor(classname) {
             this.classname = classname;
@@ -617,7 +620,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           // Function return
         } else if (type == "return") {
           var asyncId = elem.data.asyncId;
-          if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
             var startTime = new Date().getTime();
           }
           result = this.readProxyObject(elem.data.result, stats);
@@ -627,7 +630,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             delete this.__asyncCallback[asyncId];
             cb(result);
             var ms = new Date().getTime() - startTime;
-            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
               stats.numCallbacks++;
               stats.callbacksTime += ms;
             }
@@ -748,7 +751,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         );
       }
 
-      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+      if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
         stats.end();
         // Only report stats that were at least 100ms
         if (stats.totalTime >= 100) stats.dumpStats();
@@ -847,7 +850,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           }
 
           var startTime;
-          if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
             startTime = new Date().getTime();
 
             // Collects stats
@@ -882,7 +885,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           console.log("debug: readServerObject: added new object: " + result.toHashCode());
           t.__serverObjects[serverId] = result; //note: is called from responsereceived
 
-          if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+          if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
             var ms = new Date().getTime() - startTime;
             if (stats) {
               classStats.constructorTime += ms;
@@ -892,7 +895,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           throw new Error("Cannot find serverId " + serverId + ", probable recursion in loading");
         }
 
-        if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
           var startTime = new Date().getTime();
           var classStats = stats.forClass(data.clazz);
         }
@@ -903,7 +906,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             var propName = data.order[i];
             var propValue = data.values[propName];
 
-            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
               if (stats) {
                 var propStartTime = new Date().getTime();
               }
@@ -912,7 +915,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (propValue) propValue = t.readProxyObject(propValue, stats);
             t.setPropertyValueFromServer(result, propName, propValue);
 
-            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
               if (stats) {
                 var ms = new Date().getTime() - propStartTime;
                 var propStats = classStats.forProperty(propName);
@@ -926,7 +929,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         // Prefetched method return values
         if (data.prefetch) {
           for (var methodName in data.prefetch) {
-            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
               if (stats) {
                 var prefetchStartTime = new Date().getTime();
               }
@@ -937,7 +940,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (value) value = t.readProxyObject(value, stats);
             result.$$proxy.cachedResults[methodName] = value;
 
-            if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
               if (stats) {
                 var ms = new Date().getTime() - prefetchStartTime;
                 var prefetchStats = classStats.forPrefetch(methodName);
@@ -948,7 +951,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           }
         }
 
-        if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
           if (stats) {
             var ms = new Date().getTime() - startTime;
             classStats.propertiesTime += ms;
@@ -998,7 +1001,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       var startTime = 0;
-      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+      if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
         startTime = new Date().getTime();
       }
 
@@ -1245,7 +1248,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // Create dependent classes
       for (var i = 0; i < deferredTypes.length; i++) this.getClassOrCreate(deferredTypes[i], stats);
 
-      if (qx.core.Environment.get("com.zenesis.qx.remote.perfTrace")) {
+      if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
         if (stats) {
           var ms = new Date().getTime() - startTime;
           stats.forClass(data.className).defineTime = ms;
@@ -1930,7 +1933,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var reqIndex = this.__numberOfCalls++;
       headers["X-ProxyManager-RequestIndex"] = reqIndex;
 
-      if (qx.core.Environment.get("com.zenesis.qx.remote.traceOverlaps")) {
+      if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOverlaps")) {
         console.log && console.log("Sending request, reqIndex=" + reqIndex + ", async=" + !!async);
         if (!async) {
           var trace = qx.dev.StackTrace.getStackTrace();
@@ -1940,7 +1943,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
       if (this.__preRequestCallback) this.__preRequestCallback.call(this, this.__proxyIo);
 
-      if (!suppressWarnings && qx.core.Environment.get("com.zenesis.qx.remote.traceRecursion")) {
+      if (!suppressWarnings && qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceRecursion")) {
         if (this.__inProcessData) {
           var trace = qx.dev.StackTrace.getStackTrace();
           console.warn(["Recursive calls to ProxyManager may cause exceptions with object references, stack trace:"].concat(trace).join("\n"));
@@ -2272,11 +2275,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
   },
 
   environment: {
-    "com.zenesis.qx.remote.trace": false,
-    "com.zenesis.qx.remote.traceRecursion": true,
-    "com.zenesis.qx.remote.traceMethodSync": false,
-    "com.zenesis.qx.remote.traceOnDemandSync": false,
-    "com.zenesis.qx.remote.traceOverlaps": false,
-    "com.zenesis.qx.remote.perfTrace": false
+    "com.zenesis.qx.remote.ProxyManager.trace": false,
+    "com.zenesis.qx.remote.ProxyManager.traceRecursion": true,
+    "com.zenesis.qx.remote.ProxyManager.traceMethodSync": false,
+    "com.zenesis.qx.remote.ProxyManager.traceOnDemandSync": false,
+    "com.zenesis.qx.remote.ProxyManager.traceOverlaps": false,
+    "com.zenesis.qx.remote.ProxyManager.perfTrace": false,
+    "com.zenesis.qx.remote.ProxyManager.traceNullBoot": false
   }
 });

@@ -123,7 +123,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      * Called by methods to invoke the server method call
      */
     _callServer(name, args) {
-      if (qx.core.Environment.get("com.zenesis.qx.remote.traceMethodSync")) {
+      if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceMethodSync")) {
         var async = args.some(function (arg) {
           return typeof arg == "function";
         });
@@ -242,7 +242,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
         }
       } else this.$$proxy.onDemand = {};
 
-      if (qx.core.Environment.get("com.zenesis.qx.remote.traceOnDemandSync")) {
+      if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceOnDemandSync")) {
         if (async === undefined) {
           var trace = qx.dev.StackTrace.getStackTrace();
           qx.log.Logger.warn(com.zenesis.qx.remote.MProxy, `Getting ondemand property ${propName} of ${this.classname} [${this}] synchronously, stack trace:${trace}\n`);
