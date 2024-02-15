@@ -319,6 +319,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (statusCode == 200) {
           var sessionId = ioData.responseHeaders["x-proxymanager-sessionid"];
           if (sessionId) {
+            if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceNullBoot")) {
+              console.log("debug: __onResponseReceived: setting sessionId=" + sessionId);
+            }
             if (qx.core.Environment.get("qx.debug")) {
               if (this.__sessionId && this.__sessionId != sessionId) {
                 this.warn("Changing session ID from " + this._sessionId + " to " + sessionId);

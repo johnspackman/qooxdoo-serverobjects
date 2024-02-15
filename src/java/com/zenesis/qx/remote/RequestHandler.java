@@ -430,6 +430,7 @@ public class RequestHandler {
 
     String body = getBody(request);
 
+    log.trace("Received sessionId=" + sessionId + ", tracker.sessionId=" + tracker.getSessionId() + ", requestIndex=" + requestIndex);
     checkSessionId(sessionId);
 
     Writer writer = new StringWriter();
