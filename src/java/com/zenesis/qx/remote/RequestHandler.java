@@ -607,9 +607,11 @@ public class RequestHandler {
    */
   protected void cmdBootstrap(JsonParser jp) throws ServletException, IOException {
     tracker.resetSession();
-    Integer asyncId = getFieldValue(jp, "asyncId", Integer.class);
+    int asyncId = 0;
+    if (jp.getCurrentToken() != JsonToken.END_OBJECT)
+      asyncId = getFieldValue(jp, "asyncId", Integer.class);
     tracker.getQueue().queueCommand(CommandId.CommandType.BOOTSTRAP, null, null,
-        new Bootstrap(tracker.getBootstrap(), tracker.getSessionId(), asyncId != null ? asyncId : 0));
+        new Bootstrap(tracker.getBootstrap(), tracker.getSessionId(), asyncId));
     jp.nextToken();
   }
 
