@@ -188,6 +188,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceNullBoot")) {
           console.log("debug: getBootstrapObject: returning existing object: " + value.toHashCode());
         }
+        callback?.(value);
         return value;
       }
       if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceNullBoot")) {
@@ -201,9 +202,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       };
 
       this.__asyncCallback[msg.asyncId] = function (result) {
-        if (callback) {
-          callback(result);
-        }
+          callback?.(result);
       };
 
       this._sendCommandToServer(msg, !!callback);
