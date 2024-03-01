@@ -2472,6 +2472,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
     /**
      * Returns the current instance
+     * @returns {com.zenesis.qx.remote.ProxyManager}
      */
     getInstance() {
       return this.__instance;
