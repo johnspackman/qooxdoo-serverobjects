@@ -182,7 +182,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *
      * Can be called multiple times, the first object is always returned.
      */
-    getBootstrapObject() {
+    getBootstrapObject(callback) {
       if (this.__serverObjects.length) {
         let value = this.__serverObjects[0];
         if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceNullBoot")) {
@@ -196,10 +196,17 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
       var result = null;
       var msg = {
-        cmd: "bootstrap"
+        cmd: "bootstrap",
+        asyncId: ++this.__asyncId
       };
 
-      this._sendCommandToServer(msg);
+      this.__asyncCallback[msg.asyncId] = function (result) {
+        if (callback) {
+          callback(result);
+        }
+      };
+
+      this._sendCommandToServer(msg, !!callback);
       if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceNullBoot")) {
         console.log("debug: getBootstrapObject: this.__serverObjects.length after: " + this.__serverObjects.length);
       }
@@ -209,6 +216,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
       this.fireDataEvent("connected", this.__serverObjects[0]);
       return this.__serverObjects[0];
+    },
+
+    async getBootstrapObjectAsync() {
+      let promise = new qx.Promise();
+      this.getBootstrapObject(obj => promise.resolve(obj));
+      return await promise;
     },
 
     /**
@@ -677,8 +690,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Init
         if (type == "bootstrap") {
+          var asyncId = elem.data.asyncId;
           this.__sessionId = elem.data.sessionId;
           result = this.readProxyObject(elem.data.bootstrap, stats);
+          var cb = asyncId ? this.__asyncCallback[asyncId] : null;
+          if (cb) {
+            delete this.__asyncCallback[asyncId];
+            cb(result);
+          }
 
           // Function return
         } else if (type == "return") {
@@ -2026,7 +2045,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param obj
      *          {Object} object to be turned into a JSON string and sent to the
      *          server
-     * @param aync
+     * @param async
      *          {Boolean?} whether to make it an async call (default is synchronous)
      * @return {String} the server response
      */

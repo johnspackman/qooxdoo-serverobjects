@@ -120,11 +120,13 @@ public class RequestHandler {
   public static final class Bootstrap {
     public final Proxied bootstrap;
     public final String sessionId;
+    public final int asyncId;
 
-    public Bootstrap(Proxied bootstrap, String sessionId) {
+    public Bootstrap(Proxied bootstrap, String sessionId, int asyncId) {
       super();
       this.bootstrap = bootstrap;
       this.sessionId = sessionId;
+      this.asyncId = asyncId;
     }
   }
 
@@ -605,8 +607,11 @@ public class RequestHandler {
    */
   protected void cmdBootstrap(JsonParser jp) throws ServletException, IOException {
     tracker.resetSession();
+    int asyncId = 0;
+    if (jp.getCurrentToken() != JsonToken.END_OBJECT)
+      asyncId = getFieldValue(jp, "asyncId", Integer.class);
     tracker.getQueue().queueCommand(CommandId.CommandType.BOOTSTRAP, null, null,
-        new Bootstrap(tracker.getBootstrap(), tracker.getSessionId()));
+        new Bootstrap(tracker.getBootstrap(), tracker.getSessionId(), asyncId));
     jp.nextToken();
   }
 
