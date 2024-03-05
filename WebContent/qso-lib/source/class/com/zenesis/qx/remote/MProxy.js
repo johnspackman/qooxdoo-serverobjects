@@ -180,6 +180,26 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     },
 
     /**
+     * Overrides the default so that `uuid` properties can be kept in sync with the Qooxdoo uuid
+     *
+     * @returns {String} the new/current uuid
+     */
+    toUuid() {
+      let uuid = super.toUuid();
+      if (typeof this.setUuid == "function") {
+        this.setUuid(uuid);
+      }
+      return uuid;
+    },
+
+    setExplicitUuid(uuid) {
+      super.setExplicitUuid(uuid);
+      if (typeof this.setUuid == "function") {
+        this.setUuid(uuid);
+      }
+    },
+
+    /**
      * Called when a property value is applied
      *
      * @param propertyName
@@ -216,6 +236,12 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
           });
         } else {
           propDef.changeListenerId = null;
+        }
+      }
+
+      if (propertyName == "uuid") {
+        if (this.$$uuid !== value) {
+          this.setExplicitUuid(value);
         }
       }
 
