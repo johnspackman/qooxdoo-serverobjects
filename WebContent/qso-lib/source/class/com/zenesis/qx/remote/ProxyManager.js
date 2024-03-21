@@ -202,7 +202,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       };
 
       this.__asyncCallback[msg.asyncId] = function (result) {
-          callback?.(result);
+        callback?.(result);
       };
 
       this._sendCommandToServer(msg, !!callback);
@@ -989,8 +989,14 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         // Assign any values
         if (data.order) {
+          if (data.values.uuid) {
+            t.setPropertyValueFromServer(result, "uuid", data.values.uuid);
+          }
           for (var i = 0; i < data.order.length; i++) {
             var propName = data.order[i];
+            if (propName == "uuid") {
+              continue;
+            }
             var propValue = data.values[propName];
 
             if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
