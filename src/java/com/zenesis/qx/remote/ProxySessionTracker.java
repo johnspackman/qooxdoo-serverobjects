@@ -174,9 +174,14 @@ public class ProxySessionTracker implements UploadInterceptor {
           }
           if (sentValues)
             jgen.writeEndObject();
-          if (!order.isEmpty())
+          if (!order.isEmpty()) {
+            if (order.contains("uuid")) {
+              order.remove("uuid");
+              order.add(0, "uuid");
+            }
             jgen.writeObjectField("order", order);
-
+          }
+          
           // Write prefetch values
           boolean prefetch = false;
           for (ProxyType type = proxyType; type != null; type = type.getSuperType()) {
