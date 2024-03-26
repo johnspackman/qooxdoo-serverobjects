@@ -43,6 +43,7 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.remote.annotations.Remote;
+import com.zenesis.qx.remote.ClassWriter.AsyncFunction;
 import com.zenesis.qx.remote.ClassWriter.Function;
 
 /**
@@ -220,10 +221,12 @@ public class ProxyMethod implements JsonSerializable {
           "return this._callServer(\"" + method.getName() + "\", qx.lang.Array.fromArguments(arguments));"));
 
       cw.member(method.getName() + "Async",
-          new Function("var args = qx.lang.Array.fromArguments(arguments);\n" +
-              "return new qx.Promise(function(resolve, reject) {\n" + "  args.push(function() {\n" +
-              "    resolve.apply(this, qx.lang.Array.fromArguments(arguments));\n" + "  });\n" +
-              "  this._callServer(\"" + method.getName() + "\", args);\n" + "}, this);"));
+          new AsyncFunction(
+              "var args = qx.lang.Array.fromArguments(arguments);\n" +
+              "let promise = new qx.Promise();\r\n" + 
+              "args.push(promise);\r\n" + 
+              "this._callServer(\"" + method.getName() + "\", args);\r\n" + 
+              "return await promise;"));
       if (clientAnno != null)
         cw.member("@" + method.getName(), clientAnno);
     }

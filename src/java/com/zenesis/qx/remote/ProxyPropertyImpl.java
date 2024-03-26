@@ -369,7 +369,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
       // client constructed objects, the best action is usually to reset the client's
       // property
       // value to match the server
-      log.warn("Cannot set property " + this + " because there is no set method and field is not accessible");
+      log.debug("Cannot set property " + this + " because there is no set method and field is not accessible");
       Object current = getValue(proxied);
       ProxyManager.propertyChanged(proxied, getName(), current, null);
 

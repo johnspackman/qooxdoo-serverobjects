@@ -85,6 +85,7 @@ public class ClassWriter {
     code += " * @use(zx.utils.BigNumber)\n";
     code += " * @ignore(BigNumber)\n";
     code += " */\n\n";
+    code += "const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;\n";
     code += (isInterface() ? "qx.Interface" : "qx.Class") + ".define(\"" + proxyType.getClassName() + "\", " +
         ow.writeValueAsString(map) + ");\n";
     return code;
@@ -284,9 +285,10 @@ public class ClassWriter {
     }
   }
 
-  public static final class Function {
+  public static class Function {
     public String code;
     public String[] args;
+    public boolean async;
 
     Function(String... argsAndCode) {
       this.code = argsAndCode[argsAndCode.length - 1];
@@ -301,7 +303,10 @@ public class ClassWriter {
     
     @Override
     public String toString() {
-      String str = "function(";
+      String str = "";
+      if (async)
+        str = "async ";
+      str += "function(";
       for (int i = 0; i < args.length; i++) {
         if (i > 0)
           str += ", ";
@@ -310,6 +315,25 @@ public class ClassWriter {
       str += ") { " + code + "}";
       return str;
     }
+  }
+  
+  public static class AsyncFunction extends Function{
+
+    public AsyncFunction(String... argsAndCode) {
+      super(argsAndCode);
+      async = true;
+    }
+
+    public AsyncFunction(String[] args, String code) {
+      super(args, code);
+      async = true;
+    }
+
+    @Override
+    public String toString() {
+      return super.toString();
+    }
+    
   }
 
   @SuppressWarnings("serial")
@@ -329,6 +353,8 @@ public class ClassWriter {
       DefaultPrettyPrinter pp = (DefaultPrettyPrinter) provider.getConfig().getDefaultPrettyPrinter();
 
       String str = "function(";
+      if (value.async)
+        str = "async " + str;
       for (int i = 0; i < value.args.length; i++) {
         if (i != 0)
           str += ", ";

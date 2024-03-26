@@ -133,7 +133,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
     _callServer(name, args) {
       if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceMethodSync")) {
         var async = args.some(function (arg) {
-          return typeof arg == "function";
+          return typeof arg == "function" || qx.lang.Type.isPromise(arg);
         });
         if (!async) {
           var trace = qx.dev.StackTrace.getStackTrace();
