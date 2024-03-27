@@ -2132,7 +2132,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       let asyncIds = [];
-      if (obj.asyncId) {
+      if (obj?.asyncId) {
         asyncIds.push(obj.asyncId);
       }
 
@@ -2141,7 +2141,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (queue && queue.length) {
         this.__queue = null;
         queue.forEach(obj => {
-          if (obj.asyncId) {
+          if (obj?.asyncId) {
             asyncIds.push(obj.asyncId);
           }
         });
