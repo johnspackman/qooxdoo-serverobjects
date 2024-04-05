@@ -205,11 +205,20 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         asyncId: ++this.__asyncId
       };
 
-      this.__asyncCallback[msg.asyncId] = qx.lang.Type.isPromise(callbackOrPromise)
-        ? callbackOrPromise
-        : function (result) {
-            callbackOrPromise?.(result);
-          };
+      // if (callbackOrPromise) {
+      //   this.__asyncCallback[msg.asyncId] = function (result) {
+      //     if (qx.lang.Type.isPromise(callbackOrPromise)) {
+      //       callbackOrPromise.resolve(result);
+      //     } else {
+      //       callbackOrPromise?.(result);
+      //     }
+      //   };
+      // }
+
+      if (callbackOrPromise) {
+        let serverResponseCallback = qx.lang.Type.isPromise(callbackOrPromise) ? callbackOrPromise.resolve.bind(callbackOrPromise) : callbackOrPromise;
+        this.__asyncCallback[msg.asyncId] = serverResponseCallback;
+      }
 
       this._sendCommandToServer(msg, !!callbackOrPromise);
       if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.traceNullBoot")) {
@@ -505,10 +514,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       let err = new Error("Error returned by server, code=" + ioData.statusCode);
       ioData.proxyData.asyncIds.forEach(asyncId => {
         try {
-          let promise = this.__asyncCallback[asyncId];
-          if (qx.lang.Type.isPromise(promise)) {
-            promise.reject(err);
-          }
+          this.__asyncCallback[asyncId](null, err);
         } catch (ex) {
           console.error("Error rejecting promise: " + ex);
         }
@@ -712,11 +718,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           var cb = asyncId ? this.__asyncCallback[asyncId] : null;
           if (cb) {
             delete this.__asyncCallback[asyncId];
-            if (qx.lang.Type.isPromise(cb)) {
-              cb.resolve(result);
-            } else {
-              cb(result);
-            }
+            cb(result);
           }
 
           // Function return
@@ -730,11 +732,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           if (cb) {
             var startTime = new Date().getTime();
             delete this.__asyncCallback[asyncId];
-            if (qx.lang.Type.isPromise(cb)) {
-              cb.resolve(result);
-            } else {
-              cb(result);
-            }
+            cb(result);
             var ms = new Date().getTime() - startTime;
             if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.perfTrace")) {
               stats.numCallbacks++;
@@ -1568,20 +1566,28 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       };
 
       var methodResult = undefined;
+      let methodException = null;
 
-      let promise = new qx.Promise();
-      promise
-        .then(result => {
-          if (!this.getException()) {
-            if (methodDef) {
-              // On-Demand property accessors don't have a method
-              // definition
-              if (methodDef.returnArray == "wrap") {
-                if (methodDef.map) {
-                  result = new com.zenesis.qx.remote.Map(result);
-                } else if (!(result instanceof qx.data.Array)) {
-                  result = new qx.data.Array(result || []);
-                }
+      const callback = (result, err) => {
+        if (err) {
+          methodException = err;
+          notify.forEach(notify => {
+            if (qx.lang.Type.isPromise(notify)) {
+              notify.reject(err);
+            }
+          });
+          return;
+        }
+
+        try {
+          if (methodDef) {
+            // On-Demand property accessors don't have a method
+            // definition
+            if (methodDef.returnArray == "wrap") {
+              if (methodDef.map) {
+                result = new com.zenesis.qx.remote.Map(result);
+              } else if (!(result instanceof qx.data.Array)) {
+                result = new qx.data.Array(result || []);
               }
             }
           }
@@ -1605,17 +1611,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           }
 
           methodResult = result;
-        })
-        .catch(err => {
+        } catch (err) {
+          methodException = err;
           notify.forEach(notify => {
             if (qx.lang.Type.isPromise(notify)) {
               notify.reject(err);
             }
           });
-        });
+        }
+      };
 
       // Add index for tracking multiple, asynchronous callbacks
-      this.__asyncCallback[data.asyncId] = promise;
+      this.__asyncCallback[data.asyncId] = callback;
 
       // Call the server
       if (notify.length && (this.__numActiveRequests || this.__inProcessData)) {
@@ -1627,6 +1634,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         this._sendCommandToServer(data, notify.length != 0);
       }
 
+      if (methodException) {
+        throw methodException;
+      }
       return methodResult;
     },
 
@@ -2141,7 +2151,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       if (queue && queue.length) {
         this.__queue = null;
         queue.forEach(obj => {
-          if (obj.asyncId) {
+          if (obj?.asyncId) {
             asyncIds.push(obj.asyncId);
           }
         });
@@ -2397,12 +2407,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // data.message);
       var ex = new Error("Exception at server: " + data.exceptionClass + ": " + data.message);
       if (asyncIds) {
-        asyncIds.forEach(asyncId => {
-          let promise = this.__asyncCallback[asyncId];
-          if (qx.lang.Type.isPromise(promise)) {
-            promise.reject(ex);
-          }
-        });
+        asyncIds.forEach(asyncId => this.__asyncCallback[asyncId](null, ex));
       }
       this._setException(ex);
     },
