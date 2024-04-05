@@ -1,3 +1,6 @@
+/**
+ * @ignore(Blob)
+ */
 qx.Class.define("com.zenesis.qx.remote.Sha1", {
   extend: qx.core.Object,
 
