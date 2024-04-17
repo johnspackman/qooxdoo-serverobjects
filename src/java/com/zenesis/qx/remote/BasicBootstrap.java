@@ -1,6 +1,8 @@
 package com.zenesis.qx.remote;
 
+import com.zenesis.grasshopper.documents.DocumentLazyWriter;
 import com.zenesis.qx.remote.annotations.AlwaysProxy;
+import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote.Toggle;
 
@@ -32,6 +34,11 @@ public class BasicBootstrap implements FileApiProvider {
   public BasicBootstrap(FileApi fileApi) {
     super();
     this.fileApi = fileApi;
+  }
+
+  @Method
+  public void flushAllToDisk() {
+    DocumentLazyWriter.getInstance().flush().join();
   }
 
   /**
