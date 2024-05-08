@@ -142,6 +142,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       }
 
       var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
+      PM.clearException();
       var result = PM.callServerMethod(this, name, args);
 
       var ex = PM.clearException();
@@ -250,6 +251,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       if (this.__isPending) {
         return;
       }
+      PM.clearException();
       PM.setPropertyValue(this, propertyName, value, oldValue);
       var ex = PM.clearException();
       if (ex) {

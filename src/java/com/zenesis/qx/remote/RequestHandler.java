@@ -51,7 +51,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -289,18 +288,21 @@ public class RequestHandler {
    * @param body
    * @throws IOException
    */
-  protected void writeResponse(HttpServletResponse response, HashMap<String, String> headers, String body)
+  protected void writeResponse(HttpServletResponse response, HashMap<String, String> headers, String body, String acceptEncoding)
       throws IOException {
     for (String key : headers.keySet())
       response.setHeader(key, headers.get(key));
 
     OutputStream os = response.getOutputStream();
     /*
-     * String enc = headers.get("Accept-Encoding"); if (enc != null) { if
-     * (enc.indexOf("gzip") != -1) { enc = enc.indexOf("x-gzip") != -1 ? "x-gzip" :
-     * "gzip"; response.addHeader("Content-Encoding", enc); os = new
-     * GZIPOutputStream(os); } else enc = null; }
-     */
+    if (acceptEncoding != null && body.length() > 25 * 1024) { 
+      if (acceptEncoding.indexOf("gzip") != -1) { 
+        acceptEncoding = acceptEncoding.indexOf("x-gzip") != -1 ? "x-gzip" : "gzip"; 
+        response.addHeader("Content-Encoding", acceptEncoding); 
+        os = new GZIPOutputStream(os); 
+      } 
+    }*/
+    
     Writer outputWriter = new OutputStreamWriter(os);
 
     outputWriter.write(body);
@@ -402,7 +404,7 @@ public class RequestHandler {
           return;
         }
         RepeatableRequestData rrd = repeatableRequest.reload();
-        writeResponse(response, rrd.headers, rrd.body);
+        writeResponse(response, rrd.headers, rrd.body, request.getHeader("Accept-Encoding"));
         return;
       }
 
@@ -466,7 +468,7 @@ public class RequestHandler {
     }
 
     try {
-      writeResponse(response, respHeaders, out);
+      writeResponse(response, respHeaders, out, request.getHeader("Accept-Encoding"));
     } catch (IOException e) {
       log.fatal("Failed to write back to client: " + e.getMessage());
     }
