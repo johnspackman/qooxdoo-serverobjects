@@ -318,11 +318,17 @@ public class ProxyManager implements EventListener {
   public static <T,S extends OnDemandReference> OnDemandReference<T> changeProperty(Proxied keyObject, String propertyName, T newValue, OnDemandReference<T> ref) {
     T oldValue = ref != null ? ref.get() : null;
 
-    if (same(newValue, oldValue))
+    if (same(newValue, oldValue)) {
+      if (newValue == null)
+        return null;
       return ref;
+    }
 
     if (ref != null) {
-      ref.set(newValue);
+      if (newValue == null)
+        ref = null;
+      else
+        ref.set(newValue);
     } else if (newValue != null) {
       ref = OnDemandReferenceFactory.createReferenceFor(newValue.getClass(), keyObject);
       ref.set(newValue);
