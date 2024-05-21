@@ -21,6 +21,7 @@ import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
 import com.zenesis.qx.remote.annotations.Mixin;
 import com.zenesis.qx.remote.annotations.Properties;
+import com.zenesis.qx.remote.annotations.Property;
 
 /**
  * Provides an implementation of ArrayList which monitors changes to the array
@@ -42,7 +43,9 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   private int size;
   private boolean storeReferences;
   private Object containerObject;
+  @Property
   private boolean detectDuplicates;
+  @Property
   private boolean detectNulls;
 
   public ArrayList() {
