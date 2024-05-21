@@ -22,8 +22,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MArrayList", {
         let obj = arr[i];
         for (let j = i + 1; j < arr.length; j++) {
           if (arr[j] == obj) {
-            console.error("Detected duplicate in arraylist");
-            debugger;
+            throw new Error("Detected duplicate in arraylist");
           }
         }
       }
@@ -40,8 +39,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MArrayList", {
       let arr = this.toArray();
       for (let i = 0; i < arr.length; i++) {
         if (arr[i] === null) {
-          console.error("Detected null in arraylist");
-          debugger;
+          throw new Error("Detected null in arraylist");
         }
       }
     }
