@@ -1962,7 +1962,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
         serverObject["set" + upname](value);
       } catch (e) {
-        this.error(e);
+        this.error("Exception during call to setPropertyValueFromServer for " + serverObject.classname + "." + propertyName + " [" + serverObject.toHashCode() + "]: " + e);
         throw e;
       } finally {
         this.__setPropertyObject = savePropertyObject;
