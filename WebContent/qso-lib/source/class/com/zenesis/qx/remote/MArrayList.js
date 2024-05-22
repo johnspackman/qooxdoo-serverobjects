@@ -5,8 +5,8 @@ qx.Mixin.define("com.zenesis.qx.remote.MArrayList", {
 
   members: {
     __onArrayListChange(evt) {
-      this.__detectNulls();
-      this.__detectDuplicates();
+      this.detectNulls();
+      this.detectDuplicates();
     },
 
     /**
@@ -14,7 +14,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MArrayList", {
      * If a duplicate is found and property detectDuplicates is set to true, `debugger;` is called..
      * @returns
      */
-    __detectDuplicates() {
+    detectDuplicates() {
       if (!this.getDetectDuplicates()) {
         return true;
       }
@@ -36,7 +36,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MArrayList", {
      * If a null is found and property detectNulls is set to true, `debugger;` is called..
      * @returns
      */
-    __detectNulls() {
+    detectNulls() {
       if (!this.getDetectNulls()) {
         return true;
       }
@@ -44,7 +44,6 @@ qx.Mixin.define("com.zenesis.qx.remote.MArrayList", {
       let arr = this.toArray();
       for (let i = 0; i < arr.length; i++) {
         if (arr[i] === null) {
-          debugger;
           throw new Error("Detected null in arraylist");
         }
       }
