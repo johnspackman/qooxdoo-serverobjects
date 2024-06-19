@@ -2407,7 +2407,12 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       // data.message);
       var ex = new Error("Exception at server: " + data.exceptionClass + ": " + data.message);
       if (asyncIds) {
-        asyncIds.forEach(asyncId => this.__asyncCallback[asyncId](null, ex));
+        asyncIds.forEach(asyncId => {
+          let fn = this.__asyncCallback[asyncId];
+          if (fn) {
+            fn(null, ex);
+          }
+        });
       }
       this._setException(ex);
     },
