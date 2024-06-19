@@ -1090,6 +1090,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         // Object - is it a server object or a map?
         if (data.serverId !== undefined) {
           result = readServerObject(data);
+        } else if (typeof data["$date"] == "string") {
+          return new Date(data["$date"]);
+        } else if (typeof data["$numberDecimal"] == "string") {
+          return BigNumber(data["$numberDecimal"]);
         } else {
           result = readMap(data);
         }
