@@ -1470,9 +1470,16 @@ public class RequestHandler {
       Object value = null;
       if (token == JsonToken.START_OBJECT)
         value = readBsonDocument(jp);
-      else if (token == JsonToken.START_ARRAY)
+      else if (token == JsonToken.START_ARRAY) {
         value = readArray(jp, null);
-      else if (token != JsonToken.VALUE_NULL)
+        if (value != null) {
+          ArrayList arr = new ArrayList<>();
+          for (Object obj : (Object[])value) {
+            arr.add(obj);
+          }
+          value = arr;
+        }
+      } else if (token != JsonToken.VALUE_NULL)
         value = readSimpleValue(jp, Object.class);
       result.append(key, value);
     }
