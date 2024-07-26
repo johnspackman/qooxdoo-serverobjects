@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
+import com.zenesis.core.helpers.ValuesHelper;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote.Array;
@@ -472,7 +473,8 @@ public class FileApi implements Proxied {
       uploadFolder = "";
     }
 
-    File dest = getFile(uploadFolder + "/" + upfile.getOriginalName());
+    String fileNameOnDisk = ValuesHelper.makeValidAlias(upfile.getOriginalName());
+    File dest = getFile(uploadFolder + "/" + fileNameOnDisk);
 
     obj = upfile.getParams().get("uploadUnique");
     if (obj != null && obj instanceof String && obj.toString().equals("true")) {
