@@ -12,7 +12,6 @@ import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
-import com.zenesis.core.helpers.ValuesHelper;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.Remote.Array;
@@ -473,7 +472,7 @@ public class FileApi implements Proxied {
       uploadFolder = "";
     }
 
-    String fileNameOnDisk = ValuesHelper.makeValidAlias(upfile.getOriginalName());
+    String fileNameOnDisk = sanitizeFileName(upfile.getOriginalName());
     File dest = getFile(uploadFolder + "/" + fileNameOnDisk);
 
     obj = upfile.getParams().get("uploadUnique");
@@ -794,5 +793,41 @@ public class FileApi implements Proxied {
    */
   public static void setMimeTypes(HashMap<String, String[]> mimeTypes) {
     s_mimeTypes = mimeTypes;
+  }
+  
+  public static String sanitizeFileName(String name) {
+    name = name.trim();
+    StringBuilder sb = new StringBuilder(name);
+    boolean lastWasInvalid = false;
+    char lastC = 0;
+    for (int i = 0; i < sb.length(); i++) {
+      char c = sb.charAt(i);
+
+      // Don't allow double dots
+      if (c == '.' && lastC == '.') {
+        sb.deleteCharAt(i--);
+        sb.deleteCharAt(--i);
+        c = i >= 0 && i < sb.length() ? sb.charAt(i) : 0;
+
+      } else if (!Character.isLetter(c) && !Character.isDigit(c) && "_-.".indexOf(c) < 0) {
+        if (lastWasInvalid || lastC == '-')
+          sb.deleteCharAt(i--);
+        else
+          sb.setCharAt(i, '-');
+        lastWasInvalid = true;
+
+      } else
+        lastWasInvalid = false;
+      lastC = c;
+    }
+    while (sb.length() > 0 && sb.charAt(0) == '-')
+      sb.deleteCharAt(0);
+    while (sb.length() > 0 && sb.charAt(sb.length() - 1) == '-')
+      sb.deleteCharAt(sb.length() - 1);
+    for (int i = 1; i < sb.length(); i++) {
+      if (sb.charAt(i) == '-' && sb.charAt(i - 1) == '-')
+        sb.deleteCharAt(i--);
+    }
+    return sb.toString().toLowerCase();
   }
 }
