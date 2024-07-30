@@ -211,24 +211,44 @@ public class ProxyMethod implements JsonSerializable {
         cw.member("@" + method.getName(), clientAnno);
 
     } else if (staticMethod) {
-      cw.statics(method.getName(), new Function("return com.zenesis.qx.remote.ProxyManager._callServer(" +
-          clazz.getName() + ", \"" + method.getName() + "\", qx.lang.Array.fromArguments(arguments));"));
-      if (clientAnno != null)
-        cw.statics("@" + method.getName(), clientAnno);
-
+      // sync
+      cw.statics(
+        method.getName(),
+        new Function(
+          "return com.zenesis.qx.remote.ProxyManager._callServer(" +
+          clazz.getName() + ", '" + method.getName() + "', qx.lang.Array.fromArguments(arguments));"
+        )
+      );
+      // async
+      cw.statics(
+        method.getName() + "Async",
+        new AsyncFunction(
+          "var args = qx.lang.Array.fromArguments(arguments);\n" +
+          "let promise = new qx.Promise();\r\n" +
+          "args.push(promise);\r\n" +
+          "com.zenesis.qx.remote.ProxyManager._callServer(" +
+          clazz.getName() + ", '" + method.getName() + "', args);\r\n" +
+          "return await promise;"
+        )
+      );
+      // anno
+      if (clientAnno != null) cw.statics("@" + method.getName(), clientAnno);
     } else {
-      cw.member(method.getName(), new Function(
-          "return this._callServer(\"" + method.getName() + "\", qx.lang.Array.fromArguments(arguments));"));
-
-      cw.member(method.getName() + "Async",
-          new AsyncFunction(
-              "var args = qx.lang.Array.fromArguments(arguments);\n" +
-              "let promise = new qx.Promise();\r\n" + 
-              "args.push(promise);\r\n" + 
-              "this._callServer(\"" + method.getName() + "\", args);\r\n" + 
-              "return await promise;"));
-      if (clientAnno != null)
-        cw.member("@" + method.getName(), clientAnno);
+      // sync
+      cw.member(method.getName(), new Function("return this._callServer(\"" + method.getName() + "\", qx.lang.Array.fromArguments(arguments));"));
+      // async
+      cw.member(
+        method.getName() + "Async",
+        new AsyncFunction(
+          "var args = qx.lang.Array.fromArguments(arguments);\n" +
+          "let promise = new qx.Promise();\r\n" + 
+          "args.push(promise);\r\n" + 
+          "this._callServer(\"" + method.getName() + "\", args);\r\n" + 
+          "return await promise;"
+        )
+      );
+      // anno
+      if (clientAnno != null) cw.member("@" + method.getName(), clientAnno);
     }
     if (!cw.isInterface()) {
       HashMap<String, Object> meta = new HashMap<>();
