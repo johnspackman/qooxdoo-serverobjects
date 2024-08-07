@@ -2,7 +2,11 @@
 /bin
 /qooxdoo
 logging/
-
 /target/
 org.eclipse.core.resources.prefs
 org.eclipse.m2e.core.prefs
+.gradle/
+gradle/
+build/
+gradlew
+gradlew.bat
