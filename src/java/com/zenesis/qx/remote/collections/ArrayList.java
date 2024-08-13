@@ -435,10 +435,12 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       ((OnDemandReference<T>)oldValue).set((T)element);
       return oldValue;
     }
-    OnDemandReference ref = OnDemandReferenceFactory.createReferenceFor(element.getClass(), containerObject);
-    if (ref != null) {
-      ref.set(element);
-      return ref;
+    if (isStoreReferences()) {
+      OnDemandReference ref = OnDemandReferenceFactory.createReferenceFor(element.getClass(), containerObject);
+      if (ref != null) {
+        ref.set(element);
+        return ref;
+      }
     }
     return element;
   }
