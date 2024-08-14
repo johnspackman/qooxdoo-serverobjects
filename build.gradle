@@ -9,7 +9,8 @@ plugins {
 group = 'johnspackman'
 version = '2.0.0'
 description = 'qx-serverobjects'
-java.sourceCompatibility = JavaVersion.VERSION_1_8
+java.sourceCompatibility = JavaVersion.VERSION_22
+java.targetCompatibility = JavaVersion.VERSION_22
 wrapper.gradleVersion = '8.9'
 
 repositories {
@@ -37,6 +38,14 @@ publishing {
   publications {
     maven(MavenPublication) {
       from(components.java)
+    }
+  }
+}
+
+sourceSets {
+  main {
+    java {
+      srcDirs 'src/java'
     }
   }
 }
