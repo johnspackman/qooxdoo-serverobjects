@@ -2592,6 +2592,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     "com.zenesis.qx.remote.ProxyManager.traceRecursion": true,
     "com.zenesis.qx.remote.ProxyManager.traceMethodSync": false,
     "com.zenesis.qx.remote.ProxyManager.traceOnDemandSync": false,
+    "com.zenesis.qx.remote.ProxyManager.debuggerSync": false,
     "com.zenesis.qx.remote.ProxyManager.traceOverlaps": false,
     "com.zenesis.qx.remote.ProxyManager.perfTrace": false,
     "com.zenesis.qx.remote.ProxyManager.traceNullBoot": false
