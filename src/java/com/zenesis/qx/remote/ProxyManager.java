@@ -40,11 +40,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import javax.activation.MimetypesFileTypeMap;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 
 import org.apache.logging.log4j.Logger;
 
@@ -54,6 +53,11 @@ import com.zenesis.qx.remote.CommandId.CommandType;
 import com.zenesis.qx.remote.collections.ChangeData;
 import com.zenesis.qx.remote.collections.OnDemandReference;
 import com.zenesis.qx.remote.collections.OnDemandReferenceFactory;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 /**
  * This class needs to be implemented by whatever software hosts the proxies
@@ -224,10 +228,12 @@ public class ProxyManager implements EventListener {
    * 
    * @param tracker
    */
-  private static final Boolean mutex = new Boolean(true);
+  private static final Lock mutex = new ReentrantLock();
 
   public static void addSyncTracker(ProxySessionTracker tracker) {
-    synchronized (mutex) {
+    if (!mutex.tryLock())
+      throw new IllegalStateException("Failed to get lock for ProxyManager.mutex in addSyncTracker: lock was not free");
+    try {
       AtomicReferenceArray<ProxySessionTracker> current = null;
       if (s_syncedTrackers != null)
         current = s_syncedTrackers.get();
@@ -251,6 +257,8 @@ public class ProxyManager implements EventListener {
       if (s_syncedTrackers == null)
         s_syncedTrackers = new AtomicReference<AtomicReferenceArray<ProxySessionTracker>>();
       s_syncedTrackers.set(arr);
+    } finally {
+      mutex.unlock();
     }
   }
 
