@@ -540,11 +540,12 @@ public class FileApi implements Proxied {
 
       File[] files = src.listFiles();
       boolean ok = true;
-        for (File file : files) {
-          moveTo(file, new File(dest, file.getName()));
-          if (file.exists())
-            ok = false;
+      for (File file : files) {
+        moveTo(file, new File(dest, file.getName()));
+        if (file.exists()) {
+          ok = false;
         }
+      }
       if (ok)
         src.delete();
       return;
