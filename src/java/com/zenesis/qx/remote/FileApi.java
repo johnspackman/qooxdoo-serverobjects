@@ -561,7 +561,7 @@ public class FileApi implements Proxied {
         dest.delete();
     }
 
-    if (dest.renameTo(dest)) {
+    if (src.renameTo(dest)) {
       onChange(ChangeType.MOVE, dest, src);
       return;
     }
