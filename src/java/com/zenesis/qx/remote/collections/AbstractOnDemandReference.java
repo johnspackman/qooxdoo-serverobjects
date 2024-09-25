@@ -77,13 +77,13 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
         return null;
       }
       ref = new SoftReference<>(doc);
+      return doc;
     }finally {
       synchronized(s_stackDepth) {
         Integer stackDepth = s_stackDepth.get();
         s_stackDepth.set(stackDepth - 1);
       }
     }
-    return doc;
   }
   
   protected abstract T getFromUuid(String uuid, boolean load);
