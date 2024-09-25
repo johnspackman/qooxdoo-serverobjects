@@ -13,6 +13,7 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
   
   protected String uuid;
   protected SoftReference<T> ref;
+  private static ThreadLocal<Integer> s_stackDepth = new ThreadLocal<>();
   
   public AbstractOnDemandReference() {
   }
@@ -57,14 +58,32 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
       if (doc != null)
         return doc;
     }
-    T doc = getFromUuid(uuid, load);
-    if (doc == null) {
-      if (load)
-        log.fatal("Cannot find document with UUID " + uuid + " in DocumentRef");
-      return null;
+    synchronized(s_stackDepth) {
+      Integer stackDepth = s_stackDepth.get();
+      if (stackDepth == null)
+        stackDepth = 1;
+      else
+        stackDepth++;
+      s_stackDepth.set(stackDepth);
+      if (stackDepth > 100) {
+        throw new IllegalStateException("Stack Depth too deep getting on demand reference");
+      }
     }
-    ref = new SoftReference<>(doc);
-    return doc;
+    try {
+      T doc = getFromUuid(uuid, load);
+      if (doc == null) {
+        if (load)
+          log.fatal("Cannot find document with UUID " + uuid + " in DocumentRef");
+        return null;
+      }
+      ref = new SoftReference<>(doc);
+      return doc;
+    }finally {
+      synchronized(s_stackDepth) {
+        Integer stackDepth = s_stackDepth.get();
+        s_stackDepth.set(stackDepth - 1);
+      }
+    }
   }
   
   protected abstract T getFromUuid(String uuid, boolean load);
