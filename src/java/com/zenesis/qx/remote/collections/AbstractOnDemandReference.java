@@ -10,27 +10,27 @@ import com.zenesis.core.HasUuid;
 public abstract class AbstractOnDemandReference<T extends HasUuid> implements OnDemandReference<T> {
 
   private static final Logger log = LogManager.getLogger(AbstractOnDemandReference.class);
-  
+
   protected String uuid;
   protected SoftReference<T> ref;
   private static ThreadLocal<Integer> s_stackDepth = new ThreadLocal<>();
-  
+
   public AbstractOnDemandReference() {
   }
-  
+
   public AbstractOnDemandReference(String uuid) {
     this.uuid = uuid;
   }
-  
+
   public AbstractOnDemandReference(T doc) {
     uuid = getUuidFromObject(doc);
     ref = new SoftReference<T>((T)doc);
   }
-  
+
   public boolean sameAs(T doc) {
     return sameAs(this, getUuidFromObject(doc));
   }
-  
+
   public static boolean sameAs(OnDemandReference ref, String uuid) {
     String ru = ref != null ? ref.getUuid() : null;
     if (ru == null && uuid == null)
@@ -39,7 +39,7 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
       return false;
     return ru.equals(uuid);
   }
-  
+
   public boolean is(String uuid) {
     return this.uuid != null && this.uuid.equals(uuid);
   }
@@ -77,17 +77,17 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
         return null;
       }
       ref = new SoftReference<>(doc);
-    }finally {
+      return doc;
+    } finally {
       synchronized(s_stackDepth) {
         Integer stackDepth = s_stackDepth.get();
         s_stackDepth.set(stackDepth - 1);
       }
     }
-    return doc;
   }
-  
+
   protected abstract T getFromUuid(String uuid, boolean load);
-  
+
   @Override
   public T get() {
     return get(true);
@@ -118,7 +118,7 @@ public abstract class AbstractOnDemandReference<T extends HasUuid> implements On
     this.uuid = uuid;
     ref = new SoftReference<>(obj);
   }
-  
+
   public String getUuidFromObject(T obj) {
     return obj.getUuid();
   }
