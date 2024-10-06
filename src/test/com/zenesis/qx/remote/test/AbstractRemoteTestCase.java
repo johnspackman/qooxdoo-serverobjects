@@ -32,7 +32,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
