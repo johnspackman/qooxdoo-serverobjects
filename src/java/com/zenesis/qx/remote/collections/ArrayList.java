@@ -422,8 +422,11 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
    * where possible; it will also reuse existing OnDemandReference in preference to creating a new
    * one
    * 
-   * @param oldValue
-   * @param element
+   * This method is called when we add or replace an element in the array
+   * and we want to check the best value to actually store in the array.
+   * 
+   * @param oldValue If we are replacing an element, this is the old, raw value stored in the array
+   * @param element The new value to store in the array
    * @return
    */
   private Object getValueToStore(Object oldValue, Object element) {
