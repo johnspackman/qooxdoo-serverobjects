@@ -1,28 +1,28 @@
 /**
  * ************************************************************************
- * 
- *    server-objects - a contrib to the Qooxdoo project that makes server 
- *    and client objects operate seamlessly; like Qooxdoo, server objects 
+ *
+ *    server-objects - a contrib to the Qooxdoo project that makes server
+ *    and client objects operate seamlessly; like Qooxdoo, server objects
  *    have properties, events, and methods all of which can be access from
  *    either server or client, regardless of where the original object was
  *    created.
- * 
+ *
  *    http://qooxdoo.org
- * 
+ *
  *    Copyright:
  *      2010 Zenesis Limited, http://www.zenesis.com
- * 
+ *
  *    License:
  *      LGPL: http://www.gnu.org/licenses/lgpl.html
  *      EPL: http://www.eclipse.org/org/documents/epl-v10.php
- *      
+ *
  *      This software is provided under the same licensing terms as Qooxdoo,
- *      please see the LICENSE file in the Qooxdoo project's top-level directory 
+ *      please see the LICENSE file in the Qooxdoo project's top-level directory
  *      for details.
- * 
+ *
  *    Authors:
  *      * John Spackman (john.spackman@zenesis.com)
- * 
+ *
  * ************************************************************************
  */
 package com.zenesis.qx.remote;
@@ -53,10 +53,9 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 /**
  * Simple wrapper for Jackson ObjectMapper that uses our custom de/serialisation
  * factories and adds a few helper methods.
- * 
+ *
  * @author <a href="mailto:john.spackman@zenesis.com">John Spackman</a>
  */
-@SuppressWarnings("serial")
 public class BasicObjectMapper extends ObjectMapper {
 
   private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(BasicObjectMapper.class);
@@ -71,7 +70,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.fasterxml.jackson.databind.JsonSerializer#serialize(java.lang.Object,
      * com.fasterxml.jackson.core.JsonGenerator,
@@ -82,16 +81,16 @@ public class BasicObjectMapper extends ObjectMapper {
         throws IOException, JsonProcessingException {
       int status = ((JsonWriteContext) gen.getOutputContext()).writeValue();
       switch (status) {
-      case JsonWriteContext.STATUS_OK_AFTER_COLON:
-        gen.writeRaw(':');
-        break;
+        case JsonWriteContext.STATUS_OK_AFTER_COLON:
+          gen.writeRaw(':');
+          break;
 
-      case JsonWriteContext.STATUS_OK_AFTER_COMMA:
-        gen.writeRaw(',');
-        break;
+        case JsonWriteContext.STATUS_OK_AFTER_COMMA:
+          gen.writeRaw(',');
+          break;
 
-      case JsonWriteContext.STATUS_EXPECT_NAME:
-        throw new JsonGenerationException("Can not write string value here");
+        case JsonWriteContext.STATUS_EXPECT_NAME:
+          throw new JsonGenerationException("Can not write string value here");
       }
       gen.writeRaw('"');
       for (char c : value.toCharArray()) {
@@ -133,7 +132,7 @@ public class BasicObjectMapper extends ObjectMapper {
   public static final class EnumSerializer extends JsonSerializer<Enum> {
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.codehaus.jackson.map.JsonSerializer#serialize(java.lang.Object,
      * org.codehaus.jackson.JsonGenerator,
      * org.codehaus.jackson.map.SerializerProvider)
@@ -188,7 +187,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.codehaus.jackson.map.JsonSerializer#serialize(java.lang.Object,
      * org.codehaus.jackson.JsonGenerator,
      * org.codehaus.jackson.map.SerializerProvider)
@@ -233,7 +232,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.fasterxml.jackson.databind.JsonSerializer#serialize(java.lang.Object,
      * com.fasterxml.jackson.core.JsonGenerator,
@@ -273,7 +272,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.fasterxml.jackson.databind.JsonDeserializer#deserialize(com.fasterxml.
      * jackson.core.JsonParser,
@@ -300,7 +299,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
   /**
    * Constructor
-   * 
+   *
    * @param tracker
    */
   public BasicObjectMapper() {
@@ -309,7 +308,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
   /**
    * Constructor
-   * 
+   *
    * @param tracker
    * @param indent  whether to indent JSON
    */
@@ -319,7 +318,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
   /**
    * Constructor
-   * 
+   *
    * @param tracker
    * @param indent  whether to indent JSON
    * @param rootDir root directory to serialise all File's as relative to
@@ -355,7 +354,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
   /**
    * Called to add to the module
-   * 
+   *
    * @param module
    */
   protected void addToModule(SimpleModule module) {
@@ -364,7 +363,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
   /**
    * Enables or disabled quoted field names
-   * 
+   *
    * @param set
    */
   public void setQuoteFieldNames(boolean set) {
@@ -376,7 +375,7 @@ public class BasicObjectMapper extends ObjectMapper {
 
   /**
    * Whether field names will be quoted
-   * 
+   *
    * @return
    */
   public boolean isQuoteFieldNames() {
