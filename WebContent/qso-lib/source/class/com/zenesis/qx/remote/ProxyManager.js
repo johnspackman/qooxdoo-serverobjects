@@ -59,6 +59,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
     this.__serverObjects = [];
     this.__proxyIo = proxyIo;
+    this.__subscriptions = {};
   },
 
   properties: {
@@ -281,6 +282,43 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }
       }
       return this.__shutdownPromise;
+    },
+
+    /** @type{Object<String,Function[]>} handlers for publish/subscribe event streams */
+    __subscriptions: null,
+
+    /**
+     * Subscribes to an event stream
+     *
+     * @param {String} name
+     * @param {Function} cb
+     */
+    subscribe(name, cb) {
+      let listeners = this.__subscriptions[name];
+      if (!listeners) {
+        listeners = this.__subscriptions[name] = [];
+      }
+      listeners.push(cb);
+      if (listeners.length === 1) {
+        this.getBootstrapObject().subscribeAsync(name);
+      }
+    },
+
+    /**
+     * Unsubscribes from an event stream
+     *
+     * @param {String} name
+     * @param {Function} cb
+     */
+    unsubscribe(name, cb) {
+      let listeners = this.__subscriptions[name];
+      if (listeners) {
+        qx.lang.Array.remove(listeners, cb);
+      }
+      if (listeners.length === 0) {
+        delete this.__subscriptions[name];
+        this.getBootstrapObject().unsubscribeAsync(name);
+      }
     },
 
     /**
@@ -777,15 +815,28 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             // Ignore it - we were only trying to recover from a server
             // exception
           }
-          this._handleServerException(elem.data, "property", asyncIds); // A server property value changed, update the client
+          this._handleServerException(elem.data, "property", asyncIds);
+
+          // Publish/subscribe event stream
+        } else if (type == "published-event") {
+          if (this.__subscriptions[elem.name]) {
+            var value = this.readProxyObject(elem.value, stats);
+            this.__subscriptions[elem.name].forEach(cb => cb(value));
+          }
+
+          // A server property value changed, update the client
         } else if (type == "set") {
           var obj = this.readProxyObject(elem.object, stats);
           var value = this.readProxyObject(elem.data, stats);
-          this.setPropertyValueFromServer(obj, elem.name, value); // An on demand server property value changed, clear the cache
+          this.setPropertyValueFromServer(obj, elem.name, value);
+
+          // An on demand server property value changed, clear the cache
         } else if (type == "expire") {
           var obj = this.readProxyObject(elem.object, stats);
           var upname = qx.lang.String.firstUp(elem.name);
-          obj["expire" + upname](false); // A server property value changed, update the client
+          obj["expire" + upname](false);
+
+          // A server property value changed, update the client
         } else if (type == "edit-array") {
           (function () {
             var serverObject = t.readProxyObject(elem.object, stats);

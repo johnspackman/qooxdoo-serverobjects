@@ -32,7 +32,7 @@ public class CommandId {
   public enum CommandType {
     BOOTSTRAP("bootstrap"), FIRE_EVENT("fire"), FUNCTION_RETURN("return"), EXCEPTION("exception"),
     MAP_CLIENT_ID("mapClientId"), RESTORE_VALUE("restore"), SET_VALUE("set"), EXPIRE("expire"), DEFINE("define"),
-    EDIT_ARRAY("edit-array", true), LOAD_TYPE("load-type"), UPLOAD("upload");
+    EDIT_ARRAY("edit-array", true), LOAD_TYPE("load-type"), UPLOAD("upload"), PUBLISH("publish");
 
     public final String remoteId;
     public final boolean cumulative;

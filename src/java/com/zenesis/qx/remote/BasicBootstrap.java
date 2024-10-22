@@ -40,6 +40,16 @@ public class BasicBootstrap implements FileApiProvider {
   public void flushAllToDisk() {
     DocumentLazyWriter.getInstance().flush().join();
   }
+  
+  @Method
+  public void subscribe(String name) {
+    ProxyManager.subscribe(name);
+  }
+  
+  @Method
+  public void unsubscribe (String name) {
+    ProxyManager.unsubscribe(name);
+  }
 
   /**
    * Loads proxy classes on the client; this is necessary if the client wants to
