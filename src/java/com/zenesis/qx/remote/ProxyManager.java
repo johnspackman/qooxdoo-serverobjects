@@ -47,9 +47,11 @@ import javax.activation.MimetypesFileTypeMap;
 
 import org.apache.logging.log4j.Logger;
 
+import com.zenesis.core.HasUuid;
 import com.zenesis.qx.event.Event;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.remote.CommandId.CommandType;
+import com.zenesis.qx.remote.ProxyManager.UuidObjectPropertyChange;
 import com.zenesis.qx.remote.collections.ChangeData;
 import com.zenesis.qx.remote.collections.OnDemandReference;
 import com.zenesis.qx.remote.collections.OnDemandReferenceFactory;
@@ -323,6 +325,50 @@ public class ProxyManager implements EventListener {
     return false;
   }
   
+  /**
+   * Subscribes this thread's tracker to an event stream
+   * 
+   * @param name
+   */
+  public static void subscribe(String name) {
+    ProxySessionTracker tracker = getTracker();
+    if (tracker != null)
+      tracker.subscribe(name);
+  }
+  
+  /**
+   * Unsubscribes this thread's tracker from an event stream
+   * 
+   * @param name
+   */
+  public static void unsubscribe(String name) {
+    ProxySessionTracker tracker = getTracker();
+    if (tracker != null)
+      tracker.unsubscribe(name);
+  }
+  
+  /**
+   * Publishes to an event stream for this thread's tracker 
+   * 
+   * @param name
+   * @param value
+   */
+  public static void publish(String name, Object value) {
+    AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
+    if (trackers != null) {
+      for (int i = 0; i < trackers.length(); i++) {
+        ProxySessionTracker tmp = trackers.get(i);
+        if (tmp != null) {
+          tmp.publish(name, value);
+        }
+      }
+    }
+  }
+  
+  public static void publish(HasUuid obj, String key, Object value) {
+    publish(obj.getClass().getName(), new UuidObjectPropertyChange(obj.getUuid(), key, value));
+  }
+  
   public static <T,S extends OnDemandReference> OnDemandReference<T> changeProperty(Proxied keyObject, String propertyName, T newValue, OnDemandReference<T> ref) {
     T oldValue = ref != null ? ref.get() : null;
 
@@ -414,13 +460,34 @@ public class ProxyManager implements EventListener {
     if (tracker != null)
       tracker.propertyChanged(keyObject, property, newValue, oldValue);
     AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
-    if (trackers != null)
+    if (trackers != null) {
       for (int i = 0; i < trackers.length(); i++) {
         ProxySessionTracker tmp = trackers.get(i);
         if (tmp != null && tmp != tracker) {
           tmp.propertyChanged(keyObject, property, newValue, oldValue);
         }
       }
+    }
+    if (property.isAutoPublish()) {
+      HasUuid obj = (HasUuid)keyObject;
+      publish(keyObject.getClass().getName(), new UuidObjectPropertyChange(obj.getUuid(), property.getName(), newValue));
+    }
+  }
+  
+  /**
+   * Class used to send auto-publish events when a property changes
+   */
+  public static final class UuidObjectPropertyChange {
+    public String targetUuid;
+    public String key;
+    public Object value;
+    
+    public UuidObjectPropertyChange(String targetUuid, String key, Object value) {
+      super();
+      this.targetUuid = targetUuid;
+      this.key = key;
+      this.value = value;
+    }
   }
 
   /**
@@ -479,8 +546,6 @@ public class ProxyManager implements EventListener {
         }
         type = type.getSuperType();
       }
-    }
-    synchronized (s_syncedTrackers) {
     }
   }
 

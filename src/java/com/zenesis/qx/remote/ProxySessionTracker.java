@@ -293,6 +293,56 @@ public class ProxySessionTracker implements UploadInterceptor {
     }
 
   }
+  
+  /**
+   * Handler for passing events to the client
+   */
+  public static class PublishedEvent implements JsonSerializable {
+    public final String name;
+    public final Object value;
+
+    /**
+     * @param value
+     */
+    public PublishedEvent(String name, Object value) {
+      super();
+      this.name = name;
+      this.value = value;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.
+     * JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
+     */
+    @Override
+    public void serialize(JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+      jgen.writeStartObject();
+      jgen.writeStringField("type", "published-event");
+      jgen.writeStringField("name", name);
+      jgen.writeObjectField("value", value);
+      if (value instanceof Proxied)
+        jgen.writeBooleanField("isProxy", true);
+      jgen.writeEndObject();
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.
+     * fasterxml.jackson.core.JsonGenerator,
+     * com.fasterxml.jackson.databind.SerializerProvider,
+     * com.fasterxml.jackson.databind.jsontype.TypeSerializer)
+     */
+    @Override
+    public void serializeWithType(JsonGenerator gen, SerializerProvider sp, TypeSerializer ts)
+        throws IOException, JsonProcessingException {
+      serialize(gen, sp);
+    }
+
+  }
 
   /*
    * Class used to identify a property
@@ -444,6 +494,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   private final HashSet<PropertyId> knownOnDemandProperties = new HashSet<ProxySessionTracker.PropertyId>();
   private final HashSet<PropertyId> mutatingProperties = new HashSet<ProxySessionTracker.PropertyId>();
   private final ArrayList<RepeatableRequest> repeatableRequests = new ArrayList<>();
+  private final HashSet<String> subscriptions = new HashSet<>();
   private int highestRequestIndex;
 
   // Client Objects, indexed by client ID (negative)
@@ -531,11 +582,13 @@ public class ProxySessionTracker implements UploadInterceptor {
     nextServerId = 0;
 
     // Clear requests except the the initial request, because that's this request
-    for (int i = 0; i < repeatableRequests.size(); i++) {
-      RepeatableRequest rr = repeatableRequests.get(i);
-      if (rr.requestIndex != 0) {
-        repeatableRequests.remove(i--);
-        rr.dispose();
+    synchronized(this) {
+      for (int i = 0; i < repeatableRequests.size(); i++) {
+        RepeatableRequest rr = repeatableRequests.get(i);
+        if (rr.requestIndex != 0) {
+          repeatableRequests.remove(i--);
+          rr.dispose();
+        }
       }
     }
     highestRequestIndex = 0;
@@ -546,8 +599,10 @@ public class ProxySessionTracker implements UploadInterceptor {
    */
   public void dispose() {
     disposed = true;
-    for (RepeatableRequest rr : repeatableRequests)
-      rr.dispose();
+    synchronized(this) {
+      for (RepeatableRequest rr : repeatableRequests)
+        rr.dispose();
+    }
     repeatableRequests.clear();
   }
 
@@ -974,6 +1029,39 @@ public class ProxySessionTracker implements UploadInterceptor {
         throw new IllegalStateException("Completing a RepeatableRequest which is complete");
       rr.complete(headers, body);
     }
+  }
+  
+  /**
+   * Subscribes to an event stream
+   * 
+   * @param name
+   */
+  public void subscribe(String name) {
+    if (!subscriptions.contains(name))
+      subscriptions.add(name);
+  }
+
+  /**
+   * Unsubscribes from an event stream
+   * 
+   * @param name
+   */
+  public void unsubscribe(String name) {
+    subscriptions.remove(name);
+  }
+  
+  /**
+   * Publishes to an event stream
+   * 
+   * @param name
+   * @param value
+   */
+  public void publish(String name, Object value) {
+    if (!subscriptions.contains(name))
+      return;
+    CommandQueue queue = getQueue();
+    CommandId id = new CommandId(CommandId.CommandType.PUBLISH, null, null);
+    queue.queueCommand(id, new PublishedEvent(name, value));
   }
 
   /**

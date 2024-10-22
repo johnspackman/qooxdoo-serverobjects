@@ -53,6 +53,7 @@ import com.zenesis.qx.remote.annotations.Mixins;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.PropertyDate;
+import com.zenesis.qx.remote.annotations.AutoPublish;
 import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
 import com.zenesis.qx.remote.annotations.Use;
 import com.zenesis.qx.remote.annotations.Uses;
@@ -336,7 +337,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
     Properties annoProperties = (Properties) clazz.getAnnotation(Properties.class);
     if (annoProperties != null) {
       for (Property anno : annoProperties.value()) {
-        ProxyPropertyImpl property = new ProxyPropertyImpl(clazz, anno.value(), anno, null, annoProperties);
+        ProxyPropertyImpl property = new ProxyPropertyImpl(clazz, anno.value(), anno, null, null, annoProperties);
         properties.put(property.getName(), property);
         ProxyEvent event = property.getEvent();
         if (event != null)
@@ -347,8 +348,9 @@ public class ProxyTypeImpl extends AbstractProxyType {
       Property anno = field.getAnnotation(Property.class);
       if (anno != null) {
         PropertyDate annoDate = field.getAnnotation(PropertyDate.class);
+        AutoPublish annoPublish = field.getAnnotation(AutoPublish.class);
         ProxyPropertyImpl property = new ProxyPropertyImpl(clazz,
-            anno.value().length() > 0 ? anno.value() : field.getName(), anno, annoDate, annoProperties);
+            anno.value().length() > 0 ? anno.value() : field.getName(), anno, annoDate, annoPublish, annoProperties);
         property.addAnnotations(field);
         properties.put(property.getName(), property);
         ProxyEvent event = property.getEvent();
@@ -370,15 +372,19 @@ public class ProxyTypeImpl extends AbstractProxyType {
         continue;
 
       PropertyDate annoDate = method.getAnnotation(PropertyDate.class);
+      AutoPublish annoPublish = method.getAnnotation(AutoPublish.class);
       name = Character.toLowerCase(name.charAt(3)) + name.substring(4);
+      
       if (properties.containsKey(name)) {
         if (annoDate != null)
           throw new IllegalStateException("Cannot add PropertyDate to a method, when Property is attached to a field");
+        if (annoPublish != null)
+          throw new IllegalStateException("Cannot add AutoPublish to a method, when Property is attached to a field");
         continue;
       }
 
       ProxyPropertyImpl property = new ProxyPropertyImpl(clazz, anno.value().length() > 0 ? anno.value() : name, anno,
-          annoDate, annoProperties);
+          annoDate, annoPublish, annoProperties);
       property.addAnnotations(method);
       properties.put(property.getName(), property);
       ProxyEvent event = property.getEvent();

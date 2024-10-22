@@ -59,6 +59,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
 
     this.__serverObjects = [];
     this.__proxyIo = proxyIo;
+    this.__subscriptions = {};
   },
 
   properties: {
@@ -281,6 +282,43 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }
       }
       return this.__shutdownPromise;
+    },
+
+    /** @type{Object<String,Function[]>} handlers for publish/subscribe event streams */
+    __subscriptions: null,
+
+    /**
+     * Subscribes to an event stream
+     *
+     * @param {String} name
+     * @param {Function} cb
+     */
+    subscribe(name, cb) {
+      let listeners = this.__subscriptions[name];
+      if (!listeners) {
+        listeners = this.__subscriptions[name] = [];
+      }
+      listeners.push(cb);
+      if (listeners.length === 1) {
+        this.getBootstrapObject().subscribeAsync(name);
+      }
+    },
+
+    /**
+     * Unsubscribes from an event stream
+     *
+     * @param {String} name
+     * @param {Function} cb
+     */
+    unsubscribe(name, cb) {
+      let listeners = this.__subscriptions[name];
+      if (listeners) {
+        qx.lang.Array.remove(listeners, cb);
+      }
+      if (listeners.length === 0) {
+        delete this.__subscriptions[name];
+        this.getBootstrapObject().unsubscribeAsync(name);
+      }
     },
 
     /**
@@ -777,15 +815,28 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             // Ignore it - we were only trying to recover from a server
             // exception
           }
-          this._handleServerException(elem.data, "property", asyncIds); // A server property value changed, update the client
+          this._handleServerException(elem.data, "property", asyncIds);
+
+          // Publish/subscribe event stream
+        } else if (type == "published-event") {
+          if (this.__subscriptions[elem.name]) {
+            var value = this.readProxyObject(elem.value, stats);
+            this.__subscriptions[elem.name].forEach(cb => cb(value));
+          }
+
+          // A server property value changed, update the client
         } else if (type == "set") {
           var obj = this.readProxyObject(elem.object, stats);
           var value = this.readProxyObject(elem.data, stats);
-          this.setPropertyValueFromServer(obj, elem.name, value); // An on demand server property value changed, clear the cache
+          this.setPropertyValueFromServer(obj, elem.name, value);
+
+          // An on demand server property value changed, clear the cache
         } else if (type == "expire") {
           var obj = this.readProxyObject(elem.object, stats);
           var upname = qx.lang.String.firstUp(elem.name);
-          obj["expire" + upname](false); // A server property value changed, update the client
+          obj["expire" + upname](false);
+
+          // A server property value changed, update the client
         } else if (type == "edit-array") {
           (function () {
             var serverObject = t.readProxyObject(elem.object, stats);
@@ -1895,10 +1946,38 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       var savePropertyName = this.__setPropertyName;
       this.__setPropertyObject = serverObject;
       this.__setPropertyName = propertyName;
-      try {
-        var def = qx.Class.getPropertyDefinition(serverObject.constructor, propertyName);
-        var upname = qx.lang.String.firstUp(propertyName);
 
+      var def = qx.Class.getPropertyDefinition(serverObject.constructor, propertyName);
+      var upname = qx.lang.String.firstUp(propertyName);
+
+      const set = value => {
+        if (qx.core.Environment.get("qx.debug")) {
+          if (typeof serverObject["set" + upname] != "function") {
+            throw new Error("Cannot find setter for " + serverObject.classname + "." + propertyName + " in " + serverObject + " [" + serverObject.toHashCode() + "]");
+          }
+        }
+        try {
+          return serverObject["set" + upname](value);
+        } catch (ex) {
+          this.error("Exception  setPropertyValueFromServer when setting " + serverObject.classname + "." + propertyName + " in " + serverObject + " [" + serverObject.toHashCode() + "] to " + value + ": " + ex);
+          throw ex;
+        }
+      };
+      const get = () => {
+        if (qx.core.Environment.get("qx.debug")) {
+          if (typeof serverObject["set" + upname] != "function") {
+            throw new Error("Cannot find getter for " + serverObject.classname + "." + propertyName + " in " + serverObject + " [" + serverObject.toHashCode() + "]");
+          }
+        }
+        try {
+          return serverObject["get" + upname]();
+        } catch (ex) {
+          this.error("Exception  setPropertyValueFromServer when getting " + serverObject.classname + "." + propertyName + " in " + serverObject + " [" + serverObject.toHashCode() + "] : " + ex);
+          throw ex;
+        }
+      };
+
+      try {
         // If there is a property definition, and the value is not a Proxied instance,
         // then we coerce the value; EG dates are converted from strings, scalar
         // arrays are merged into qx.data.Array, etc
@@ -1911,11 +1990,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             if (value !== null) {
               if (typeof value == "string") {
                 value = new Date(com.zenesis.qx.remote.ProxyManager.__DF_NO_TIME.parse(value));
-              } else value = new Date(value);
+              } else {
+                value = new Date(value);
+              }
             }
           } else if (def.array && def.array == "wrap") {
             if (value == null) {
-              serverObject["set" + upname](null);
+              set(null);
             } else {
               // For arrays and maps we try to not replace the object, instead
               // preferring to
@@ -1927,7 +2008,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                 }
               } else {
                 try {
-                  current = serverObject["get" + upname]();
+                  current = get();
                 } catch (ex) {
                   // Nothing - property not be ready yet
                 }
@@ -1937,18 +2018,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
                 if (current === null) {
                   //this.debug("creating Map for " + serverObject.classname + "." + propertyName + " [" + serverObject.toHashCode() + "]");
                   value = new (arrayClass || com.zenesis.qx.remote.Map)(value);
-                  serverObject["set" + upname](value);
+                  set(value);
                 } else {
                   current.replace(value);
                 } // Arrays
               } else {
                 if (current === null || current === undefined) {
                   if (value instanceof qx.data.Array) {
-                    serverObject["set" + upname](value);
+                    set(value);
                   } else {
                     var dataArray = new (arrayClass || qx.data.Array)();
                     dataArray.append(value);
-                    serverObject["set" + upname](dataArray);
+                    set(dataArray);
                   }
                 } else {
                   var nativeArray = value;
@@ -1964,10 +2045,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           }
         }
 
-        serverObject["set" + upname](value);
-      } catch (e) {
-        this.error("Exception during call to setPropertyValueFromServer for " + serverObject.classname + "." + propertyName + " [" + serverObject.toHashCode() + "]: " + e);
-        throw e;
+        set(value);
       } finally {
         this.__setPropertyObject = savePropertyObject;
         this.__setPropertyName = savePropertyName;
