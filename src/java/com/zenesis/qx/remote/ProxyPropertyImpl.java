@@ -12,11 +12,13 @@ import java.util.Comparator;
 import java.util.Date;
 import org.apache.logging.log4j.Logger;
 
+import com.zenesis.core.HasUuid;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.PropertyDate;
 import com.zenesis.qx.remote.annotations.PropertyDate.DateValues;
+import com.zenesis.qx.remote.annotations.AutoPublish;
 import com.zenesis.qx.remote.annotations.Remote;
 import com.zenesis.qx.remote.annotations.Remote.Toggle;
 
@@ -52,6 +54,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
   private Method serializeMethod;
   private Method deserializeMethod;
   private Method expireMethod;
+  private boolean isAutoPublish;
 
   // Annotation
   private final Property anno;
@@ -61,9 +64,15 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
    * 
    * @param anno
    */
-  public ProxyPropertyImpl(Class clazz, String name, Property anno, PropertyDate annoDate, Properties annoProperties) {
+  public ProxyPropertyImpl(Class clazz, String name, Property anno, PropertyDate annoDate, AutoPublish annoPublish, Properties annoProperties) {
     super(name);
     create = anno.create();
+    isAutoPublish = annoPublish != null;
+    if (isAutoPublish) {
+      if (!HasUuid.class.isAssignableFrom(clazz)) {
+        throw new IllegalArgumentException("Auto publish via the @AutoPublish annotation is only allowed for HasUuid objects");
+      }
+    }
     changeEventName = "change" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
     this.anno = anno;
     if (annoDate != null) {
@@ -523,6 +532,11 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
   public boolean isReadOnly() {
     getAccessors();
     return super.isReadOnly();
+  }
+
+  @Override
+  public boolean isAutoPublish() {
+    return isAutoPublish;
   }
 
   /**
