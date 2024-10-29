@@ -1,28 +1,28 @@
 /**
  * ************************************************************************
- * 
- *    server-objects - a contrib to the Qooxdoo project that makes server 
- *    and client objects operate seamlessly; like Qooxdoo, server objects 
+ *
+ *    server-objects - a contrib to the Qooxdoo project that makes server
+ *    and client objects operate seamlessly; like Qooxdoo, server objects
  *    have properties, events, and methods all of which can be access from
  *    either server or client, regardless of where the original object was
  *    created.
- * 
+ *
  *    http://qooxdoo.org
- * 
+ *
  *    Copyright:
  *      2010 Zenesis Limited, http://www.zenesis.com
- * 
+ *
  *    License:
  *      LGPL: http://www.gnu.org/licenses/lgpl.html
  *      EPL: http://www.eclipse.org/org/documents/epl-v10.php
- *      
+ *
  *      This software is provided under the same licensing terms as Qooxdoo,
- *      please see the LICENSE file in the Qooxdoo project's top-level directory 
+ *      please see the LICENSE file in the Qooxdoo project's top-level directory
  *      for details.
- * 
+ *
  *    Authors:
  *      * John Spackman (john.spackman@zenesis.com)
- * 
+ *
  * ************************************************************************
  */
 package com.zenesis.qx.remote;
@@ -65,10 +65,10 @@ import com.zenesis.qx.utils.ArrayUtils;
  * This class tracks the uses of Proxies and ProxyTypes for a particular
  * session; types are only transmitted if not previously sent (in that session),
  * and a mapping between server and client instances/proxies is maintained.
- * 
+ *
  * This corresponds to a ProxyTracker on the client which can do the reverse of
  * everything done here.
- * 
+ *
  * NOTE about sessions: ProxyTracker tracks objects and types delivered for the
  * current instance of an application's session on the client; note that if the
  * user refreshes the page the application reloads and starts a new session but
@@ -78,11 +78,11 @@ import com.zenesis.qx.utils.ArrayUtils;
  * the server to clear down and start again; when this happens, the method
  * resetSession() is called, the state is lost, and the ProxyTracker instance is
  * reused.
- * 
+ *
  * If you want more control over session resets you can override resetSession();
  * if you want control over how the bootstrap object is created you can override
  * createBootstrap().
- * 
+ *
  * @author John Spackman
  *
  */
@@ -102,7 +102,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /**
      * Constructor, used for existing objects
-     * 
+     *
      * @param serverId
      */
     public Proxy(Proxied proxied, int serverId, ProxyType proxyType, boolean sendProperties) {
@@ -130,7 +130,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.
      * JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
@@ -181,7 +181,7 @@ public class ProxySessionTracker implements UploadInterceptor {
             }
             jgen.writeObjectField("order", order);
           }
-          
+
           // Write prefetch values
           boolean prefetch = false;
           for (ProxyType type = proxyType; type != null; type = type.getSuperType()) {
@@ -205,7 +205,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.
      * fasterxml.jackson.core.JsonGenerator,
      * com.fasterxml.jackson.databind.SerializerProvider,
@@ -263,7 +263,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.
      * JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
@@ -280,7 +280,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.
      * fasterxml.jackson.core.JsonGenerator,
      * com.fasterxml.jackson.databind.SerializerProvider,
@@ -293,7 +293,7 @@ public class ProxySessionTracker implements UploadInterceptor {
     }
 
   }
-  
+
   /**
    * Handler for passing events to the client
    */
@@ -312,7 +312,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.
      * JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
@@ -320,7 +320,7 @@ public class ProxySessionTracker implements UploadInterceptor {
     @Override
     public void serialize(JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
       jgen.writeStartObject();
-      jgen.writeStringField("type", "published-event");
+      jgen.writeStringField("type", "publish");
       jgen.writeStringField("name", name);
       jgen.writeObjectField("value", value);
       if (value instanceof Proxied)
@@ -330,7 +330,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.
      * fasterxml.jackson.core.JsonGenerator,
      * com.fasterxml.jackson.databind.SerializerProvider,
@@ -359,7 +359,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#hashCode()
      */
     @Override
@@ -371,7 +371,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
@@ -401,7 +401,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /**
      * Stores the data on disk
-     * 
+     *
      * @param headers
      * @param body
      * @throws IOException
@@ -423,7 +423,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /**
      * Reloads the repeatable request from disk
-     * 
+     *
      * @return
      * @throws IOException
      */
@@ -451,7 +451,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
     /**
      * Tests whether the request is complete yet
-     * 
+     *
      * @return
      */
     public boolean isComplete() {
@@ -525,7 +525,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * Creates a tracker for a session; if bootstrapClass is null you must override
    * createBootstrap()
-   * 
+   *
    * @param bootstrapClass
    */
   public ProxySessionTracker(Class<? extends Proxied> bootstrapClass) {
@@ -535,7 +535,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * Creates a tracker for a session; if bootstrapClass is null you must override
    * createBootstrap()
-   * 
+   *
    * @param bootstrapClass
    */
   public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir) {
@@ -545,7 +545,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * Creates a tracker for a session; if bootstrapClass is null you must override
    * createBootstrap()
-   * 
+   *
    * @param bootstrapClass
    */
   public ProxySessionTracker(Class<? extends Proxied> bootstrapClass, File rootDir, String sessionPrefix) {
@@ -563,7 +563,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Creates an object mapper
-   * 
+   *
    * @return
    */
   protected ProxyObjectMapper createObjectMapper(File rootDir) {
@@ -582,7 +582,7 @@ public class ProxySessionTracker implements UploadInterceptor {
     nextServerId = 0;
 
     // Clear requests except the the initial request, because that's this request
-    synchronized(this) {
+    synchronized (this) {
       for (int i = 0; i < repeatableRequests.size(); i++) {
         RepeatableRequest rr = repeatableRequests.get(i);
         if (rr.requestIndex != 0) {
@@ -599,7 +599,7 @@ public class ProxySessionTracker implements UploadInterceptor {
    */
   public void dispose() {
     disposed = true;
-    synchronized(this) {
+    synchronized (this) {
       for (RepeatableRequest rr : repeatableRequests)
         rr.dispose();
     }
@@ -608,7 +608,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Called to create a new instance of the bootstrap class
-   * 
+   *
    * @return
    */
   protected Proxied createBootstrap() {
@@ -627,7 +627,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * Called to initialise a new Bootstrap object after it has been set; this
    * allows initialisation of bootstrap to call getBootstrap.
-   * 
+   *
    * @param boot
    */
   protected void initialiseBootstrap(Proxied bootstrap) {
@@ -643,7 +643,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Returns the bootstrap, creating one if necessary
-   * 
+   *
    * @return
    */
   public Proxied getBootstrap() {
@@ -658,7 +658,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Detects whether the bootstrap has been created yet
-   * 
+   *
    * @return
    */
   public boolean hasBootstrap() {
@@ -667,7 +667,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Returns the unique session id
-   * 
+   *
    * @return
    */
   public String getSessionId() {
@@ -676,7 +676,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Returns whether this tracker is disposed
-   * 
+   *
    * @return
    */
   public boolean isDisposed() {
@@ -721,7 +721,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * Creates an object which can be serialised by Jackson JSON and passed to the
    * client ProxyTracker to convert into a suitable client object
-   * 
+   *
    * @param obj
    * @return
    */
@@ -755,7 +755,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Returns the ProxyType to use for a specific object
-   * 
+   *
    * @param obj
    * @return
    */
@@ -771,7 +771,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * Marks an object as invalid so that the next time it's sent to the client, all
    * of the property values will be resent
-   * 
+   *
    * @param obj
    */
   public synchronized void invalidateCache(Proxied proxied) {
@@ -781,7 +781,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Causes the tracker to forget about the Proxied object
-   * 
+   *
    * @param proxied
    */
   public synchronized void forget(Proxied proxied) {
@@ -800,7 +800,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Causes the tracker to forget about the Proxied object
-   * 
+   *
    * @param proxied
    */
   public synchronized void forget(int serverId) {
@@ -820,7 +820,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * When the client creates an instance of a Proxied class addClientObject is
    * used to obtain an ID for it and add it to the lists of objects
-   * 
+   *
    * @param proxied
    * @return the new ID for the object
    */
@@ -840,7 +840,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Returns the Proxied object that corresponds to a given value from the client
-   * 
+   *
    * @param id the ID that was originally passed to the client
    * @return the object, or null
    */
@@ -869,7 +869,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Detects whether the Proxied object is tracked on the client
-   * 
+   *
    * @param proxied
    * @return
    */
@@ -880,7 +880,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Registers a client object; the
-   * 
+   *
    * @param clientId
    * @param proxied
    */
@@ -895,7 +895,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Tests whether a ProxyType has already been sent to the client
-   * 
+   *
    * @param type
    * @return
    */
@@ -907,7 +907,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Registers a ProxyType as delivered to the client
-   * 
+   *
    * @param type
    * @return
    */
@@ -926,7 +926,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Marks a property as being mutated by the client
-   * 
+   *
    * @param proxied
    * @param propertyName
    */
@@ -939,7 +939,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Marks a property as no longer being mutated by the client
-   * 
+   *
    * @param proxied
    * @param propertyName
    */
@@ -951,7 +951,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Detects whether a property is being mutated by the client
-   * 
+   *
    * @param proxied
    * @param propertyName
    */
@@ -962,7 +962,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Checks for an existing, repeatable, request; returns null if not found
-   * 
+   *
    * @param requestIndex
    * @return
    */
@@ -977,7 +977,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Creates a new repeatable request
-   * 
+   *
    * @param requestIndex
    * @return
    */
@@ -1012,7 +1012,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Completes a repeatable request, storing the data for later use
-   * 
+   *
    * @param rr
    * @param headers
    * @param body
@@ -1030,10 +1030,10 @@ public class ProxySessionTracker implements UploadInterceptor {
       rr.complete(headers, body);
     }
   }
-  
+
   /**
    * Subscribes to an event stream
-   * 
+   *
    * @param name
    */
   public void subscribe(String name) {
@@ -1043,16 +1043,16 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Unsubscribes from an event stream
-   * 
+   *
    * @param name
    */
   public void unsubscribe(String name) {
     subscriptions.remove(name);
   }
-  
+
   /**
    * Publishes to an event stream
-   * 
+   *
    * @param name
    * @param value
    */
@@ -1067,7 +1067,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * Registers that a property has changed; this also fires a server event for the
    * property if an event is defined
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -1090,7 +1090,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Registers that a collection has changed
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -1107,7 +1107,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Forces the value of an on demand property to be sent to the client
-   * 
+   *
    * @param keyObject
    * @param propertyName
    * @param value
@@ -1122,7 +1122,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Forces the value of an on demand property to be sent to the client
-   * 
+   *
    * @param keyObject
    * @param propertyName
    * @param value
@@ -1143,7 +1143,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * Register that an on-demand property has changed and it's value should be
    * expired on the client, so that the next attempt to access it causes a refresh
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -1160,7 +1160,7 @@ public class ProxySessionTracker implements UploadInterceptor {
   /**
    * Register that an on-demand property has changed and it's value should be
    * resent to the client, if the client already has it
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -1181,7 +1181,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Expires the on-demand property value
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @return
@@ -1193,7 +1193,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Loads a proxy type onto the client
-   * 
+   *
    * @param clazz
    */
   public void loadProxyType(Class<? extends Proxied> clazz) {
@@ -1208,7 +1208,7 @@ public class ProxySessionTracker implements UploadInterceptor {
    * Detects whether the client has a value for the given property of an object;
    * this returns true if the object has been sent and either the property is not
    * ondemand or the ondemand value has already been requested and sent.
-   * 
+   *
    * @param proxied
    * @param prop
    * @return
@@ -1224,7 +1224,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Records that the client has received an on-demand property value
-   * 
+   *
    * @param proxied
    * @param prop
    */
@@ -1238,7 +1238,7 @@ public class ProxySessionTracker implements UploadInterceptor {
    * Detects whether the client has a value for the given property of an object;
    * this returns true if the object has been sent and either the property is not
    * ondemand or the ondemand value has already been requested and sent.
-   * 
+   *
    * @param proxied
    * @param prop
    * @return
@@ -1249,7 +1249,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Called to create a new instance of Queue; @see <code>getQueue</code>
-   * 
+   *
    * @return
    */
   protected CommandQueue createQueue() {
@@ -1258,7 +1258,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Returns the Queue, creating one if necessary
-   * 
+   *
    * @return
    */
   public CommandQueue getQueue() {
@@ -1269,7 +1269,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Detects whether there is any data to flush
-   * 
+   *
    * @return
    */
   public boolean hasDataToFlush() {
@@ -1278,7 +1278,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Detects whether the queue needs to be "urgently" flushed
-   * 
+   *
    * @return
    */
   public boolean needsFlush() {
@@ -1287,7 +1287,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Writes an object and any required class definitions etc out to a JSON String
-   * 
+   *
    * @param obj
    * @return
    */
@@ -1303,7 +1303,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Writes an object and any required class definitions etc
-   * 
+   *
    * @param obj
    * @return
    */
@@ -1316,7 +1316,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Parses JSON and returns a suitable object
-   * 
+   *
    * @param str
    * @return
    */
@@ -1331,7 +1331,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Parses JSON and returns a suitable object
-   * 
+   *
    * @param reader
    * @return
    * @throws IOException
@@ -1347,7 +1347,7 @@ public class ProxySessionTracker implements UploadInterceptor {
 
   /**
    * Returns the Jackson JSON ObjectMapper
-   * 
+   *
    * @return
    */
   public ProxyObjectMapper getObjectMapper() {

@@ -1,28 +1,28 @@
 /**
  * ************************************************************************
- * 
- *    server-objects - a contrib to the Qooxdoo project that makes server 
- *    and client objects operate seamlessly; like Qooxdoo, server objects 
+ *
+ *    server-objects - a contrib to the Qooxdoo project that makes server
+ *    and client objects operate seamlessly; like Qooxdoo, server objects
  *    have properties, events, and methods all of which can be access from
  *    either server or client, regardless of where the original object was
  *    created.
- * 
+ *
  *    http://qooxdoo.org
- * 
+ *
  *    Copyright:
  *      2010 Zenesis Limited, http://www.zenesis.com
- * 
+ *
  *    License:
  *      LGPL: http://www.gnu.org/licenses/lgpl.html
  *      EPL: http://www.eclipse.org/org/documents/epl-v10.php
- *      
+ *
  *      This software is provided under the same licensing terms as Qooxdoo,
- *      please see the LICENSE file in the Qooxdoo project's top-level directory 
+ *      please see the LICENSE file in the Qooxdoo project's top-level directory
  *      for details.
- * 
+ *
  *    Authors:
  *      * John Spackman (john.spackman@zenesis.com)
- * 
+ *
  * ************************************************************************
  */
 package com.zenesis.qx.remote;
@@ -44,6 +44,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.remote.annotations.AlwaysProxy;
+import com.zenesis.qx.remote.annotations.AutoPublish;
 import com.zenesis.qx.remote.annotations.DoNotProxy;
 import com.zenesis.qx.remote.annotations.Event;
 import com.zenesis.qx.remote.annotations.Events;
@@ -53,7 +54,6 @@ import com.zenesis.qx.remote.annotations.Mixins;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.PropertyDate;
-import com.zenesis.qx.remote.annotations.AutoPublish;
 import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
 import com.zenesis.qx.remote.annotations.Use;
 import com.zenesis.qx.remote.annotations.Uses;
@@ -70,7 +70,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#hashCode()
      */
     @Override
@@ -80,7 +80,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
@@ -91,7 +91,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#toString()
      */
     @Override
@@ -112,7 +112,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
     /**
      * Adds all methods from a given class
-     * 
+     *
      * @param fromClass
      * @param defaultProxy
      */
@@ -163,7 +163,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
     /**
      * Removes any methods which are property accessor methods
-     * 
+     *
      * @param prop
      */
     public void removePropertyAccessors(ProxyPropertyImpl prop) {
@@ -180,7 +180,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
     /**
      * Checks that the list of methods is valid, i.e. that there are no conflicts
      * with DoNotProxy
-     * 
+     *
      * @throws IllegalArgumentException
      */
     public void checkValid() throws IllegalArgumentException {
@@ -195,7 +195,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
     /**
      * Converts the list of methods to a sorted array of ProxyMethods
-     * 
+     *
      * @return
      */
     public ProxyMethod[] toArray() {
@@ -246,7 +246,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
   /**
    * Constructor, used for defining interfaces which are to be proxied
-   * 
+   *
    * @param className
    * @param methods
    */
@@ -374,7 +374,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
       PropertyDate annoDate = method.getAnnotation(PropertyDate.class);
       AutoPublish annoPublish = method.getAnnotation(AutoPublish.class);
       name = Character.toLowerCase(name.charAt(3)) + name.substring(4);
-      
+
       if (properties.containsKey(name)) {
         if (annoDate != null)
           throw new IllegalStateException("Cannot add PropertyDate to a method, when Property is attached to a field");
@@ -501,7 +501,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
   /**
    * Recursively adds to addInterfaces to get a list of all interfaces which can
    * be proxied.
-   * 
+   *
    * @param allInterfaces
    * @param interfaces
    * @return
@@ -526,7 +526,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
   /**
    * Detects whether the method is a property accessor
-   * 
+   *
    * @param method
    * @return
    */
@@ -551,7 +551,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
   /**
    * Adds all properties recursively
-   * 
+   *
    * @param properties
    */
   public void addProperties(ProxyTypeImpl proxyType, HashMap<String, ProxyProperty> properties) {
@@ -565,7 +565,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
   /**
    * Adds all events recursively
-   * 
+   *
    * @param events
    */
   public void addEvents(ProxyTypeImpl proxyType, HashMap<String, ProxyEvent> events) {
@@ -579,7 +579,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see
    * org.codehaus.jackson.map.JsonSerializable#serialize(org.codehaus.jackson.
    * JsonGenerator, org.codehaus.jackson.map.SerializerProvider)
@@ -591,7 +591,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see com.fasterxml.jackson.databind.JsonSerializable#serializeWithType(com.
    * fasterxml.jackson.core.JsonGenerator,
    * com.fasterxml.jackson.databind.SerializerProvider,
@@ -687,7 +687,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see java.lang.Object#equals(java.lang.Object)
    */
   @Override
@@ -697,7 +697,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see java.lang.Object#hashCode()
    */
   @Override
@@ -707,7 +707,7 @@ public class ProxyTypeImpl extends AbstractProxyType {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see java.lang.Object#toString()
    */
   @Override
