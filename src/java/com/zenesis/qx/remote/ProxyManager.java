@@ -1,28 +1,28 @@
 /**
  * ************************************************************************
- * 
- *    server-objects - a contrib to the Qooxdoo project that makes server 
- *    and client objects operate seamlessly; like Qooxdoo, server objects 
+ *
+ *    server-objects - a contrib to the Qooxdoo project that makes server
+ *    and client objects operate seamlessly; like Qooxdoo, server objects
  *    have properties, events, and methods all of which can be access from
  *    either server or client, regardless of where the original object was
  *    created.
- * 
+ *
  *    http://qooxdoo.org
- * 
+ *
  *    Copyright:
  *      2010 Zenesis Limited, http://www.zenesis.com
- * 
+ *
  *    License:
  *      LGPL: http://www.gnu.org/licenses/lgpl.html
  *      EPL: http://www.eclipse.org/org/documents/epl-v10.php
- *      
+ *
  *      This software is provided under the same licensing terms as Qooxdoo,
- *      please see the LICENSE file in the Qooxdoo project's top-level directory 
+ *      please see the LICENSE file in the Qooxdoo project's top-level directory
  *      for details.
- * 
+ *
  *    Authors:
  *      * John Spackman (john.spackman@zenesis.com)
- * 
+ *
  * ************************************************************************
  */
 package com.zenesis.qx.remote;
@@ -51,7 +51,6 @@ import com.zenesis.core.HasUuid;
 import com.zenesis.qx.event.Event;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.remote.CommandId.CommandType;
-import com.zenesis.qx.remote.ProxyManager.UuidObjectPropertyChange;
 import com.zenesis.qx.remote.collections.ChangeData;
 import com.zenesis.qx.remote.collections.OnDemandReference;
 import com.zenesis.qx.remote.collections.OnDemandReferenceFactory;
@@ -63,7 +62,7 @@ import jakarta.servlet.http.HttpSession;
 
 /**
  * This class needs to be implemented by whatever software hosts the proxies
- * 
+ *
  * @author John Spackman
  *
  */
@@ -114,7 +113,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Creates a temporary file
-   * 
+   *
    * @param fileName
    * @return
    * @throws IOException
@@ -136,7 +135,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Returns the MIME content type for a file
-   * 
+   *
    * @param file
    * @return
    */
@@ -149,7 +148,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Helper method that handles the request
-   * 
+   *
    * @param request
    * @param response
    * @param bootstrapClass
@@ -193,7 +192,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Selects the tracker; must be called before (de)serialisation
-   * 
+   *
    * @param tracker
    * @throws IllegalArgumentException if there is already a tracker selected
    */
@@ -205,7 +204,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Deselects the tracker; must be called after and (de)serialisation is complete
-   * 
+   *
    * @param tracker
    * @throws IllegalArgumentException if the tracker is not the same as before
    */
@@ -218,7 +217,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Called during de/serialisation to get the ProxyTracker
-   * 
+   *
    * @return
    */
   public static ProxySessionTracker getTracker() {
@@ -227,7 +226,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Adds a synchronised Tracker
-   * 
+   *
    * @param tracker
    */
   private static final Lock mutex = new ReentrantLock();
@@ -266,7 +265,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Removes a synchronised Tracker
-   * 
+   *
    * @param tracker
    */
   public static void removeSyncTracker(ProxySessionTracker tracker) {
@@ -289,7 +288,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Used to attach or detach a property value to it's containing Proxied object
-   * 
+   *
    * @param keyObject
    * @param property
    * @param newValue
@@ -324,10 +323,10 @@ public class ProxyManager implements EventListener {
 
     return false;
   }
-  
+
   /**
    * Subscribes this thread's tracker to an event stream
-   * 
+   *
    * @param name
    */
   public static void subscribe(String name) {
@@ -335,10 +334,10 @@ public class ProxyManager implements EventListener {
     if (tracker != null)
       tracker.subscribe(name);
   }
-  
+
   /**
    * Unsubscribes this thread's tracker from an event stream
-   * 
+   *
    * @param name
    */
   public static void unsubscribe(String name) {
@@ -346,30 +345,41 @@ public class ProxyManager implements EventListener {
     if (tracker != null)
       tracker.unsubscribe(name);
   }
-  
+
   /**
-   * Publishes to an event stream for this thread's tracker 
-   * 
+   * Publishes to an event stream for this thread's tracker
+   *
    * @param name
-   * @param value
+   * @param data
    */
-  public static void publish(String name, Object value) {
+  private static void publishImpl(String name, Object data) {
     AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
     if (trackers != null) {
       for (int i = 0; i < trackers.length(); i++) {
         ProxySessionTracker tmp = trackers.get(i);
         if (tmp != null) {
-          tmp.publish(name, value);
+          tmp.publish(name, data);
         }
       }
     }
   }
-  
-  public static void publish(HasUuid obj, String key, Object value) {
-    publish(obj.getClass().getName(), new UuidObjectPropertyChange(obj.getUuid(), key, value));
+
+  /**
+   * Publishes to an event stream for this thread's tracker
+   *
+   * @param target object which is the source of the change to publish
+   * @param key    what has changed
+   * @param value  what it has changed to
+   */
+
+  public static void publish(HasUuid target, String key, Object value) {
+    String name = target.getClass().getName();
+    UuidObjectPropertyChange data = new UuidObjectPropertyChange(target.getUuid(), key, value);
+    publishImpl(name, data);
   }
-  
-  public static <T,S extends OnDemandReference> OnDemandReference<T> changeProperty(Proxied keyObject, String propertyName, T newValue, OnDemandReference<T> ref) {
+
+  public static <T, S extends OnDemandReference> OnDemandReference<T> changeProperty(Proxied keyObject,
+      String propertyName, T newValue, OnDemandReference<T> ref) {
     T oldValue = ref != null ? ref.get() : null;
 
     if (same(newValue, oldValue)) {
@@ -390,10 +400,10 @@ public class ProxyManager implements EventListener {
     propertyChanged(keyObject, propertyName, newValue, oldValue);
     return ref;
   }
-  
+
   /**
    * Changes a value, but only fires the event if the value is changed
-   * 
+   *
    * @param <T>
    * @param keyObject
    * @param propertyName
@@ -414,7 +424,7 @@ public class ProxyManager implements EventListener {
     /*
      * Don't know why `.equal()` was completely switched off before, but this is now
      * expanded to do .equal for primitive types in `same()`
-     * 
+     *
      * // if (newValue == oldValue)// || (newValue != null && oldValue != null &&
      * newValue.equals(oldValue)))
      */
@@ -427,7 +437,7 @@ public class ProxyManager implements EventListener {
   /**
    * Helper static method to register that a property has changed; this also fires
    * a server event for the property if an event is defined
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -449,7 +459,7 @@ public class ProxyManager implements EventListener {
   /**
    * Helper static method to register that a property has changed; this also fires
    * a server event for the property if an event is defined
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -469,11 +479,10 @@ public class ProxyManager implements EventListener {
       }
     }
     if (property.isAutoPublish()) {
-      HasUuid obj = (HasUuid)keyObject;
-      publish(keyObject.getClass().getName(), new UuidObjectPropertyChange(obj.getUuid(), property.getName(), newValue));
+      publish((HasUuid) keyObject, property.getName(), newValue);
     }
   }
-  
+
   /**
    * Class used to send auto-publish events when a property changes
    */
@@ -481,7 +490,7 @@ public class ProxyManager implements EventListener {
     public String targetUuid;
     public String key;
     public Object value;
-    
+
     public UuidObjectPropertyChange(String targetUuid, String key, Object value) {
       super();
       this.targetUuid = targetUuid;
@@ -493,7 +502,7 @@ public class ProxyManager implements EventListener {
   /**
    * Helper static method to register that a property has changed; this also fires
    * a server event for the property if an event is defined
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -518,7 +527,7 @@ public class ProxyManager implements EventListener {
   /**
    * Helper static method to register that a property has changed; this also fires
    * a server event for the property if an event is defined
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -551,7 +560,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Forces the value of an on demand property to be sent to the client
-   * 
+   *
    * @param keyObject
    * @param propertyName
    * @param value
@@ -570,7 +579,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Forces the value of an on demand property to be sent to the client
-   * 
+   *
    * @param keyObject
    * @param propertyName
    * @param value
@@ -593,7 +602,7 @@ public class ProxyManager implements EventListener {
    * Helper static method to register that an on-demand property has changed and
    * it's value should be expired on the client, so that the next attempt to
    * access it causes a refresh
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -622,7 +631,7 @@ public class ProxyManager implements EventListener {
   /**
    * Helper static method called when an on demand property has changed; the
    * clients will be updated only if they have received the property value
-   * 
+   *
    * @param proxied
    * @param propertyName
    * @param oldValue
@@ -654,7 +663,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Detects whether the object has a given property
-   * 
+   *
    * @param keyObject
    * @param propertyName
    * @return
@@ -667,7 +676,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Loads a proxy type onto the client
-   * 
+   *
    * @param clazz
    */
   public static void loadProxyType(Class<? extends Proxied> clazz) {
@@ -684,7 +693,7 @@ public class ProxyManager implements EventListener {
    * instantiate a class before the class definition has been loaded on demand.
    * The last part can be an asterisk if all classes in a given package should be
    * loaded
-   * 
+   *
    * @param name name of the class to transfer, or array of names, or collection,
    *             etc
    */
@@ -738,7 +747,7 @@ public class ProxyManager implements EventListener {
    * Searches for classes - there is no way to get the list of classes in a
    * package so the only way to do it is to search for .class files on )the
    * classpath
-   * 
+   *
    * @param list
    * @param dir
    * @param packageName
@@ -774,7 +783,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Finds a property in a type, recursing up the class hierarchy
-   * 
+   *
    * @param type
    * @param name
    * @return
@@ -791,7 +800,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Invalidates the client cache for the object
-   * 
+   *
    * @param keyObject
    */
   public static void invalidateCache(Proxied keyObject) {
@@ -810,7 +819,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Invalidates the client cache for the objects
-   * 
+   *
    * @param keyObjects
    */
   public static void invalidateCache(Proxied[] keyObjects) {
@@ -832,7 +841,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Invalidates the client cache for the objects
-   * 
+   *
    * @param keyObjects
    */
   public static void invalidateCache(Iterable list) {
@@ -860,7 +869,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Forgets an object
-   * 
+   *
    * @param keyObject
    */
   public static void forget(Proxied keyObject) {
@@ -871,7 +880,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Forgets objects
-   * 
+   *
    * @param keyObjects
    */
   public static void forget(Proxied[] keyObjects) {
@@ -884,7 +893,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * forgets objects
-   * 
+   *
    * @param keyObjects
    */
   public static void forget(Iterable list) {
@@ -900,7 +909,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Sends a class definition to the server
-   * 
+   *
    * @param clazz
    */
   public static void sendClass(Class<? extends Proxied> clazz) {
@@ -914,7 +923,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Helper method to fire an event remotely
-   * 
+   *
    * @param event
    */
   public static void fireEvent(Event event) {
@@ -927,7 +936,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Helper method to fire an event remotely
-   * 
+   *
    * @param keyObject
    * @param eventName
    */
@@ -940,7 +949,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Helper method to fire an event remotely
-   * 
+   *
    * @param keyObject
    * @param eventName
    * @param data
@@ -955,7 +964,7 @@ public class ProxyManager implements EventListener {
   /**
    * Helper method to detect whether there are properties/values to be delivered
    * which are "urgent"
-   * 
+   *
    * @return
    */
   public static boolean needsFlush() {
@@ -967,7 +976,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Returns the class used for tracking sessions
-   * 
+   *
    * @return
    */
   public static Class<? extends ProxySessionTracker> getSessionTrackerClass() {
@@ -976,7 +985,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Sets the class used for tracking sessions
-   * 
+   *
    * @return
    */
   public static void setSessionTrackerClass(Class<? extends ProxySessionTracker> sessionTrackerClass) {
@@ -985,7 +994,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Whether all types are expected to be precompiled and already on the client
-   * 
+   *
    * @return
    */
   public static boolean isPrecompiledTypesOnly() {
@@ -994,7 +1003,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Sets whether all types are precompiled
-   * 
+   *
    * @param precompiledTypesOnly
    */
   public static void setPrecompiledTypesOnly(boolean precompiledTypesOnly) {
@@ -1003,7 +1012,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Gets the singleton instance
-   * 
+   *
    * @return
    */
   public static ProxyManager getInstance() {
@@ -1014,7 +1023,7 @@ public class ProxyManager implements EventListener {
 
   /**
    * Sets the singleton instance
-   * 
+   *
    * @param instance
    */
   public static void setInstance(ProxyManager instance) {

@@ -12,7 +12,7 @@
      EPL: http://www.eclipse.org/org/documents/epl-v10.php
 
      This software is provided under the same licensing terms as Qooxdoo,
-     please see the LICENSE file in the Qooxdoo project's top-level directory 
+     please see the LICENSE file in the Qooxdoo project's top-level directory
      for details.
 
    Authors:
@@ -284,38 +284,35 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       return this.__shutdownPromise;
     },
 
-    /** @type{Object<String,Function[]>} handlers for publish/subscribe event streams */
+    /** @type {Record<string, ((value: object) => any)[]>} handlers for publish/subscribe event streams */
     __subscriptions: null,
 
     /**
      * Subscribes to an event stream
      *
      * @param {String} name
-     * @param {Function} cb
+     * @param {(value: object) => any} cb
      */
     subscribe(name, cb) {
-      let listeners = this.__subscriptions[name];
-      if (!listeners) {
-        listeners = this.__subscriptions[name] = [];
-      }
-      listeners.push(cb);
-      if (listeners.length === 1) {
+      if (!this.__subscriptions[name]) {
+        this.__subscriptions[name] = [];
         this.getBootstrapObject().subscribeAsync(name);
       }
+      this.__subscriptions[name].push(cb);
     },
 
     /**
      * Unsubscribes from an event stream
      *
      * @param {String} name
-     * @param {Function} cb
+     * @param {(value: object) => any} cb
      */
     unsubscribe(name, cb) {
-      let listeners = this.__subscriptions[name];
-      if (listeners) {
-        qx.lang.Array.remove(listeners, cb);
+      if (!this.__subscriptions[name]) {
+        return;
       }
-      if (listeners.length === 0) {
+      qx.lang.Array.remove(this.__subscriptions[name], cb);
+      if (!this.__subscriptions[name].length) {
         delete this.__subscriptions[name];
         this.getBootstrapObject().unsubscribeAsync(name);
       }
@@ -818,10 +815,10 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           this._handleServerException(elem.data, "property", asyncIds);
 
           // Publish/subscribe event stream
-        } else if (type == "published-event") {
-          if (this.__subscriptions[elem.name]) {
-            var value = this.readProxyObject(elem.value, stats);
-            this.__subscriptions[elem.name].forEach(cb => cb(value));
+        } else if (type == "publish") {
+          if (this.__subscriptions[elem.data.name]) {
+            var value = this.readProxyObject(elem.data.value, stats);
+            this.__subscriptions[elem.data.name].forEach(cb => cb(value));
           }
 
           // A server property value changed, update the client

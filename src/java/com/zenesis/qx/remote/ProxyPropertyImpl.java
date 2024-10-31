@@ -10,15 +10,16 @@ import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
+
 import org.apache.logging.log4j.Logger;
 
 import com.zenesis.core.HasUuid;
 import com.zenesis.qx.event.EventManager;
+import com.zenesis.qx.remote.annotations.AutoPublish;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
 import com.zenesis.qx.remote.annotations.PropertyDate;
 import com.zenesis.qx.remote.annotations.PropertyDate.DateValues;
-import com.zenesis.qx.remote.annotations.AutoPublish;
 import com.zenesis.qx.remote.annotations.Remote;
 import com.zenesis.qx.remote.annotations.Remote.Toggle;
 
@@ -30,7 +31,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
      */
     @Override
@@ -61,16 +62,23 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /**
    * Creates a ProxyProperty from a Property annotation
-   * 
+   *
+   * @param clazz
+   * @param name
    * @param anno
+   * @param annoDate
+   * @param annoPublish
+   * @param annoProperties
    */
-  public ProxyPropertyImpl(Class clazz, String name, Property anno, PropertyDate annoDate, AutoPublish annoPublish, Properties annoProperties) {
+  public ProxyPropertyImpl(Class clazz, String name, Property anno, PropertyDate annoDate, AutoPublish annoPublish,
+      Properties annoProperties) {
     super(name);
     create = anno.create();
     isAutoPublish = annoPublish != null;
     if (isAutoPublish) {
       if (!HasUuid.class.isAssignableFrom(clazz)) {
-        throw new IllegalArgumentException("Auto publish via the @AutoPublish annotation is only allowed for HasUuid objects");
+        throw new IllegalArgumentException(
+            "Auto publish via the @AutoPublish annotation is only allowed for HasUuid objects");
       }
     }
     changeEventName = "change" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
@@ -111,7 +119,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /**
    * Helper method to get a (de-)serializer method
-   * 
+   *
    * @param name
    * @return
    */
@@ -268,7 +276,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /**
    * Returns the value currently in the property of an object
-   * 
+   *
    * @param proxied
    * @return
    */
@@ -300,7 +308,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /**
    * Sets the value of a property in an object
-   * 
+   *
    * @param proxied
    * @param value
    */
@@ -400,7 +408,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /**
    * Called when setValue has just changed the value of a property
-   * 
+   *
    * @param proxied
    * @param value
    * @param oldValue
@@ -414,7 +422,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /**
    * Expires the cached value, in response to the same event on the client
-   * 
+   *
    * @param proxied
    */
   @Override
@@ -439,7 +447,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see
    * com.zenesis.qx.remote.ProxyProperty#serialize(com.zenesis.qx.remote.Proxied,
    * java.lang.Object)
@@ -468,7 +476,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see com.zenesis.qx.remote.ProxyProperty#deserialize(com.zenesis.qx.remote.
    * Proxied, java.lang.Object)
    */
@@ -492,7 +500,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
           throw new IllegalArgumentException("Cannot write property " + name + " in class " + clazz + " in object " +
               proxied + " because value '" + value + "' is not compatible");
         }
-        
+
       } else if (value != null && propertyClass.isSubclassOf(BigDecimal.class)) {
         if (value instanceof Number || value instanceof String) {
           try {
@@ -525,7 +533,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /**
    * Returns true if this property is readonly
-   * 
+   *
    * @return
    */
   @Override
@@ -569,7 +577,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see java.lang.Object#toString()
    */
   @Override
@@ -579,7 +587,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
 
   /**
    * Converts the first character of name to uppercase
-   * 
+   *
    * @param name
    * @return
    */

@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 /**
  * Handles the writing of a class definition
- * 
+ *
  */
 public class ClassWriter {
 
@@ -28,7 +28,7 @@ public class ClassWriter {
 
   /**
    * Constructor, starts serialisation for a specific Proxied type
-   * 
+   *
    * @param proxyType
    */
   public ClassWriter(ProxyType proxyType) {
@@ -52,7 +52,7 @@ public class ClassWriter {
 
   /**
    * Returns the Qooxdoo javascript code for the class
-   * 
+   *
    * @return
    * @throws JsonProcessingException
    */
@@ -267,7 +267,6 @@ public class ClassWriter {
     }
   }
 
-  @SuppressWarnings("serial")
   public class RawValueSerializer extends StdSerializer<RawValue> {
 
     public RawValueSerializer() {
@@ -300,7 +299,7 @@ public class ClassWriter {
       this.code = code;
       this.args = args;
     }
-    
+
     @Override
     public String toString() {
       String str = "";
@@ -316,8 +315,8 @@ public class ClassWriter {
       return str;
     }
   }
-  
-  public static class AsyncFunction extends Function{
+
+  public static class AsyncFunction extends Function {
 
     public AsyncFunction(String... argsAndCode) {
       super(argsAndCode);
@@ -333,10 +332,9 @@ public class ClassWriter {
     public String toString() {
       return super.toString();
     }
-    
+
   }
 
-  @SuppressWarnings("serial")
   public class FunctionSerializer extends StdSerializer<Function> {
 
     public FunctionSerializer() {
