@@ -18,21 +18,22 @@ import com.zenesis.qx.event.EventVerifiable;
 import com.zenesis.qx.event.Eventable;
 import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
+import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
 import com.zenesis.qx.remote.annotations.Mixin;
 import com.zenesis.qx.remote.annotations.Properties;
 import com.zenesis.qx.remote.annotations.Property;
-import com.zenesis.qx.remote.annotations.SerializeConstructorArgs;
 
 /**
  * Provides an implementation of ArrayList which monitors changes to the array
  * and queues them for serialisation to the client via ProxyManager
- *
+ * 
  * @author John Spackman
  */
+@SuppressWarnings("serial")
 @Properties(extend = "qx.data.Array")
 @Mixin(value = "com.zenesis.qx.remote.MArrayList")
 public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, Eventable, EventVerifiable {
-
+  
   private static Logger log = LogManager.getLogger(ArrayList.class);
 
   private final EventStore eventStore = new EventStore(this);
@@ -60,7 +61,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     while (it.hasNext()) {
       Object value = it.next();
       if (detectNulls && value == null) {
-        new IllegalArgumentException("Adding null value to protected array");
+         new IllegalArgumentException("Adding null value to protected array");
       }
       elementData[i++] = value;
     }
@@ -86,24 +87,22 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   public void setDetectDuplicates(boolean detectDuplicates) {
     this.detectDuplicates = detectDuplicates;
   }
-
+  
   /**
    * Scans the array looking for duplicates;
-   *
+   * 
    * @return
    */
   public boolean detectDuplicates() {
     for (int i = 0; i < size; i++) {
       Object check = elementData[i];
       OnDemandReference checkRef = (check instanceof OnDemandReference) ? (OnDemandReference) check : null;
-      String checkUuid = checkRef != null ? checkRef.getUuid()
-          : check instanceof HasUuid ? ((HasUuid) check).getUuid() : null;
+      String checkUuid = checkRef != null ? checkRef.getUuid() : check instanceof HasUuid ? ((HasUuid)check).getUuid() : null;
       for (int j = i + 1; j < size; j++) {
         Object element = elementData[j];
         OnDemandReference elementRef = (element instanceof OnDemandReference) ? (OnDemandReference) element : null;
-        String elementUuid = elementRef != null ? elementRef.getUuid()
-            : element instanceof HasUuid ? ((HasUuid) element).getUuid() : null;
-
+        String elementUuid = elementRef != null ? elementRef.getUuid() : element instanceof HasUuid ? ((HasUuid)element).getUuid() : null;
+        
         if (checkUuid != null && elementUuid != null) {
           if (checkUuid.equalsIgnoreCase(elementUuid)) {
             System.out.println("Duplicate detected!");
@@ -118,11 +117,10 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     }
     return false;
   }
-
+  
   /**
-   * Scans the array looking for nulls; raises an exception if it finds one and
-   * `detectNulls` is true
-   *
+   * Scans the array looking for nulls; raises an exception if it finds one and `detectNulls` is true
+   * 
    * @return
    */
   public boolean detectNulls() {
@@ -147,15 +145,15 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       ref = (OnDemandReference) obj;
       uuid = ref.getUuid();
     } else if (obj instanceof HasUuid) {
-      uuid = ((HasUuid) obj).getUuid();
-      target = (T) obj;
-    } else
+      uuid = ((HasUuid)obj).getUuid();
+      target = (T)obj;
+    } else 
       return super.contains(obj);
-
+    
     for (int i = 0; i < size; i++) {
       Object element = elementData[i];
       if (element instanceof OnDemandReference) {
-        String refUuid = ((OnDemandReference) element).getUuid();
+        String refUuid = ((OnDemandReference)element).getUuid();
         if (refUuid.equals(uuid))
           return true;
       } else {
@@ -169,13 +167,12 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
           return true;
       }
     }
-
+    
     return false;
   }
 
   /**
    * Gets the UUIDs of each item in the ArrayList
-   *
    * @return ArrayList containing all UUIDs
    */
   public ArrayList<String> getUuids() {
@@ -185,7 +182,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       if (obj instanceof OnDemandReference<?>) {
         uuids.add(((OnDemandReference) obj).getUuid());
       } else if (obj instanceof HasUuid) {
-        uuids.add(((HasUuid) obj).getUuid());
+        uuids.add(((HasUuid)obj).getUuid());
       }
     }
     return uuids;
@@ -201,16 +198,16 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       ref = (OnDemandReference) obj;
       uuid = ref.getUuid();
     } else if (obj instanceof HasUuid) {
-      uuid = ((HasUuid) obj).getUuid();
-      target = (T) obj;
-    } else
+      uuid = ((HasUuid)obj).getUuid();
+      target = (T)obj;
+    } else 
       return super.indexOf(obj);
-
+    
     for (int i = 0; i < size; i++) {
       Object element = elementData[i];
 
       if (element instanceof OnDemandReference) {
-        String refUuid = ((OnDemandReference) element).getUuid();
+        String refUuid = ((OnDemandReference)element).getUuid();
         if (refUuid.equals(uuid))
           return i;
       } else {
@@ -224,7 +221,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
           return i;
       }
     }
-
+    
     return -1;
   }
 
@@ -237,14 +234,14 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     if (obj == null)
       return null;
     if (obj instanceof OnDemandReference<?>) {
-      obj = ((OnDemandReference<T>) obj).get();
+      obj = ((OnDemandReference<T>)obj).get();
     }
-    return (T) obj;
+    return (T)obj;
   }
-
+  
   /**
    * Finds an object by UUID; only loads on demand objects if they match the UUID
-   *
+   * 
    * @param uuid
    * @return
    */
@@ -253,22 +250,22 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     for (int i = 0; i < size; i++) {
       Object obj = elementData[i];
       if (obj instanceof OnDemandReference<?>) {
-        OnDemandReference<T> odr = (OnDemandReference<T>) obj;
+        OnDemandReference<T> odr = (OnDemandReference<T>)obj;
         if (odr.getUuid().equals(uuid)) {
           return odr.get();
         }
       } else if (obj instanceof HasUuid) {
-        if (((HasUuid) obj).getUuid().equals(uuid)) {
-          return (T) obj;
+        if (((HasUuid)obj).getUuid().equals(uuid)) {
+          return (T)obj;
         }
       }
     }
     return null;
   }
-
+  
   /**
    * Tests whether object with a UUID exists; never loads on demand objects
-   *
+   * 
    * @param uuid
    * @return
    */
@@ -277,23 +274,23 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     for (int i = 0; i < size; i++) {
       Object obj = elementData[i];
       if (obj instanceof OnDemandReference<?>) {
-        OnDemandReference<T> odr = (OnDemandReference<T>) obj;
+        OnDemandReference<T> odr = (OnDemandReference<T>)obj;
         if (odr.getUuid().equals(uuid)) {
           return true;
         }
       } else if (obj instanceof HasUuid) {
-        if (((HasUuid) obj).getUuid().equals(uuid)) {
+        if (((HasUuid)obj).getUuid().equals(uuid)) {
           return true;
         }
       }
     }
     return false;
   }
-
+  
   /**
-   * Gets the object in the array, but just the actual raw data - this would be an
+   * Gets the object in the array, but just the actual raw data - this would be an 
    * OnDemandReference and not the object which has been refered to
-   *
+   * 
    * @param index
    * @return
    */
@@ -310,14 +307,14 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /*
    * (non-Javadoc)
-   *
+   * 
    * @see java.util.ArrayList#add(int, java.lang.Object)
    */
   @Override
   public void add(int index, T element) {
     addImpl(index, element);
   }
-
+  
   public void add(OnDemandReference<T> ref) {
     addImpl(size, ref);
   }
@@ -326,18 +323,18 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     if (detectDuplicates) {
       String uuid = null;
       if (element instanceof OnDemandReference)
-        uuid = ((OnDemandReference) element).getUuid();
+        uuid = ((OnDemandReference)element).getUuid();
       else if (element instanceof HasUuid)
-        uuid = ((HasUuid) element).getUuid();
+        uuid = ((HasUuid)element).getUuid();
       for (int i = 0; i < size; i++) {
         Object obj = elementData[i];
         if (obj instanceof OnDemandReference<?>) {
-          OnDemandReference<T> odr = (OnDemandReference<T>) obj;
+          OnDemandReference<T> odr = (OnDemandReference<T>)obj;
           if (odr.getUuid().equals(uuid)) {
             System.out.println("Adding a duplicate");
           }
         } else if (obj instanceof HasUuid) {
-          if (((HasUuid) obj).getUuid().equals(uuid)) {
+          if (((HasUuid)obj).getUuid().equals(uuid)) {
             System.out.println("Adding a duplicate");
           }
         }
@@ -358,8 +355,8 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       elementData = tmp;
     }
     System.arraycopy(elementData, index,
-        elementData, index + 1,
-        size - index);
+                     elementData, index + 1,
+                     size - index);
     elementData[index] = getValueToStore(null, element);
     size++;
     fire(new ArrayChangeData().add(element));
@@ -367,10 +364,10 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       System.out.println("detected duplicates after adding");
     }
   }
-
+  
   /*
    * (non-Javadoc)
-   *
+   * 
    * @see java.util.ArrayList#remove(int)
    */
   @Override
@@ -387,7 +384,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     }
     elementData[size - 1] = null;
     size--;
-
+    
     fire(new ArrayChangeData().remove(result));
     if (detectDuplicates && detectDuplicates()) {
       System.out.println("detected duplicates after removing");
@@ -397,13 +394,13 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /*
    * (non-Javadoc)
-   *
+   * 
    * @see java.util.ArrayList#set(int, java.lang.Object)
    */
   @Override
   public T set(int index, T element) {
     T result = get(index);
-
+    
     if (detectDuplicates && detectDuplicates()) {
       System.out.println("detected duplicates before setting");
     }
@@ -412,19 +409,17 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       throw new IllegalArgumentException("Setting null not allowed, index=" + index);
     }
     elementData[index] = getValueToStore(elementData[index], element);
-
+    
     fire(new ArrayChangeData().remove(result).add(element));
     if (detectDuplicates && detectDuplicates()) {
       System.out.println("detected duplicates after setting");
     }
     return result;
   }
-
+  
   /**
-   * Figures out the best value to actually store in the array, converting to an
-   * OnDemandReference
-   * where possible; it will also reuse existing OnDemandReference in preference
-   * to creating a new
+   * Figures out the best value to actually store in the array, converting to an OnDemandReference
+   * where possible; it will also reuse existing OnDemandReference in preference to creating a new
    * one
    * 
    * This method is called when we add or replace an element in the array
@@ -440,7 +435,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     if (element instanceof OnDemandReference<?>)
       return element;
     if (oldValue instanceof OnDemandReference<?>) {
-      ((OnDemandReference<T>) oldValue).set((T) element);
+      ((OnDemandReference<T>)oldValue).set((T)element);
       return oldValue;
     }
     if (isStoreReferences()) {
@@ -452,7 +447,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     }
     return element;
   }
-
+  
   public boolean isStoreReferences() {
     return storeReferences;
   }
@@ -516,7 +511,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /**
    * Hook to specify serialisation of teh constructor
-   *
+   *  
    * @param jgen
    * @throws IOException
    */
@@ -546,7 +541,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /**
    * Replaces the contents of the array with another
-   *
+   * 
    * @param collection
    */
   public void replace(Collection<? extends T> collection) {
@@ -565,7 +560,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /**
    * Sorts the list with a comparator
-   *
+   * 
    * @param comp
    */
   @Override
@@ -603,7 +598,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /*
    * (non-Javadoc)
-   *
+   * 
    * @see java.util.ArrayList#addAll(java.util.Collection)
    */
   @Override
@@ -632,7 +627,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /*
    * (non-Javadoc)
-   *
+   * 
    * @see java.util.ArrayList#addAll(int, java.util.Collection)
    */
   @Override
@@ -660,7 +655,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /*
    * (non-Javadoc)
-   *
+   * 
    * @see java.util.ArrayList#clear()
    */
   @Override
@@ -676,7 +671,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /*
    * (non-Javadoc)
-   *
+   * 
    * @see java.util.ArrayList#removeRange(int, int)
    */
   @Override
@@ -702,7 +697,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /*
    * (non-Javadoc)
-   *
+   * 
    * @see java.util.AbstractCollection#removeAll(java.util.Collection)
    */
   @Override
@@ -727,7 +722,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /*
    * (non-Javadoc)
-   *
+   * 
    * @see java.util.AbstractCollection#retainAll(java.util.Collection)
    */
   @Override
@@ -764,7 +759,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /**
    * Fires an event
-   *
+   * 
    * @param event
    */
   private void fire(ArrayChangeData event) {
@@ -775,7 +770,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
   /**
    * Class for change events
-   *
+   * 
    * @param <T>
    */
   public static class ArrayChangeData<T> extends ChangeData {
