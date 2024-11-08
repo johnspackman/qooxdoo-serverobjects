@@ -51,9 +51,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.Logger;
 import org.bson.Document;
@@ -67,8 +64,12 @@ import com.zenesis.qx.remote.CommandId.CommandType;
 import com.zenesis.qx.remote.ProxySessionTracker.RepeatableRequest;
 import com.zenesis.qx.remote.ProxySessionTracker.RepeatableRequestData;
 import com.zenesis.qx.remote.annotations.EnclosingThisMethod;
-import com.zenesis.qx.utils.DiagUtils;
 import com.zenesis.qx.utils.ArrayUtils;
+import com.zenesis.qx.utils.DiagUtils;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Handles the request and responses for a client.
@@ -288,21 +289,23 @@ public class RequestHandler {
    * @param body
    * @throws IOException
    */
-  protected void writeResponse(HttpServletResponse response, HashMap<String, String> headers, String body, String acceptEncoding)
+  protected void writeResponse(HttpServletResponse response, HashMap<String, String> headers, String body,
+      String acceptEncoding)
       throws IOException {
     for (String key : headers.keySet())
       response.setHeader(key, headers.get(key));
 
     OutputStream os = response.getOutputStream();
     /*
-    if (acceptEncoding != null && body.length() > 25 * 1024) { 
-      if (acceptEncoding.indexOf("gzip") != -1) { 
-        acceptEncoding = acceptEncoding.indexOf("x-gzip") != -1 ? "x-gzip" : "gzip"; 
-        response.addHeader("Content-Encoding", acceptEncoding); 
-        os = new GZIPOutputStream(os); 
-      } 
-    }*/
-    
+     * if (acceptEncoding != null && body.length() > 25 * 1024) {
+     * if (acceptEncoding.indexOf("gzip") != -1) {
+     * acceptEncoding = acceptEncoding.indexOf("x-gzip") != -1 ? "x-gzip" : "gzip";
+     * response.addHeader("Content-Encoding", acceptEncoding);
+     * os = new GZIPOutputStream(os);
+     * }
+     * }
+     */
+
     Writer outputWriter = new OutputStreamWriter(os);
 
     outputWriter.write(body);
@@ -434,7 +437,8 @@ public class RequestHandler {
 
     String body = getBody(request);
 
-    log.trace("Received sessionId=" + sessionId + ", tracker.sessionId=" + tracker.getSessionId() + ", requestIndex=" + requestIndex);
+    log.trace("Received sessionId=" + sessionId + ", tracker.sessionId=" + tracker.getSessionId() + ", requestIndex="
+        + requestIndex);
     checkSessionId(sessionId);
 
     Writer writer = new StringWriter();
@@ -1474,7 +1478,7 @@ public class RequestHandler {
         value = readArray(jp, null);
         if (value != null) {
           ArrayList arr = new ArrayList<>();
-          for (Object obj : (Object[])value) {
+          for (Object obj : (Object[]) value) {
             arr.add(obj);
           }
           value = arr;
