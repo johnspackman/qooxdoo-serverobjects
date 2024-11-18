@@ -185,7 +185,8 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
         }
     }
     if (getMethod == null && field == null) {
-      log.fatal("Cannot find any accessor for property " + name + " in class " + clazz);
+      log.fatal("Cannot find any accessor for property " + name + " in class " + clazz + " (expected to find 'get"
+          + upname + "' or 'is" + upname + "')");
       return;
     }
     if (field != null)

@@ -356,9 +356,9 @@ public class ProxyManager implements EventListener {
     AtomicReferenceArray<ProxySessionTracker> trackers = s_syncedTrackers != null ? s_syncedTrackers.get() : null;
     if (trackers != null) {
       for (int i = 0; i < trackers.length(); i++) {
-        ProxySessionTracker tmp = trackers.get(i);
-        if (tmp != null) {
-          tmp.publish(name, data);
+        ProxySessionTracker tracker = trackers.get(i);
+        if (tracker != null) {
+          tracker.publish(name, data);
         }
       }
     }

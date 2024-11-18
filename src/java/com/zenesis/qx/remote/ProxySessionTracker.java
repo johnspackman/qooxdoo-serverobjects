@@ -1060,7 +1060,7 @@ public class ProxySessionTracker implements UploadInterceptor {
     if (!subscriptions.contains(name))
       return;
     CommandQueue queue = getQueue();
-    CommandId id = new CommandId(CommandId.CommandType.PUBLISH, null, null);
+    CommandId id = new CommandId(CommandId.CommandType.PUBLISH, value, null);
     queue.queueCommand(id, new PublishedEvent(name, value));
   }
 
