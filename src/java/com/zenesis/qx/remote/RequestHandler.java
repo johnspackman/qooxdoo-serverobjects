@@ -448,7 +448,8 @@ public class RequestHandler {
       DiagUtils.writeFile(new File(s_temporaryDir, "trace-logs/" + requestId + "-in.txt"), out);
     }
 
-    checkSha(expectedSha, body);
+    if (expectedSha != null)
+      checkSha(expectedSha, body);
 
     processRequestImpl(new StringReader(body), writer, requestId);
     String out = writer.toString();
@@ -465,7 +466,8 @@ public class RequestHandler {
       respHeaders.put(HEADER_RETRY, Integer.toString(retryIndex));
 
     String hash = DiagUtils.getSha1(out);
-    respHeaders.put(HEADER_SHA1, hash);
+    if (expectedSha != null)
+      respHeaders.put(HEADER_SHA1, hash);
 
     if (repeatableRequest != null) {
       tracker.completeRepeatableRequest(repeatableRequest, respHeaders, out);

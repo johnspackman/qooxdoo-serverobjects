@@ -92,7 +92,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
         let responseHeaders = getResponseHeaders();
         let content = req.getResponseText();
 
-        if (qx.core.Environment.get("qx.debug")) {
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.addShaChecksum")) {
           var sha = responseHeaders["x-proxymanager-sha1"];
           if (sha != null) {
             var digest = com.zenesis.qx.remote.Sha1.digest(content);
@@ -132,7 +132,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyIOXhr", {
           console.log && console.log("Sending to server: " + body);
         }
 
-        if (qx.core.Environment.get("qx.debug")) {
+        if (qx.core.Environment.get("com.zenesis.qx.remote.ProxyManager.addShaChecksum")) {
           headers["X-ProxyManager-SHA1"] = com.zenesis.qx.remote.Sha1.digest(body);
         }
 
