@@ -61,8 +61,6 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.CommandId.CommandType;
-import com.zenesis.qx.remote.ProxySessionTracker.RepeatableRequest;
-import com.zenesis.qx.remote.ProxySessionTracker.RepeatableRequestData;
 import com.zenesis.qx.remote.annotations.EnclosingThisMethod;
 import com.zenesis.qx.utils.ArrayUtils;
 import com.zenesis.qx.utils.DiagUtils;
@@ -398,27 +396,6 @@ public class RequestHandler {
       return;
     }
 
-    RepeatableRequest repeatableRequest = null;
-    if (s_temporaryDir != null && !tracker.isDisposed()) {
-      repeatableRequest = tracker.getExistingRepeatableRequest(requestIndex);
-      if (repeatableRequest != null) {
-        if (!repeatableRequest.isComplete()) {
-          response.setStatus(RESP_NOT_YET_READY);
-          return;
-        }
-        RepeatableRequestData rrd = repeatableRequest.reload();
-        writeResponse(response, rrd.headers, rrd.body, request.getHeader("Accept-Encoding"));
-        return;
-      }
-
-      // Being sent out of order shouldn't happen
-      if (requestIndex < tracker.getHighestRequestIndex() - 2) {
-        onRequestIndexTooOld(requestIndex);
-        return;
-      }
-      repeatableRequest = tracker.createRepeatableRequest(requestIndex);
-    }
-
     int retryIndex = -1;
     try {
       retryIndex = Integer.parseInt(headers.get(HEADER_RETRY));
@@ -468,10 +445,6 @@ public class RequestHandler {
     String hash = DiagUtils.getSha1(out);
     if (expectedSha != null)
       respHeaders.put(HEADER_SHA1, hash);
-
-    if (repeatableRequest != null) {
-      tracker.completeRepeatableRequest(repeatableRequest, respHeaders, out);
-    }
 
     try {
       writeResponse(response, respHeaders, out, request.getHeader("Accept-Encoding"));

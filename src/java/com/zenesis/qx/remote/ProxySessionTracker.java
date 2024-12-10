@@ -28,13 +28,8 @@
 package com.zenesis.qx.remote;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Reader;
-import java.io.Serializable;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -383,105 +378,6 @@ public class ProxySessionTracker implements UploadInterceptor {
     }
   }
 
-  // Maximum number of repeatable requests that are completed and kept around for
-  // the client's request for a repeat
-  public final int MAX_REPEATABLE_COMPLETE_REQUESTS = 5;
-
-  // Class to persist the repeatable request
-  public static final class RepeatableRequest {
-    private final String sessionId;
-    private final int requestIndex;
-    private boolean complete;
-
-    public RepeatableRequest(String sessionId, int requestIndex) {
-      super();
-      this.sessionId = sessionId;
-      this.requestIndex = requestIndex;
-    }
-
-    /**
-     * Stores the data on disk
-     *
-     * @param headers
-     * @param body
-     * @throws IOException
-     */
-    /* class */ void complete(HashMap<String, String> headers, String body) throws IOException {
-      if (complete)
-        throw new IllegalStateException("Completing a RepeatableRequest which is complete");
-
-      File file = new File(RequestHandler.getTemporaryDir(),
-          "repeatable-requests/" + sessionId.replace(':', '_') + "-" + requestIndex);
-      file.getParentFile().mkdirs();
-      RepeatableRequestData rrd = new RepeatableRequestData(requestIndex, headers, body);
-      try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(file))) {
-        objectOutputStream.writeObject(rrd);
-        objectOutputStream.flush();
-      }
-      complete = true;
-    }
-
-    /**
-     * Reloads the repeatable request from disk
-     *
-     * @return
-     * @throws IOException
-     */
-    RepeatableRequestData reload() throws IOException {
-      if (!complete)
-        throw new IllegalStateException("Cannot load a request which is not complete");
-      File file = new File(RequestHandler.getTemporaryDir(),
-          "repeatable-requests/" + sessionId.replace(':', '_') + "-" + requestIndex);
-      try (ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(file))) {
-        RepeatableRequestData rrd = (RepeatableRequestData) objectInputStream.readObject();
-        return rrd;
-      } catch (ClassNotFoundException e) {
-        throw new IllegalStateException("Cannot deserialise RepeatableRequest: " + e.getMessage(), e);
-      }
-    }
-
-    /**
-     * Disposes the persisted data
-     */
-    /* class */ void dispose() {
-      File file = new File(RequestHandler.getTemporaryDir(),
-          "repeatable-requests/" + sessionId.replace(':', '_') + "-" + requestIndex);
-      file.delete();
-    }
-
-    /**
-     * Tests whether the request is complete yet
-     *
-     * @return
-     */
-    public boolean isComplete() {
-      return complete;
-    }
-  }
-
-  // Class to persist the repeatable request data
-  public static final class RepeatableRequestData implements Serializable {
-    private static final long serialVersionUID = 1L;
-
-    public int requestIndex;
-    public HashMap<String, String> headers;
-    public String body;
-
-    /**
-     * Default constructor, needed for serialisation
-     */
-    public RepeatableRequestData() {
-      // Nothing
-    }
-
-    public RepeatableRequestData(int requestIndex, HashMap<String, String> headers, String body) {
-      super();
-      this.requestIndex = requestIndex;
-      this.headers = headers;
-      this.body = body;
-    }
-  }
-
   // All ProxyTypes which have already been sent to the client
   private final HashSet<ProxyType> deliveredTypes = new HashSet<ProxyType>();
 
@@ -493,7 +389,6 @@ public class ProxySessionTracker implements UploadInterceptor {
   private final HashSet<Proxied> invalidObjects = new HashSet<Proxied>();
   private final HashSet<PropertyId> knownOnDemandProperties = new HashSet<ProxySessionTracker.PropertyId>();
   private final HashSet<PropertyId> mutatingProperties = new HashSet<ProxySessionTracker.PropertyId>();
-  private final ArrayList<RepeatableRequest> repeatableRequests = new ArrayList<>();
   private final HashSet<String> subscriptions = new HashSet<>();
   private int highestRequestIndex;
 
@@ -580,17 +475,6 @@ public class ProxySessionTracker implements UploadInterceptor {
     objectsById.clear();
     objectIds.clear();
     nextServerId = 0;
-
-    // Clear requests except the the initial request, because that's this request
-    synchronized (this) {
-      for (int i = 0; i < repeatableRequests.size(); i++) {
-        RepeatableRequest rr = repeatableRequests.get(i);
-        if (rr.requestIndex != 0) {
-          repeatableRequests.remove(i--);
-          rr.dispose();
-        }
-      }
-    }
     highestRequestIndex = 0;
   }
 
@@ -599,11 +483,6 @@ public class ProxySessionTracker implements UploadInterceptor {
    */
   public void dispose() {
     disposed = true;
-    synchronized (this) {
-      for (RepeatableRequest rr : repeatableRequests)
-        rr.dispose();
-    }
-    repeatableRequests.clear();
   }
 
   /**
@@ -960,75 +839,8 @@ public class ProxySessionTracker implements UploadInterceptor {
     return mutatingProperties.contains(id);
   }
 
-  /**
-   * Checks for an existing, repeatable, request; returns null if not found
-   *
-   * @param requestIndex
-   * @return
-   */
-  public synchronized RepeatableRequest getExistingRepeatableRequest(int requestIndex) {
-    for (int i = 0; i < repeatableRequests.size(); i++) {
-      RepeatableRequest rr = repeatableRequests.get(i);
-      if (rr.requestIndex == requestIndex)
-        return rr;
-    }
-    return null;
-  }
-
-  /**
-   * Creates a new repeatable request
-   *
-   * @param requestIndex
-   * @return
-   */
-  public synchronized RepeatableRequest createRepeatableRequest(int requestIndex) {
-    RepeatableRequest rr = getExistingRepeatableRequest(requestIndex);
-    if (rr == null) {
-      if (repeatableRequests.size() >= MAX_REPEATABLE_COMPLETE_REQUESTS) {
-        int numComplete = 0;
-        for (int i = repeatableRequests.size() - 1; i >= 0; i--) {
-          rr = repeatableRequests.get(i);
-          if (rr.isComplete()) {
-            numComplete++;
-            if (numComplete >= MAX_REPEATABLE_COMPLETE_REQUESTS) {
-              rr.dispose();
-              repeatableRequests.remove(i);
-            }
-          }
-        }
-      }
-      rr = new RepeatableRequest(sessionId, requestIndex);
-      repeatableRequests.add(rr);
-      if (requestIndex > highestRequestIndex)
-        highestRequestIndex = requestIndex;
-    }
-
-    return rr;
-  }
-
   public int getHighestRequestIndex() {
     return highestRequestIndex;
-  }
-
-  /**
-   * Completes a repeatable request, storing the data for later use
-   *
-   * @param rr
-   * @param headers
-   * @param body
-   * @throws IOException
-   */
-  public void completeRepeatableRequest(RepeatableRequest rr, HashMap<String, String> headers, String body)
-      throws IOException {
-    if (disposed)
-      return;
-    synchronized (this) {
-      if (!repeatableRequests.contains(rr))
-        throw new IllegalArgumentException("Unrecognised RepeatableRequest");
-      if (rr.isComplete())
-        throw new IllegalStateException("Completing a RepeatableRequest which is complete");
-      rr.complete(headers, body);
-    }
   }
 
   /**
