@@ -37,6 +37,8 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.remote.CommandId.CommandType;
 
+import uk.co.spar.app.qa.QaRevision.RecipeIngredient2;
+
 /**
  * Simplistic but functional QueueWriter; all property values are sent first,
  * followed by events. Duplicates are merged.
@@ -68,6 +70,9 @@ public class SimpleQueue implements CommandQueue {
    */
   @Override
   public void queueCommand(CommandId id, Object data) {
+    if (id.object instanceof RecipeIngredient2 && id.name != null && id.name.equals("children")) {
+      System.out.println("aaa");
+    }
     if (id.type == CommandType.BOOTSTRAP && !values.isEmpty()) {
       LinkedHashMap<CommandId, Object> tmp = new LinkedHashMap<CommandId, Object>();
       tmp.put(id, data);

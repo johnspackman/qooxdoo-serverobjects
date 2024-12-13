@@ -56,6 +56,8 @@ import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.collections.ChangeData;
 import com.zenesis.qx.utils.ArrayUtils;
 
+import uk.co.spar.app.qa.QaRevision.RecipeIngredient2;
+
 /**
  * This class tracks the uses of Proxies and ProxyTypes for a particular
  * session; types are only transmitted if not previously sent (in that session),
@@ -102,6 +104,9 @@ public class ProxySessionTracker implements UploadInterceptor {
      */
     public Proxy(Proxied proxied, int serverId, ProxyType proxyType, boolean sendProperties) {
       super();
+      if (proxied instanceof com.zenesis.qx.remote.collections.ArrayList) {
+        System.out.println("aaa");
+      }
       this.proxied = proxied;
       this.serverId = serverId;
       this.proxyType = proxyType;
