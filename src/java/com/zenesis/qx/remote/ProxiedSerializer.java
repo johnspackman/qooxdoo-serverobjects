@@ -57,9 +57,6 @@ public class ProxiedSerializer extends JsonSerializer<Proxied> {
   @Override
   public void serialize(Proxied value, JsonGenerator jgen, SerializerProvider provider)
       throws IOException, JsonProcessingException {
-    if (value instanceof ArrayList) {
-      System.out.println("ccc");
-    }
     if (value == null)
       jgen.writeNull();
     else {

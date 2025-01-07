@@ -34,7 +34,6 @@ import com.zenesis.qx.event.Event;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.event.EventVerifiable;
-import com.zenesis.qx.event.Eventable;
 import com.zenesis.qx.remote.collections.ArrayList;
 import com.zenesis.qx.remote.collections.ArrayList.ArrayChangeData;
 import com.zenesis.qx.test.AbstractTestCase;
@@ -154,6 +153,7 @@ public class TestEventManager extends AbstractTestCase {
         int numAddedEvents = 0;
         int numRemovedEvents = 0;
         
+        @SuppressWarnings("unused")
         @Override
         public void handleEvent(com.zenesis.qx.event.Event changeEvt) {
             ArrayChangeData data = (ArrayChangeData)changeEvt.getData();

@@ -5,8 +5,6 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 import com.zenesis.qx.remote.Helpers;
-import com.zenesis.qx.remote.ProxySessionTracker;
-import com.zenesis.qx.remote.test.simple.TestBootstrap;
 
 public class TestHelpers {
 	

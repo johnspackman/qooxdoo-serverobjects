@@ -226,9 +226,6 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
     HashMap<String, Object> pdef = new HashMap<>();
     cw.property(name, pdef);
 
-    if (cw.getProxyType().getClassName().endsWith("TestQsoMap"))
-      System.out.println(this);
-
     Spec spec = analyse();
     boolean needsTransform = false;
     pdef.put("nullable", spec.nullable);

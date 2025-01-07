@@ -7,7 +7,6 @@ import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.test.properties.TestProperties;
 import com.zenesis.qx.remote.test.properties.TestValue;
-import com.zenesis.qx.remote.test.simple.TestSimpleValue;
 
 public class TestThreading implements Proxied {
 	

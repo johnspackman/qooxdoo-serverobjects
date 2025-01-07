@@ -16,7 +16,8 @@ public class TestMultiUser implements Proxied {
 	}
 
 	private static HashMap<ProxySessionTracker, Status> trackers = new HashMap<ProxySessionTracker, TestMultiUser.Status>();
-	private static int numReady = 0;
+	@SuppressWarnings("unused")
+  private static int numReady = 0;
 	private static HashMap<String, String> stringMap = new HashMap<String, String>();
 	private static ArrayList<String> stringArray = new ArrayList<String>();
 	

@@ -35,11 +35,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import com.zenesis.qx.remote.Proxied;
 import com.zenesis.qx.remote.ProxyManager;
-import com.zenesis.qx.remote.ProxySessionTracker;
 import com.zenesis.qx.remote.RequestHandler;
-import com.zenesis.qx.remote.test.simple.MainTests;
 import com.zenesis.qx.remote.test.simple.TestBootstrap;
 
 @SuppressWarnings("serial")
@@ -52,7 +49,7 @@ public class SampleServlet extends HttpServlet {
 		if (str != null) {
 			File dir = new File(str);
 			dir.mkdirs();
-			RequestHandler.setTraceLogDir(dir);
+			RequestHandler.setTemporaryDir(dir);
 		}
 		ProxyManager.setPrecompiledTypesOnly(true);
 	}

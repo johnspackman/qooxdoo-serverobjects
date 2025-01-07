@@ -61,7 +61,6 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.remote.CommandId.CommandType;
-import com.zenesis.qx.remote.ProxySessionTracker.Proxy;
 import com.zenesis.qx.remote.annotations.EnclosingThisMethod;
 import com.zenesis.qx.utils.ArrayUtils;
 import com.zenesis.qx.utils.DiagUtils;
@@ -396,8 +395,12 @@ public class RequestHandler {
     if (requestIndex < 0) {
       onInvalidRequestIndex(str);
       return;
+    // Being sent out of order shouldn't happen
+    } else if (requestIndex < tracker.getHighestRequestIndex() - 2) {
+      onRequestIndexTooOld(requestIndex);
+      return;
     }
-
+    
     int retryIndex = -1;
     try {
       retryIndex = Integer.parseInt(headers.get(HEADER_RETRY));
@@ -455,7 +458,7 @@ public class RequestHandler {
     }
   }
 
-  protected void processRequestImpl(Reader request, Writer response, String requestId)
+  public void processRequestImpl(Reader request, Writer response, String requestId)
       throws ServletException, IOException {
     try {
       if (!tracker.getRequestLock().tryLock(s_requestLockTimeout, TimeUnit.MILLISECONDS))
@@ -877,8 +880,13 @@ public class RequestHandler {
     skipFieldName(jp, "value");
     MetaClass propClass = prop.getPropertyClass();
     if (propClass.isSubclassOf(Proxied.class)) {
-
-      if (propClass.isArray() || propClass.isCollection()) {
+      
+      if (propClass.getCollectionClass() != null && com.zenesis.qx.remote.collections.ArrayList.class.isAssignableFrom(propClass.getCollectionClass())) {
+        Integer id = jp.readValueAs(Integer.class);
+        if (id != null)
+          value = getProxied(id);
+        
+      } else if (propClass.isArray() || propClass.isCollection()) {
         value = readArray(jp, propClass.getCollectionClass(), propClass.getJavaType());
 
       } else if (propClass.isMap()) {
@@ -997,10 +1005,24 @@ public class RequestHandler {
 
       jp.nextToken();
     } else {
+      Object removed = null;
+      Object added = null;
+      Object order = null;
       Class clazz = prop.getPropertyClass().getJavaType();
-      Object removed = readOptionalArray(jp, ArrayList.class, "removed", clazz);
-      Object added = readOptionalArray(jp, ArrayList.class, "added", clazz);
-      Object array = readOptionalArray(jp, ArrayList.class, "array", clazz);
+      while (jp.nextToken() != JsonToken.END_OBJECT) {
+        if (jp.currentToken() == JsonToken.FIELD_NAME) {
+          String fieldName = jp.getText();
+          jp.nextToken();
+          if (fieldName.equals("removed"))
+            removed = readArray(jp, ArrayList.class, clazz);
+          else if (fieldName.equals("added"))
+            added = readArray(jp, ArrayList.class, clazz);
+          else if (fieldName.equals("order"))
+            order = readArray(jp, ArrayList.class, clazz);
+          else
+            throw new IllegalArgumentException("Unexpected field name in arrayUpdate: " + fieldName);
+        }
+      }
 
       Collection list;
       Object currentArray = null;
@@ -1024,20 +1046,25 @@ public class RequestHandler {
 
         ArrayUtils.removeAll(list, removed);
         ArrayUtils.addAll(list, added);
-        if (!ArrayUtils.sameArray(list, array))
-          ArrayUtils.matchOrder(list, array);
+        
+        if (order != null && !ArrayUtils.sameArray(list, order))
+          ArrayUtils.matchOrder(list, order);
 
         if (!prop.getPropertyClass().isCollection()) {
           prop.setValue(serverObject, ArrayUtils.toArray(list, clazz));
         }
 
         if (log.isTraceEnabled()) {
-          log.debug("edit-array: update array: property=" + prop + ",\n   removed=" + DiagUtils.arrayToString(removed) +
-              ",\n   added=" + DiagUtils.arrayToString(added) + ",\n   array=" + DiagUtils.arrayToString(array) +
+          log.debug("edit-array: update array: property=" + prop + 
+              ",\n   removed=" + DiagUtils.arrayToString(removed) +
+              ",\n   added=" + DiagUtils.arrayToString(added) + 
+              //",\n   array=" + DiagUtils.arrayToString(array) +
               ",\n   actual=" + DiagUtils.arrayToString(list));
         } else if (log.isDebugEnabled()) {
-          log.debug("edit-array: update array: property=" + prop + ", removed=" + DiagUtils.arrayToString(removed) +
-              ", added=" + DiagUtils.arrayToString(added) + ", array=" + DiagUtils.arrayToString(array));
+          log.debug("edit-array: update array: property=" + prop + 
+              ", removed=" + DiagUtils.arrayToString(removed) +
+              ", added=" + DiagUtils.arrayToString(added)/* + 
+              ", array=" + DiagUtils.arrayToString(array)*/);
         }
 
         // Because collection properties are objects and we change them without the
@@ -1055,7 +1082,6 @@ public class RequestHandler {
           System.out.println("Duplicates detected after updating array");
         }
 
-        jp.nextToken();
       } finally {
         if (mutating != null)
           tracker.endMutate(mutating, null);
@@ -1133,6 +1159,9 @@ public class RequestHandler {
   protected void cmdNewObject(JsonParser jp) throws ServletException, IOException {
     // Get the basics
     String className = getFieldValue(jp, "className", String.class);
+    if (log.isTraceEnabled() && className.equals("com.zenesis.qx.remote.collections.ArrayList")) {
+      System.out.println("aaa");
+    }
     int clientId = getFieldValue(jp, "clientId", Integer.class);
 
     // Get the class
@@ -1156,17 +1185,13 @@ public class RequestHandler {
       throw new ServletException("Cannot create class " + className + ": " + e.getMessage(), e);
     }
     
-    if (proxied instanceof RecipeIngredient2) {
-      System.out.println("bbb");
-    }
-
     // Get the server ID
     int serverId = tracker.addClientObject(proxied);
 
     // Remember the client ID, in case there are subsequent commands which refer to
     // it
     tracker.registerClientObject(clientId, proxied);
-    Proxy proxy = tracker.getProxy(proxied); 
+    tracker.getProxy(proxied); 
 
     // Tell the client about the new ID - do this before changing properties
     tracker.invalidateCache(proxied);
@@ -1174,95 +1199,129 @@ public class RequestHandler {
         new MapClientId(serverId, clientId));
 
     // Set property values
-    if (jp.nextToken() == JsonToken.FIELD_NAME) {
-      if (jp.nextToken() != JsonToken.START_OBJECT)
-        throw new ServletException("Unexpected properties definiton for 'new' command");
-      while (jp.nextToken() != JsonToken.END_OBJECT) {
-        String propertyName = jp.getCurrentName();
-        jp.nextToken();
-
-        // Read a Proxied object?
-        ProxyProperty prop = getProperty(type, propertyName);
-        MetaClass propClass = prop.getPropertyClass();
-        Object value = null;
-        
-        if (com.zenesis.qx.remote.collections.ArrayList.class.isAssignableFrom(propClass.getCollectionClass())) {
-          System.out.println("dddd");
-        }
-        
-        /*
-        if (com.zenesis.qx.remote.collections.ArrayList.class.isAssignableFrom(propClass.getCollectionClass())) {
-          value = getPropertyValue(type, proxied, propertyName);
-          if (value == null) {
-            Class arrayClass = propClass.getCollectionClass();
-            try {
-              value = (Collection) arrayClass.newInstance();
-            } catch (InstantiationException e) {
-              throw new IOException("Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
-            } catch (IllegalAccessException e) {
-              throw new IOException("Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
-            }
-          }
-          com.zenesis.qx.remote.collections.ArrayList arr = (com.zenesis.qx.remote.collections.ArrayList)value;
-          arr.clear();
-          boolean isProxyClass = Proxied.class.isAssignableFrom(propClass.getJavaType());
-          if (jp.nextToken() != JsonToken.START_OBJECT)
-            throw new ServletException("Unexpected properties definiton for ArrayList in 'new' command");
-          int arrayClientId = getFieldValue(jp, "serverId", Integer.class);
-          String kind = getFieldValue(jp, "kind", String.class);
-          if (!kind.equals("ArrayList"))
-            throw new ServletException("Unexpected array kind for ArrayList in 'new' command");
-          int arrayServerId = tracker.addClientObject(arr);
-          tracker.invalidateCache(arr);
-          tracker.getQueue().queueCommand(CommandId.CommandType.MAP_CLIENT_ID, arr, null, new MapClientId(arrayServerId, arrayClientId));
-
-          // Remember the client ID, in case there are subsequent commands which refer to
-          // it
-          tracker.registerClientObject(arrayClientId, arr);
+    jp.nextToken();
+    ArrayList<Boolean> valueTypes = null;
+    while (jp.getCurrentToken() == JsonToken.FIELD_NAME) {
+      jp.nextToken();
+      if (jp.getCurrentName().equals("properties")) {
+        if (jp.getCurrentToken() != JsonToken.START_OBJECT)
+          throw new ServletException("Unexpected properties definiton for 'new' command");
+        while (jp.nextToken() != JsonToken.END_OBJECT) {
+          String propertyName = jp.getCurrentName();
+          jp.nextToken();
+  
+          // Read a Proxied object?
+          ProxyProperty prop = getProperty(type, propertyName);
+          MetaClass propClass = prop.getPropertyClass();
+          Object value = null;
           
-          skipFieldName(jp, "values");
-          if (jp.currentToken() != JsonToken.START_ARRAY)
-            throw new ServletException("Unexpected token when expecting an array of values: " + jp.currentToken());
-          for (; jp.nextToken() != JsonToken.END_ARRAY;) {
-            if (isProxyClass) {
-              Integer id = jp.readValueAs(Integer.class);
-              if (id != null) {
-                Proxied obj = getProxied(id);
-                if (obj == null)
-                  log.fatal("Cannot read object of class " + clazz + " from id=" + id);
-                else if (!clazz.isInstance(obj))
-                  throw new ClassCastException("Cannot cast " + obj + " class " + obj.getClass() + " to " + clazz);
-                else
-                  arr.add(obj);
-              } else
-                arr.add(null);
-            } else {
-              Object obj = readSimpleValue(jp, clazz);
-              arr.add(obj);
+          /*
+          if (com.zenesis.qx.remote.collections.ArrayList.class.isAssignableFrom(propClass.getCollectionClass())) {
+            value = getPropertyValue(type, proxied, propertyName);
+            if (value == null) {
+              Class arrayClass = propClass.getCollectionClass();
+              try {
+                value = (Collection) arrayClass.newInstance();
+              } catch (InstantiationException e) {
+                throw new IOException("Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
+              } catch (IllegalAccessException e) {
+                throw new IOException("Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
+              }
             }
+            com.zenesis.qx.remote.collections.ArrayList arr = (com.zenesis.qx.remote.collections.ArrayList)value;
+            arr.clear();
+            boolean isProxyClass = Proxied.class.isAssignableFrom(propClass.getJavaType());
+            if (jp.nextToken() != JsonToken.START_OBJECT)
+              throw new ServletException("Unexpected properties definiton for ArrayList in 'new' command");
+            int arrayClientId = getFieldValue(jp, "serverId", Integer.class);
+            String kind = getFieldValue(jp, "kind", String.class);
+            if (!kind.equals("ArrayList"))
+              throw new ServletException("Unexpected array kind for ArrayList in 'new' command");
+            int arrayServerId = tracker.addClientObject(arr);
+            tracker.invalidateCache(arr);
+            tracker.getQueue().queueCommand(CommandId.CommandType.MAP_CLIENT_ID, arr, null, new MapClientId(arrayServerId, arrayClientId));
+  
+            // Remember the client ID, in case there are subsequent commands which refer to
+            // it
+            tracker.registerClientObject(arrayClientId, arr);
+            
+            skipFieldName(jp, "values");
+            if (jp.currentToken() != JsonToken.START_ARRAY)
+              throw new ServletException("Unexpected token when expecting an array of values: " + jp.currentToken());
+            for (; jp.nextToken() != JsonToken.END_ARRAY;) {
+              if (isProxyClass) {
+                Integer id = jp.readValueAs(Integer.class);
+                if (id != null) {
+                  Proxied obj = getProxied(id);
+                  if (obj == null)
+                    log.fatal("Cannot read object of class " + clazz + " from id=" + id);
+                  else if (!clazz.isInstance(obj))
+                    throw new ClassCastException("Cannot cast " + obj + " class " + obj.getClass() + " to " + clazz);
+                  else
+                    arr.add(obj);
+                } else
+                  arr.add(null);
+              } else {
+                Object obj = readSimpleValue(jp, clazz);
+                arr.add(obj);
+              }
+            }
+          } else */
+          
+          if (propClass.isSubclassOf(Proxied.class)) {
+            Integer id = jp.readValueAs(Integer.class);
+            if (id != null)
+              value = getProxied(id);
+  
+          } else if (propClass.isArray() || propClass.isCollection()) {
+            value = readArray(jp, propClass.getCollectionClass(), propClass.getJavaType());
+  
+          } else if (propClass.isMap()) {
+            value = readMap(jp, propClass.getCollectionClass(), propClass.getKeyClass(), propClass.getJavaType());
+  
+          } else {
+            value = readSimpleValue(jp, propClass.getJavaType());
           }
-        } else */
-        
-        if (propClass.isSubclassOf(Proxied.class)) {
-          Integer id = jp.readValueAs(Integer.class);
-          if (id != null)
-            value = getProxied(id);
-
-        } else if (propClass.isArray() || propClass.isCollection()) {
-          value = readArray(jp, propClass.getCollectionClass(), propClass.getJavaType());
-
-        } else if (propClass.isMap()) {
-          value = readMap(jp, propClass.getCollectionClass(), propClass.getKeyClass(), propClass.getJavaType());
-
-        } else {
-          value = readSimpleValue(jp, propClass.getJavaType());
+          setPropertyValue(type, proxied, propertyName, value);
         }
-        setPropertyValue(type, proxied, propertyName, value);
+        jp.nextToken();
+        
+      } else if (jp.getCurrentName().equals("valueTypes")) {
+        jp.nextToken();
+        valueTypes = new ArrayList<>();
+        while (jp.getCurrentToken() != JsonToken.END_ARRAY) {
+          Boolean value = jp.readValueAs(Boolean.class);
+          valueTypes.add(value);
+          jp.nextToken();
+        }
+        jp.nextToken();
+        
+      } else if (jp.getCurrentName().equals("values")) {
+        jp.nextToken();
+        ArrayList tmp = new ArrayList();
+        for (int index = 0; jp.getCurrentToken() != JsonToken.END_ARRAY; index++) {
+          boolean isProxyClass = valueTypes.get(index);
+          if (isProxyClass) {
+            Integer id = jp.readValueAs(Integer.class);
+            if (id != null) {
+              Proxied obj = getProxied(id);
+              if (obj == null)
+                log.fatal("Cannot read object of class " + clazz + " from id=" + id);
+              else
+                tmp.add(obj);
+            } else
+              tmp.add(null);
+          } else {
+            Object obj = readSimpleValue(jp, clazz);
+            tmp.add(obj);
+          }
+          jp.nextToken();
+        }
+        jp.nextToken();
+        com.zenesis.qx.remote.collections.ArrayList arr = (com.zenesis.qx.remote.collections.ArrayList)proxied;
+        arr.replace(tmp);
       }
     }
-
-    // Done
-    jp.nextToken();
   }
 
   /**

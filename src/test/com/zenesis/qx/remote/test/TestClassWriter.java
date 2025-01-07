@@ -2,8 +2,6 @@ package com.zenesis.qx.remote.test;
 
 import com.zenesis.qx.remote.AbstractProxyType;
 import com.zenesis.qx.remote.ClassWriter;
-import com.zenesis.qx.remote.ProxyManager;
-import com.zenesis.qx.remote.ProxyType;
 import com.zenesis.qx.remote.ProxyTypeManager;
 import com.zenesis.qx.remote.test.simple.TestScalars;
 

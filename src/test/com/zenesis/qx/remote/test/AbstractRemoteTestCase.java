@@ -71,7 +71,7 @@ public abstract class AbstractRemoteTestCase extends AbstractTestCase {
 	 */
 	protected String postRequest(Reader reader) throws IOException, ServletException {
 		StringWriter sw = new StringWriter();
-		new RequestHandler(tracker).processRequest(reader, sw);
+		new RequestHandler(tracker).processRequestImpl(reader, sw, "1");
 		return sw.toString();
 	}
 	

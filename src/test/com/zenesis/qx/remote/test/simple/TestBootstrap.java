@@ -13,7 +13,6 @@ import com.zenesis.qx.remote.test.collections.TestQsoMap;
 import com.zenesis.qx.remote.test.collections.TestRecursiveArray;
 import com.zenesis.qx.remote.test.multiuser.TestMultiUser;
 import com.zenesis.qx.remote.test.multiuser.TestThreading;
-import com.zenesis.qx.test.AbstractTestCase;
 
 @Uses({
     @Use(MainTests.class),

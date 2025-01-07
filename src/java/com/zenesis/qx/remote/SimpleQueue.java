@@ -70,9 +70,6 @@ public class SimpleQueue implements CommandQueue {
    */
   @Override
   public void queueCommand(CommandId id, Object data) {
-    if (id.object instanceof RecipeIngredient2 && id.name != null && id.name.equals("children")) {
-      System.out.println("aaa");
-    }
     if (id.type == CommandType.BOOTSTRAP && !values.isEmpty()) {
       LinkedHashMap<CommandId, Object> tmp = new LinkedHashMap<CommandId, Object>();
       tmp.put(id, data);

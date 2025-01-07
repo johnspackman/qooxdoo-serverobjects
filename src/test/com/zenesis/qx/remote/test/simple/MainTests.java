@@ -30,10 +30,6 @@ package com.zenesis.qx.remote.test.simple;
 import java.util.Calendar;
 import java.util.Date;
 
-import org.junit.runners.Parameterized.UseParametersRunnerFactory;
-
-import com.zenesis.qx.remote.LogEntry;
-import com.zenesis.qx.remote.LogEntrySink;
 import com.zenesis.qx.remote.ProxyManager;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;

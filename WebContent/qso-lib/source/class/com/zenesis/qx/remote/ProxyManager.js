@@ -90,8 +90,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
     timeout: {
       init: null,
       check: "Integer",
-      nullable: true,
-      apply: "_applyTimeout"
+      nullable: true
     }
   },
 
@@ -1527,12 +1526,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
 
       if (value instanceof com.zenesis.qx.remote.collections.ArrayList) {
+        console.log("aaa");
+        /*
         var result = {
           serverId: value.getServerId(),
           kind: "ArrayList",
           values: value.toArray().map(item => this.serializeValue(item, opts))
         };
         return result;
+        */
       }
 
       if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
@@ -1769,6 +1771,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
           });
         }
+        if (data.type == "order" || (info.order && (info.added.length || info.removed.length))) {
+          info.order = this.serializeValue(array.toArray());
+        }
       } else {
         if (!info.put) {
           info.put = {};
@@ -1815,7 +1820,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         if (info.array instanceof qx.data.Array) {
           queue.removed = this.serializeValue(info.removed);
           queue.added = this.serializeValue(info.added);
-          queue.array = this.serializeValue(info.array);
+          if (info.order) {
+            queue.order = this.serializeValue(info.order);
+          }
 
           // Must be a Map
         } else {
@@ -2402,6 +2409,11 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           }
         }
         clazz = clazz.superclass;
+      }
+
+      if (clientObject instanceof com.zenesis.qx.remote.collections.ArrayList) {
+        data.valueTypes = clientObject.toArray().map(value => !!(value && qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)));
+        data.values = clientObject.toArray().map(value => this.serializeValue(value));
       }
 
       queue[queue.length] = data;
