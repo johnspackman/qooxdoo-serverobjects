@@ -898,7 +898,12 @@ public class RequestHandler {
           value = getProxied(id);
       }
     } else {
-      if (propClass.isArray() || propClass.isCollection()) {
+      if (propClass.getCollectionClass() != null && com.zenesis.qx.remote.collections.ArrayList.class.isAssignableFrom(propClass.getCollectionClass())) {
+        Integer id = jp.readValueAs(Integer.class);
+        if (id != null)
+          value = getProxied(id);
+        
+      } else if (propClass.isArray() || propClass.isCollection()) {
         value = readArray(jp, propClass.getCollectionClass(), propClass.getJavaType());
 
       } else if (propClass.isMap()) {
@@ -1159,9 +1164,6 @@ public class RequestHandler {
   protected void cmdNewObject(JsonParser jp) throws ServletException, IOException {
     // Get the basics
     String className = getFieldValue(jp, "className", String.class);
-    if (log.isTraceEnabled() && className.equals("com.zenesis.qx.remote.collections.ArrayList")) {
-      System.out.println("aaa");
-    }
     int clientId = getFieldValue(jp, "clientId", Integer.class);
 
     // Get the class

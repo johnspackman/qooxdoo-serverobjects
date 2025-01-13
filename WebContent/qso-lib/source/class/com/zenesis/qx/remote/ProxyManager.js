@@ -1525,18 +1525,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         return result;
       }
 
-      if (value instanceof com.zenesis.qx.remote.collections.ArrayList) {
-        console.log("aaa");
-        /*
-        var result = {
-          serverId: value.getServerId(),
-          kind: "ArrayList",
-          values: value.toArray().map(item => this.serializeValue(item, opts))
-        };
-        return result;
-        */
-      }
-
       if (qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
         var id = value.getServerId();
         if (id < 0) {
