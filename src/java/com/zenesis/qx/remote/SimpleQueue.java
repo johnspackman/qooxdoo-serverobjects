@@ -69,7 +69,7 @@ public class SimpleQueue implements CommandQueue {
    * CommandId, java.lang.Object)
    */
   @Override
-  public void queueCommand(CommandId id, Object data) {
+  public synchronized void queueCommand(CommandId id, Object data) {
     if (id.type == CommandType.BOOTSTRAP && !values.isEmpty()) {
       LinkedHashMap<CommandId, Object> tmp = new LinkedHashMap<CommandId, Object>();
       tmp.put(id, data);

@@ -230,7 +230,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       // Add change handler for arrays; note that this works for maps too
       // because they are also "wrapped"
       if (propDef.array == "wrap") {
-        if (oldValue) {
+        if (oldValue && propDef.changeListenerId) {
           oldValue.removeListenerById(propDef.changeListenerId);
         }
 

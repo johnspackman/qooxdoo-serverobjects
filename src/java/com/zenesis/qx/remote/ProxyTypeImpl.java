@@ -39,6 +39,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -59,6 +62,8 @@ import com.zenesis.qx.remote.annotations.Use;
 import com.zenesis.qx.remote.annotations.Uses;
 
 public class ProxyTypeImpl extends AbstractProxyType {
+  
+  private static final Logger log = LogManager.getLogger(ProxyTypeImpl.class);
 
   private final static class MethodSig {
     private final Method method;
@@ -138,9 +143,14 @@ public class ProxyTypeImpl extends AbstractProxyType {
         Method existing = methods.get(method.getName());
         if (existing != null) {
           // Method overloading is not possible
-          if (isConflicting(method, existing))
+          if (isConflicting(method, existing)) {
+            for (Class clazz : method.getParameterTypes())
+              log.fatal("Conflicting method parameter type: " + clazz);
+            for (Class clazz : existing.getParameterTypes())
+              log.fatal("Conflicting existing method parameter type: " + clazz);
             throw new IllegalArgumentException("Cannot create a proxy for " + clazz +
                 " because it has overloaded method " + method + " first seen in " + existing);
+          }
         }
         Boolean canProxy = canProxy(fromClass, method);
         if (canProxy == null)
