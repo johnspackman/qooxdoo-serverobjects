@@ -292,10 +292,13 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      * @param {String} name
      * @param {(value: object) => any} cb
      */
-    subscribe(name, cb) {
+    subscribe(name, cb, context) {
       if (!this.__subscriptions[name]) {
         this.__subscriptions[name] = [];
         this.getBootstrapObject().subscribeAsync(name);
+      }
+      if (context !== undefined) {
+        cb = cb.bind(context);
       }
       this.__subscriptions[name].push(cb);
     },
