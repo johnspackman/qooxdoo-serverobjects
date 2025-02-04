@@ -37,8 +37,6 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.zenesis.qx.remote.CommandId.CommandType;
 
-import uk.co.spar.app.qa.QaRevision.RecipeIngredient2;
-
 /**
  * Simplistic but functional QueueWriter; all property values are sent first,
  * followed by events. Duplicates are merged.

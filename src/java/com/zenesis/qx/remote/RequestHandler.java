@@ -68,7 +68,6 @@ import com.zenesis.qx.utils.DiagUtils;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import uk.co.spar.app.qa.QaRevision.RecipeIngredient2;
 
 /**
  * Handles the request and responses for a client.
