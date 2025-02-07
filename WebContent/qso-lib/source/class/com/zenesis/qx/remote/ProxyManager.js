@@ -1749,10 +1749,18 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           info.removed = [];
         }
         if (data.removed) {
-          data.removed.forEach(item => info.removed.push(item));
+          data.removed.forEach(function (item) {
+            if (qx.lang.Array.remove(info.added, item) === undefined) {
+              info.removed.push(item);
+            }
+          });
         }
         if (data.added) {
-          data.added.forEach(item => info.added.push(item));
+          data.added.forEach(function (item) {
+            if (qx.lang.Array.remove(info.removed, item) === undefined) {
+              info.added.push(item);
+            }
+          });
         }
         info.order = this.serializeValue(array.toArray());
       } else {
