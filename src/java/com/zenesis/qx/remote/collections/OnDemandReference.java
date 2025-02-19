@@ -1,12 +1,14 @@
 package com.zenesis.qx.remote.collections;
 
+import com.zenesis.core.HasUuid;
+
 /**
  * On demand reference; every object has a UUID, which can be used to get an object on demand.
  * 
  * This is expected to be backed by a SoftReference or WeakReference to cache the object
  * 
  */
-public interface OnDemandReference<T> {
+public interface OnDemandReference<T> extends HasUuid {
 
   /**
    * The UUID of the referenced object, can be null
