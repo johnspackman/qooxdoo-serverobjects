@@ -153,15 +153,24 @@ public class ArrayUtils {
    * are not present in col are ignored.
    * 
    * @param col   Collection to sort
-   * @param array Array with required order
+   * @param requiredOrder Array with required order
    */
-  public static void matchOrder(Collection col, Object array) {
-    int arrayLen = Array.getLength(array);
+  public static void matchOrder(Collection col, Object requiredOrder) {
+    if (col instanceof com.zenesis.qx.remote.collections.ArrayList) {
+      com.zenesis.qx.remote.collections.ArrayList arr = (com.zenesis.qx.remote.collections.ArrayList)col;
+      int arrayLen = Array.getLength(requiredOrder);
+      ArrayList match = new ArrayList();
+      for (int arrayIndex = 0; arrayIndex < arrayLen ; arrayIndex++)
+        match.add(Array.get(requiredOrder, arrayIndex));
+      arr.matchOrder(match);
+      return;
+    }
+    int arrayLen = Array.getLength(requiredOrder);
     ArrayList sorted = toArrayList(col);
     int colIndex = 0;
     for (int arrayIndex = 0; arrayIndex < arrayLen && arrayIndex < sorted.size(); arrayIndex++) {
       Object lo = sorted.get(colIndex);
-      Object ao = Array.get(array, arrayIndex);
+      Object ao = Array.get(requiredOrder, arrayIndex);
       if (same(ao, lo)) {
         colIndex++;
         continue;

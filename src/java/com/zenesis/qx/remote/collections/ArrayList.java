@@ -601,6 +601,35 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   public boolean isSorting() {
     return sorting;
   }
+  
+  public void matchOrder(Collection requiredOrder) {
+    int newSize = requiredOrder.size();
+    if (size() > newSize)
+      newSize = size();
+    Object[] newElementData = new Object[newSize];
+    int pos = 0;
+    for (Object obj : requiredOrder) {
+      newElementData[pos++] = obj;
+    }
+    for (int i = 0; i < size(); i++) {
+      if (!isIn(newElementData, elementData[i])) {
+        newElementData[pos++] = elementData[i];
+      }
+    }
+    elementData = newElementData;
+    size = pos;
+    ArrayChangeData event = new ArrayChangeData();
+    for (Object o : this)
+      event.order(o);
+    fire(event);
+  }
+  
+  private static boolean isIn(Object[] arr, Object value) {
+    for (int i =0; i < arr.length; i++)
+      if (arr[i] == value)
+        return true;
+    return false;
+  }
 
   /*
    * (non-Javadoc)
@@ -782,6 +811,7 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   public static class ArrayChangeData<T> extends ChangeData {
     public java.util.ArrayList<T> added;
     public java.util.ArrayList<T> removed;
+    public java.util.ArrayList<T> order;
 
     public ArrayChangeData add(T o) {
       if (removed == null || !removed.remove(o)) {
@@ -801,6 +831,12 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       return this;
     }
 
+    public ArrayChangeData order(T o) {
+      if (order == null)
+        order = new java.util.ArrayList<>();
+      order.add(o);
+      return this;
+    }
   }
 
   /**
