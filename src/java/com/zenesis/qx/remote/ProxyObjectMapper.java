@@ -73,8 +73,22 @@ public class ProxyObjectMapper extends BasicObjectMapper {
         throws IOException, JsonProcessingException {
       if (value == null)
         gen.writeNull();
-      else
-        gen.writeRawValue("new Date(\"" + DF.format(value) + "\")");
+      else {
+        String str;
+        try {
+          str = "new Date(\"" + DF.format(value) + "\")";
+        } catch(Exception e) {
+          String strValue = "(exception)";
+          try {
+            strValue = value.toString();
+          } catch(Exception e2) {
+            //
+          }
+          log.fatal("Exception serializing date, value=" + strValue + ", exception=" + e.getMessage());
+          str = "null";
+        }
+        gen.writeRawValue(str);
+      }
     }
   }
 

@@ -837,12 +837,21 @@ public class RequestHandler {
           }
         }
       } else {
+        Field field = null;
+        Class fieldClass = clazz;
+        while (field == null && fieldClass != null) {
+          try {
+            field = fieldClass.getDeclaredField("this$0");
+          } catch(NoSuchFieldException e) {
+            fieldClass = fieldClass.getSuperclass();
+          }
+        }
+        if (field == null) {
+          throw new IllegalStateException("Cannot find enclosing instance in this$0 of " + clazz);
+        }
         try {
-          Field field = clazz.getDeclaredField("this$0");
           field.setAccessible(true);
           nextObject = field.get(proxied);
-        } catch (NoSuchFieldException e) {
-          throw new IllegalStateException("Cannot find enclosing instance in this$0 of " + clazz);
         } catch (IllegalAccessException e) {
           throw new IllegalStateException(
               "Cannot get enclosing instance from this$0 of " + clazz + ": " + e.getMessage(), e);
