@@ -880,6 +880,10 @@ public class RequestHandler {
     int serverId = getFieldValue(jp, "serverId", Integer.class);
     String propertyName = getFieldValue(jp, "propertyName", String.class);
     Object value = null;
+    
+    if (propertyName.equals("requiredAttachments")) {
+      System.out.println("requiredAttachments");
+    }
 
     Proxied serverObject = getProxied(serverId);
     ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverObject.getClass());
@@ -1322,7 +1326,7 @@ public class RequestHandler {
             } else
               tmp.add(null);
           } else {
-            Object obj = readSimpleValue(jp, clazz);
+            Object obj = readSimpleValue(jp, Object.class);
             tmp.add(obj);
           }
           jp.nextToken();
@@ -1422,8 +1426,65 @@ public class RequestHandler {
     tracker.beginMutate(proxied, propertyName);
     try {
       ProxyProperty property = getProperty(type, propertyName);
-
-      value = coerce(property.getPropertyClass().getJavaType(), value);
+      MetaClass propClass = property.getPropertyClass();
+      if (propertyName.equals("questionStatuses")) {
+        System.out.println("questionStatuses");
+      }
+      
+      if (propClass.isArray() || propClass.isCollection()) {
+        if (com.zenesis.qx.remote.collections.ArrayList.class.isAssignableFrom(value.getClass())) {
+          com.zenesis.qx.remote.collections.ArrayList arr = (com.zenesis.qx.remote.collections.ArrayList)value;
+          for (int i = 0; i < arr.size(); i++) {
+            Object tmp = arr.get(i);
+            Object newTmp = coerce(propClass.getJavaType(), tmp);
+            arr.set(i, newTmp);
+          }
+        } else if (ArrayList.class.isAssignableFrom(value.getClass())) {
+          ArrayList arr = (ArrayList)value;
+          for (int i = 0; i < arr.size(); i++) {
+            Object tmp = arr.get(i);
+            Object newTmp = coerce(propClass.getJavaType(), tmp);
+            arr.set(i, newTmp);
+          }
+          
+        } else {
+          Collection result;
+          Class arrayClass = propClass.getCollectionClass();
+          try {
+            result = (Collection) arrayClass.newInstance();
+          } catch (InstantiationException e) {
+            throw new ProxyException(proxied, "Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
+          } catch (IllegalAccessException e) {
+            throw new ProxyException(proxied, "Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
+          }
+          Collection src = (Collection)value;
+          for (Object tmp : src) {
+            Object newTmp = coerce(propClass.getJavaType(), tmp);
+            result.add(newTmp);
+          }
+          value = result;
+        }
+        
+      } else if (propClass.isMap()) {
+        HashMap src = (HashMap)value;
+        ArrayList keys = new ArrayList(src.keySet());
+        for (Object key : keys) {
+          Object newKey = coerce(propClass.getKeyClass(), key);
+          Object tmpValue = src.get(key);
+          Object newValue = coerce(propClass.getJavaType(), tmpValue);
+          if (!newKey.equals(key)) {
+            src.remove(key);
+            src.put(newKey, newValue);
+          } else if (newValue == null) {
+            if (tmpValue != null)
+              src.put(newKey, null);
+          } else if (!newValue.equals(tmpValue)) {
+            src.put(newKey, newValue);
+          }
+        }
+      } else {
+        value = coerce(property.getPropertyClass().getJavaType(), value);
+      }
 
       Object oldValue = property.getValue(proxied);
       if (!property.isSendExceptions())
@@ -1472,7 +1533,11 @@ public class RequestHandler {
     if (vClazz == targetClass)
       return value;
 
-    if (vClazz == double.class || vClazz == Double.class) {
+    if (Enum.class.isAssignableFrom(targetClass)) {
+        String str = Helpers.deserialiseEnum(value.toString());
+        value = Enum.valueOf(targetClass, str);
+
+    } else if (vClazz == double.class || vClazz == Double.class) {
       double val = (Double) value;
       if (targetClass == float.class || targetClass == Float.class)
         value = (float) val;
