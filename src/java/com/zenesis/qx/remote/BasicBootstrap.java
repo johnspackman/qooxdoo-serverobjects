@@ -1,6 +1,5 @@
 package com.zenesis.qx.remote;
 
-import com.zenesis.grasshopper.documents.DocumentLazyWriter;
 import com.zenesis.qx.remote.annotations.AlwaysProxy;
 import com.zenesis.qx.remote.annotations.Method;
 import com.zenesis.qx.remote.annotations.Property;
@@ -17,7 +16,7 @@ import com.zenesis.qx.remote.annotations.Remote.Toggle;
  * @author "John Spackman <john.spackman@zenesis.com>"
  */
 public class BasicBootstrap implements FileApiProvider {
-
+  
   @Property(readOnly = Toggle.TRUE)
   private FileApi fileApi;
 
@@ -37,20 +36,15 @@ public class BasicBootstrap implements FileApiProvider {
   }
 
   @Method
-  public void flushAllToDisk() {
-    DocumentLazyWriter.getInstance().flush().join();
-  }
-  
-  @Method
   public void subscribe(String name) {
     ProxyManager.subscribe(name);
   }
   
   @Method
-  public void unsubscribe (String name) {
+  public void unsubscribe(String name) {
     ProxyManager.unsubscribe(name);
   }
-
+  
   /**
    * Loads proxy classes on the client; this is necessary if the client wants to
    * instantiate a class before the class definition has been loaded on demand.
