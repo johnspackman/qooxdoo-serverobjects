@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.zenesis.core.HasUuid;
+import com.zenesis.grasshopper.documents.DocumentRef;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.event.EventStore;
@@ -603,20 +604,21 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
   }
   
   public void matchOrder(Collection requiredOrder) {
-    int newSize = requiredOrder.size();
-    if (size() > newSize)
-      newSize = size();
-    Object[] newElementData = new Object[newSize];
+    // This is often too big, but is a worse case for when we're adding as well as
+    //  matching the order
+    Object[] newElementData = new Object[requiredOrder.size() + size()];
     int pos = 0;
     for (Object obj : requiredOrder) {
-      newElementData[pos++] = obj;
+      newElementData[pos++] = findOriginal(obj);
     }
     for (int i = 0; i < size(); i++) {
       if (!isIn(newElementData, elementData[i])) {
         newElementData[pos++] = elementData[i];
       }
     }
-    elementData = newElementData;
+    Object[] trimmedElementData = new Object[pos];
+    System.arraycopy(newElementData, 0, trimmedElementData, 0, pos);
+    elementData = trimmedElementData;
     size = pos;
     ArrayChangeData event = new ArrayChangeData();
     for (Object o : this)
@@ -624,10 +626,50 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
     fire(event);
   }
   
+  /**
+   * Finds the original entry in elementData; this is useful to detect when the `value`
+   * parameter is already stored in the elementData array, but as a DocumentRef and not
+   * a literal value - in which case, the purpose of this function is to locate the original
+   * DocumentRef
+   * 
+   * @param value
+   * @return 
+   */
+  private Object findOriginal(Object value) {
+    if (!(value instanceof HasUuid))
+      return null;
+    
+    String valueUuid = ((HasUuid)value).getUuid();
+    if (valueUuid == null)
+      return value;
+    
+    for (int i = 0; i < size(); i++) {
+      if (elementData[i] instanceof HasUuid) {
+        String matchUuid = ((HasUuid)elementData[i]).getUuid();
+        if (matchUuid != null && matchUuid.equals(valueUuid)) {
+          return elementData[i];
+        }
+      }
+    }
+    
+    return value;
+  }
+  
   private static boolean isIn(Object[] arr, Object value) {
-    for (int i =0; i < arr.length; i++)
+    String valueUuid = null;
+    if (value instanceof HasUuid) {
+      valueUuid = ((HasUuid)value).getUuid();
+    }
+    for (int i = 0; i < arr.length; i++) {
+      if (arr[i] instanceof HasUuid) {
+        String matchUuid = ((HasUuid)arr[i]).getUuid();
+        if (valueUuid != null && matchUuid != null && value.equals(matchUuid)) {
+          return true;
+        }
+      }
       if (arr[i] == value)
         return true;
+    }
     return false;
   }
 
