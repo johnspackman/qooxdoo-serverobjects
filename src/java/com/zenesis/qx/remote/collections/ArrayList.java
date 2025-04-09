@@ -636,23 +636,30 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
    * @return 
    */
   private Object findOriginal(Object value) {
-    if (!(value instanceof HasUuid))
-      return null;
-    
-    String valueUuid = ((HasUuid)value).getUuid();
-    if (valueUuid == null)
-      return value;
-    
-    for (int i = 0; i < size(); i++) {
-      if (elementData[i] instanceof HasUuid) {
-        String matchUuid = ((HasUuid)elementData[i]).getUuid();
-        if (matchUuid != null && matchUuid.equals(valueUuid)) {
-          return elementData[i];
+    if (value instanceof HasUuid) {
+      String valueUuid = ((HasUuid)value).getUuid();
+      if (valueUuid == null)
+        return value;
+      
+      for (int i = 0; i < size(); i++) {
+        if (elementData[i] instanceof HasUuid) {
+          String matchUuid = ((HasUuid)elementData[i]).getUuid();
+          if (matchUuid != null && matchUuid.equals(valueUuid)) {
+            return elementData[i];
+          }
+        }
+      }
+      
+      return value;  
+    } else {
+      for (int i = 0; i < size(); i++) {
+        if (elementData[i] == value) {
+          return value;
         }
       }
     }
     
-    return value;
+    return null;
   }
   
   private static boolean isIn(Object[] arr, Object value) {
