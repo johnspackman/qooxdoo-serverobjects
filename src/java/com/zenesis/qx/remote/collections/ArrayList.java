@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.zenesis.core.HasUuid;
-import com.zenesis.grasshopper.documents.DocumentRef;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.event.EventStore;
@@ -912,8 +911,8 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
     @Override
     public void remove() {
-      fire(new ArrayChangeData().remove(last));
       iterator.remove();
+      fire(new ArrayChangeData().remove(last));
     }
 
   }
