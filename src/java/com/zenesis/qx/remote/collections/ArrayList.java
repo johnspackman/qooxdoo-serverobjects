@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.zenesis.core.HasUuid;
-import com.zenesis.grasshopper.documents.DocumentRef;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.event.EventStore;
@@ -636,23 +635,30 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
    * @return 
    */
   private Object findOriginal(Object value) {
-    if (!(value instanceof HasUuid))
-      return null;
-    
-    String valueUuid = ((HasUuid)value).getUuid();
-    if (valueUuid == null)
-      return value;
-    
-    for (int i = 0; i < size(); i++) {
-      if (elementData[i] instanceof HasUuid) {
-        String matchUuid = ((HasUuid)elementData[i]).getUuid();
-        if (matchUuid != null && matchUuid.equals(valueUuid)) {
-          return elementData[i];
+    if (value instanceof HasUuid) {
+      String valueUuid = ((HasUuid)value).getUuid();
+      if (valueUuid == null)
+        return value;
+      
+      for (int i = 0; i < size(); i++) {
+        if (elementData[i] instanceof HasUuid) {
+          String matchUuid = ((HasUuid)elementData[i]).getUuid();
+          if (matchUuid != null && matchUuid.equals(valueUuid)) {
+            return elementData[i];
+          }
+        }
+      }
+      
+      return value;  
+    } else {
+      for (int i = 0; i < size(); i++) {
+        if (elementData[i] == value) {
+          return value;
         }
       }
     }
     
-    return value;
+    return null;
   }
   
   private static boolean isIn(Object[] arr, Object value) {
@@ -905,8 +911,8 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
 
     @Override
     public void remove() {
-      fire(new ArrayChangeData().remove(last));
       iterator.remove();
+      fire(new ArrayChangeData().remove(last));
     }
 
   }
