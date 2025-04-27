@@ -1457,10 +1457,18 @@ public class RequestHandler {
           } catch (IllegalAccessException e) {
             throw new ProxyException(proxied, "Cannot create instance of " + arrayClass + ": " + e.getMessage(), e);
           }
-          Collection src = (Collection)value;
-          for (Object tmp : src) {
-            Object newTmp = coerce(propClass.getJavaType(), tmp);
-            result.add(newTmp);
+          if (value instanceof Collection) {
+            Collection src = (Collection)value;
+            for (Object tmp : src) {
+              Object newTmp = coerce(propClass.getJavaType(), tmp);
+              result.add(newTmp);
+            }
+          } else {
+            Object[] src = (Object[])value;
+            for (Object tmp : src) {
+              Object newTmp = coerce(propClass.getJavaType(), tmp);
+              result.add(newTmp);
+            }
           }
           value = result;
         }
