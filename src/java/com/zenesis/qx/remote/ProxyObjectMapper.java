@@ -31,13 +31,19 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.Locale;
 
 import org.apache.logging.log4j.Logger;
 import org.bson.Document;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -54,6 +60,7 @@ public class ProxyObjectMapper extends BasicObjectMapper {
   private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(ProxyObjectMapper.class);
 
   private static final SimpleDateFormat DF = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+  private static final DateTimeFormatter DF_LOCALDATETIME = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss", Locale.ENGLISH);
 
   /*
    * Serialises a Date as the JS equivalent
@@ -77,6 +84,43 @@ public class ProxyObjectMapper extends BasicObjectMapper {
         String str;
         try {
           str = "new Date(\"" + DF.format(value) + "\")";
+        } catch(Exception e) {
+          String strValue = "(exception)";
+          try {
+            strValue = value.toString();
+          } catch(Exception e2) {
+            //
+          }
+          log.fatal("Exception serializing date, value=" + strValue + ", exception=" + e.getMessage());
+          str = "null";
+        }
+        gen.writeRawValue(str);
+      }
+    }
+  }
+
+  /*
+   * Serialises a Date as the JS equivalent
+   */
+  private static final class LocalDateTimeSerializer extends JsonSerializer<LocalDateTime> {
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.fasterxml.jackson.databind.JsonSerializer#serialize(java.lang.Object,
+     * com.fasterxml.jackson.core.JsonGenerator,
+     * com.fasterxml.jackson.databind.SerializerProvider)
+     */
+    @Override
+    public void serialize(LocalDateTime value, JsonGenerator gen, SerializerProvider sp)
+        throws IOException, JsonProcessingException {
+      if (value == null)
+        gen.writeNull();
+      else {
+        String str;
+        try {
+          str = "new Date(\"" + DF_LOCALDATETIME.format(value) + "\")";
         } catch(Exception e) {
           String strValue = "(exception)";
           try {
@@ -164,6 +208,7 @@ public class ProxyObjectMapper extends BasicObjectMapper {
     module.addSerializer(Proxied.class, new ProxiedSerializer());
     module.addDeserializer(Proxied.class, new ProxiedDeserializer());
     module.addSerializer(Date.class, new DateSerializer());
+    module.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer());
     module.addSerializer(BigDecimal.class, new BigDecimalSerializer());
   }
 

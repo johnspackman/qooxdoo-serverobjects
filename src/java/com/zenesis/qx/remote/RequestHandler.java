@@ -44,11 +44,14 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -881,10 +884,6 @@ public class RequestHandler {
     String propertyName = getFieldValue(jp, "propertyName", String.class);
     Object value = null;
     
-    if (propertyName.equals("requiredAttachments")) {
-      System.out.println("requiredAttachments");
-    }
-
     Proxied serverObject = getProxied(serverId);
     ProxyType type = ProxyTypeManager.INSTANCE.getProxyType(serverObject.getClass());
     ProxyProperty prop = getProperty(type, propertyName);
@@ -1427,9 +1426,6 @@ public class RequestHandler {
     try {
       ProxyProperty property = getProperty(type, propertyName);
       MetaClass propClass = property.getPropertyClass();
-      if (propertyName.equals("questionStatuses")) {
-        System.out.println("questionStatuses");
-      }
       
       if (propClass.isArray() || propClass.isCollection()) {
         if (com.zenesis.qx.remote.collections.ArrayList.class.isAssignableFrom(value.getClass())) {
@@ -1890,8 +1886,8 @@ public class RequestHandler {
         String str = Helpers.deserialiseEnum(obj.toString());
         obj = Enum.valueOf(clazz, str);
       }
-
-    } else if (Date.class.isAssignableFrom(clazz) || BigDecimal.class.isAssignableFrom(clazz)) {
+      
+    } else if (Date.class.isAssignableFrom(clazz) || BigDecimal.class.isAssignableFrom(clazz) || LocalDateTime.class.isAssignableFrom(clazz)) {
       if (jp.getCurrentToken() == JsonToken.FIELD_NAME)
         obj = jp.getCurrentName();
       else
@@ -1911,14 +1907,25 @@ public class RequestHandler {
 
         if (str.startsWith("Date(") && str.endsWith(")")) {
           str = str.substring(5, str.length() - 1);
-          try {
-            Instant instant = Instant.parse(str);
-            Date dt = Date.from(instant);
-            return dt;
-          } catch (Throwable e) {
-            log.error("Invalid date: " + str);
-            return null;
+          if (LocalDateTime.class.isAssignableFrom(clazz)) {
+            try {
+              LocalDateTime ldt = LocalDateTime.parse(str, DF_LOCALDATETIME);
+              return ldt;
+            } catch (Throwable e) {
+              log.error("Invalid date: " + str);
+              return null;
+            }
+          } else {
+            try {
+              Instant instant = Instant.parse(str);
+              Date dt = Date.from(instant);
+              return dt;
+            } catch (Throwable e) {
+              log.error("Invalid date: " + str);
+              return null;
+            }
           }
+            
 
         } else if (str.startsWith("BigNumber(") && str.endsWith(")")) {
           str = str.substring(10, str.length() - 1);
@@ -1938,6 +1945,7 @@ public class RequestHandler {
 
   public static final String PREFIX = "[__QOOXDOO_SERVER_OBJECTS__[";
   public static final String SUFFIX = "]]";
+  private static final DateTimeFormatter DF_LOCALDATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.000'Z'", Locale.ENGLISH);
 
   protected Object readComplexValue(JsonParser jp, Class clazz) throws IOException {
     if (Proxied.class.isAssignableFrom(clazz)) {
