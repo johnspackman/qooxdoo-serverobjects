@@ -120,7 +120,7 @@ public class ProxyObjectMapper extends BasicObjectMapper {
       else {
         String str;
         try {
-          str = "new Date(\"" + DF_LOCALDATETIME.format(value) + "\")";
+          str = "com.zenesis.qx.remote.ProxyManager.parseDate(\"" + DF_LOCALDATETIME.format(value) + "\")";
         } catch(Exception e) {
           String strValue = "(exception)";
           try {
