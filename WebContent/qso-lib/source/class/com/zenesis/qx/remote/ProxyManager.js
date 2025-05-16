@@ -2605,6 +2605,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
     },
 
+    parseDate(str) {
+      if (str == null) {
+        return null;
+      }
+
+      let dt = new Date(str);
+      return dt;
+    },
+
     /**
      * Formats a date as ISO
      * @param dt {Date} the date to format
