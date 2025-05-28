@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.zenesis.core.HasUuid;
+import com.zenesis.grasshopper.email.AlertEmail;
 import com.zenesis.qx.event.EventListener;
 import com.zenesis.qx.event.EventManager;
 import com.zenesis.qx.event.EventStore;
@@ -258,7 +259,13 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
           return odr.get();
         }
       } else if (obj instanceof HasUuid) {
-        if (((HasUuid) obj).getUuid().equals(uuid)) {
+        String objUuid = ((HasUuid) obj).getUuid();
+        if (objUuid == null) {
+          log.fatal("Object returns an null UUID!; class=" + obj.getClass() + ", obj=" + obj);
+          AlertEmail.alert("Object returns an null UUID!; class=" + obj.getClass() + ", obj=" + obj);
+          return null;
+        }
+        if (objUuid.equals(uuid)) {
           return (T) obj;
         }
       }
