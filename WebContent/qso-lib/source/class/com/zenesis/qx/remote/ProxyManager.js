@@ -1905,13 +1905,34 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           return;
         }
 
+        let valueServerId = null;
+        if (value && value instanceof qx.core.Object && qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
+          valueServerId = value.getServerId();
+        }
+
+        let serializedValue = this.serializeValue(value, {
+          dateValue: annoDate ? annoDate.getValue() : null
+        });
+
+        if (serverObject.getServerId() < 0 && valueServerId === null) {
+          // If the server object is not yet created, then we queue the property change with the new operator;
+          // the snag is that if we have a new client object as the value, then that value may not have arrived
+          // at the server yet, so we do not do this where the value is a client object
+          let data = this.__queue.find(data => data.cmd == "new" && data.clientId == serverObject.getServerId());
+          if (data) {
+            // If the server object is not yet created, then we queue the property change
+            if (!data.properties) {
+              data.properties = {};
+            }
+            data.properties[propertyName] = serializedValue;
+            return;
+          }
+        }
         var data = {
           cmd: "set",
           serverId: serverObject.getServerId(),
           propertyName: propertyName,
-          value: this.serializeValue(value, {
-            dateValue: annoDate ? annoDate.getValue() : null
-          })
+          value: serializedValue
         };
 
         if (pd.sync == "queue") {
@@ -1926,7 +1947,9 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             }
           }
           this._queueCommandToServer(data);
-        } else this._sendCommandToServer(data);
+        } else {
+          this._sendCommandToServer(data);
+        }
       }
 
       // OnDemand properties need to have their event fired for them
@@ -2643,6 +2666,8 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         }
         return "" + v;
       }
+      var str = dt.getFullYear() + "-" + dp2(dt.getMonth() + 1) + "-" + dp2(dt.getDate()) + "T" + dp2(dt.getHours()) + ":" + dp2(dt.getMinutes()) + ":" + dp2(dt.getSeconds()) + "." + dp3(dt.getMilliseconds()) + "Z";
+      /*
       var str =
         dt.getUTCFullYear() +
         "-" +
@@ -2658,6 +2683,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         "." +
         dp3(dt.getUTCMilliseconds()) +
         "Z";
+        */
       return str;
     },
 
