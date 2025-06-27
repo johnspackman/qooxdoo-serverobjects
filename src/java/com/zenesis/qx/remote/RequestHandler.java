@@ -1909,6 +1909,9 @@ public class RequestHandler {
           str = str.substring(5, str.length() - 1);
           if (LocalDateTime.class.isAssignableFrom(clazz)) {
             try {
+              if (str.charAt(str.length() - 1) == 'Z' && str.charAt(str.length() - 5) == '.') {
+                str = str.substring(0, str.length() - 5) + ".000Z";
+              }
               LocalDateTime ldt = LocalDateTime.parse(str, DF_LOCALDATETIME);
               return ldt;
             } catch (Throwable e) {
