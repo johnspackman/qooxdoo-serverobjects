@@ -1918,7 +1918,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           // If the server object is not yet created, then we queue the property change with the new operator;
           // the snag is that if we have a new client object as the value, then that value may not have arrived
           // at the server yet, so we do not do this where the value is a client object
-          let data = this.__queue.find(data => data.cmd == "new" && data.clientId == serverObject.getServerId());
+          let data = this.__queue && this.__queue.find(data => data.cmd == "new" && data.clientId == serverObject.getServerId());
           if (data) {
             // If the server object is not yet created, then we queue the property change
             if (!data.properties) {
