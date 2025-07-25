@@ -306,19 +306,6 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
     cw.member("_apply" + upname,
         new Function("value", "oldValue", "name", "this._applyProperty(\"" + name + "\", value, oldValue, name);"));
 
-    if (onDemand) {
-      cw.method("defer").code += "clazz.prototype.get" + upname + "=" + 
-          new Function("async", "return this._getPropertyOnDemand('" + name + "', async);") + "\n";
-      cw.method("defer").code += "clazz.prototype.get" + upname + "Async=" +
-          new Function("return this._getPropertyOnDemandAsync('" + name + "');") + "\n";
-      cw.method("defer").code += "clazz.prototype.expire" + upname + "=" +
-          new Function("sendToServer", "return this._expirePropertyOnDemand('" + name + "', sendToServer);") + "\n";
-      cw.method("defer").code += "clazz.prototype.set" + upname + "=" +
-          new Function("value", "async", "return this._setPropertyOnDemand('" + name + "', value, async);") + "\n";
-      cw.method("defer").code += "clazz.prototype.set" + upname + "Async=" +
-          new Function("value", "async", "return qx.Promise.resolve(this._setPropertyOnDemand('" + name + "', value, async));") + "\n";
-    }
-
     ArrayList<RawValue> arr = new ArrayList<>();
     if (!annoSets.isEmpty()) {
       if (!annoSets.isEmpty())
@@ -337,8 +324,15 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
       arr.add(new RawValue("new com.zenesis.qx.remote.annotations.PropertyDate().set(" + cw.objectToString(map) + ")"));
       needsTransform = true;
     }
-    if (!arr.isEmpty())
+    if (!arr.isEmpty()) {
       pdef.put("@", arr);
+    }
+    
+    if (onDemand) {
+      pdef.put("async", true);
+      pdef.put("storage", new RawValue("com.zenesis.qx.remote.OnDemandPropertyStorage"));
+    }
+      
 
     if (!cw.isInterface()) {
       HashMap<String, Object> meta = new HashMap<>();
@@ -356,7 +350,7 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
       if (spec.keyTypeName == null || NATIVE_KEY_TYPES.contains(spec.keyTypeName))
         meta.put("nativeKeyType", true);
 
-      cw.method("defer").code += "qx.lang.Object.mergeWith(clazz.$$properties." + name + ", " +
+      cw.method("defer").code += "qx.lang.Object.mergeWith(qx.Class.getByProperty(clazz, \"" + name + "\").getDefinition()" + ", " +
           cw.objectToString(meta) + ");\n";
     }
 
