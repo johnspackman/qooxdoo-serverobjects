@@ -707,7 +707,8 @@ public class ArrayList<T> extends java.util.AbstractList<T> implements Proxied, 
       }
       event.add(element);
     }
-    fire(event);
+    // Already fired by addAll calling add
+    //fire(event);
     if (detectDuplicates && detectDuplicates()) {
       System.out.println("detected duplicates after addAll");
     }
