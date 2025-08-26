@@ -263,7 +263,12 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       }
     },
 
-    _getPropertyOnDemandAsync(propName) {
+    /**
+     * Called exclusively by this class and com.zenesis.qx.remote.OnDemandPropertyStorage
+     * @param {string} propName
+     * @returns {*}
+     */
+    getPropertyOnDemandAsync(propName) {
       if (this.$$proxy.onDemandPromise === undefined) {
         this.$$proxy.onDemandPromise = {};
       }
@@ -273,16 +278,18 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       }
 
       return (this.$$proxy.onDemandPromise[propName] = new qx.Promise(function (resolve) {
-        this._getPropertyOnDemand(propName, resolve);
+        this.getPropertyOnDemand(propName, resolve);
       }, this));
     },
 
     /**
+     * Called exclusively by this class and com.zenesis.qx.remote.OnDemandPropertyStorage
+     *
      * Called when an on-demand property's get method is called
      * @param propName {String} name of the property to get
      * @param async {Boolean|Function} whether asynchronous or not
      */
-    _getPropertyOnDemand(propName, async) {
+    getPropertyOnDemand(propName, async) {
       // Check the cache
       if (this.$$proxy.onDemand) {
         var value = this.$$proxy.onDemand[propName];
@@ -368,8 +375,9 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 
     /**
      * Called when an on-demand property's expire method is called
+     * Called exclusively by this class and com.zenesis.qx.remote.ProxyManager
      */
-    _expirePropertyOnDemand(propName, sendToServer) {
+    expirePropertyOnDemand(propName, sendToServer) {
       if (this.$$proxy.onDemand && this.$$proxy.onDemand[propName]) {
         let prop = qx.Class.getByProperty(this.constructor, propName);
         this.__storePropertyOnDemand(prop, undefined);
@@ -383,8 +391,9 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 
     /**
      * Called when an on-demand property's set method is called
+     * Called exclusively by this class and com.zenesis.qx.remote.OnDemandPropertyStorage
      */
-    _setPropertyOnDemand(propName, value) {
+    setPropertyOnDemand(propName, value) {
       // Update the cache
       var oldValue;
       if (!this.$$proxy.onDemand) {
@@ -460,10 +469,10 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
      */
     addOnDemandProperty(clazz, propName, readOnly) {
       var upname = qx.lang.String.firstUp(propName);
-      clazz.prototype["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
-      clazz.prototype["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
-      clazz.prototype["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
-      clazz.prototype["get" + upname + "Async"] = new Function("return new qx.Promise(function(resolve) {" + "this._getPropertyOnDemand('" + propName + "', function(result) {" + "resolve(result);" + "});" + "}, this);");
+      clazz.prototype["get" + upname] = new Function("async", "return this.getPropertyOnDemand('" + propName + "', async);");
+      clazz.prototype["expire" + upname] = new Function("sendToServer", "return this.expirePropertyOnDemand('" + propName + "', sendToServer);");
+      clazz.prototype["set" + upname] = new Function("value", "async", "return this.setPropertyOnDemand('" + propName + "', value, async);");
+      clazz.prototype["get" + upname + "Async"] = new Function("return new qx.Promise(function(resolve) {" + "this.getPropertyOnDemand('" + propName + "', function(result) {" + "resolve(result);" + "});" + "}, this);");
     },
 
     deferredClassInitialisation(clazz) {

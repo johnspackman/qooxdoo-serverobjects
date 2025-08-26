@@ -45,7 +45,7 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestGroups", {
   },
   "members" : {
     "expireBravo" : function(sendToServer) {
-    return this._expirePropertyOnDemand('bravo', sendToServer);
+    return this.expirePropertyOnDemand('bravo', sendToServer);
  },
     "_applyBravo" : function(value, oldValue, name) {
     this._applyProperty("bravo", value, oldValue, name);
@@ -69,7 +69,7 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestGroups", {
     return this._getPropertyOnDemandAsync('delta');
  },
     "expireCharlie" : function(sendToServer) {
-    return this._expirePropertyOnDemand('charlie', sendToServer);
+    return this.expirePropertyOnDemand('charlie', sendToServer);
  },
     "setDelta" : function(value, async) {
     return this._setPropertyOnDemand('delta', value, async);
@@ -96,7 +96,7 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestGroups", {
     this._applyProperty("echo", value, oldValue, name);
  },
     "expireDelta" : function(sendToServer) {
-    return this._expirePropertyOnDemand('delta', sendToServer);
+    return this.expirePropertyOnDemand('delta', sendToServer);
  },
     "getAlphaAsync" : function() {
     return qx.Promise.resolve(this.getAlpha()).bind(this);
@@ -105,7 +105,7 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestGroups", {
     return this._setPropertyOnDemand('charlie', value, async);
  },
     "expireEcho" : function(sendToServer) {
-    return this._expirePropertyOnDemand('echo', sendToServer);
+    return this.expirePropertyOnDemand('echo', sendToServer);
  },
     "getEchoAsync" : function() {
     return this._getPropertyOnDemandAsync('echo');

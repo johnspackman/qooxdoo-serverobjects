@@ -5,21 +5,32 @@ qx.Bootstrap.define("com.zenesis.qx.remote.OnDemandPropertyStorage", {
   members: {
     /**@override */
     get(thisObj, property) {
-      return thisObj._getPropertyOnDemand(property.getPropertyName()); //!todo no protected
+      return thisObj.getPropertyOnDemand(property.getPropertyName());
     },
 
     async getAsync(thisObj, property) {
-      return thisObj._getPropertyOnDemandAsync(property.getPropertyName());
+      return thisObj.getPropertyOnDemandAsync(property.getPropertyName());
     },
 
     /**@override */
     set(thisObj, property, value) {
-      thisObj._setPropertyOnDemand(property.getPropertyName(), value);
+      thisObj.setPropertyOnDemand(property.getPropertyName(), value);
     },
 
     /**@override */
     async setAsync(thisObj, property, value) {
-      thisObj._setPropertyOnDemand(property.getPropertyName(), value);
+      thisObj.setPropertyOnDemand(property.getPropertyName(), value);
+    },
+
+    /**@override */
+    reset() {},
+
+    /**@override */
+    dereference(thisObj, property) {},
+
+    /**@override */
+    isAsyncStorage() {
+      return true;
     }
   }
 });

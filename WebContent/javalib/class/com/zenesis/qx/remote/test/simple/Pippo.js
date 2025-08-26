@@ -53,7 +53,7 @@ qx.Class.define("com.zenesis.qx.remote.test.simple.Pippo", {
     return com.zenesis.qx.remote.MProxy.transformToDataArray(value, qx.data.Array);
  },
     "expireCollezioni" : function(sendToServer) {
-    return this._expirePropertyOnDemand('collezioni', sendToServer);
+    return this.expirePropertyOnDemand('collezioni', sendToServer);
  },
     "getNameAsync" : function() {
     return qx.Promise.resolve(this.getName()).bind(this);

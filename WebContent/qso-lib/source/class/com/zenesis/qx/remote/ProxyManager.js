@@ -833,7 +833,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         } else if (type == "expire") {
           var obj = this.readProxyObject(elem.object, stats);
           var upname = qx.lang.String.firstUp(elem.name);
-          obj._expirePropertyOnDemand(upname, false); //!todo no protected
+          obj.expirePropertyOnDemand(upname, false);
 
           // A server property value changed, update the client
         } else if (type == "edit-array") {
@@ -1397,7 +1397,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             // onDemand properties - patch it later
             if (fromDef.onDemand) {
               def.members["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
-              def.members["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
+              def.members["expire" + upname] = new Function("sendToServer", "return this.expirePropertyOnDemand('" + propName + "', sendToServer);");
               def.members["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
               def.members["get" + upname + "Async"] = new Function("async", "return this._getPropertyOnDemandAsync('" + propName + "');");
               def.members["get" + upname + "Async"] = new Function(

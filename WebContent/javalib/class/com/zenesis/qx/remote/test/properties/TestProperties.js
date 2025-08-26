@@ -219,7 +219,7 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestProperties", {
     this._applyProperty("onDemandPreload", value, oldValue, name);
  },
     "expireOnDemandString" : function(sendToServer) {
-    return this._expirePropertyOnDemand('onDemandString', sendToServer);
+    return this.expirePropertyOnDemand('onDemandString', sendToServer);
  },
     "getDateStartOfDayAsync" : function() {
     return qx.Promise.resolve(this.getDateStartOfDay()).bind(this);
@@ -228,7 +228,7 @@ qx.Class.define("com.zenesis.qx.remote.test.properties.TestProperties", {
     return qx.Promise.resolve(this.getWatchedString()).bind(this);
  },
     "expireOnDemandPreload" : function(sendToServer) {
-    return this._expirePropertyOnDemand('onDemandPreload', sendToServer);
+    return this.expirePropertyOnDemand('onDemandPreload', sendToServer);
  },
     "getDateTimeGmt" : function() {
     return this._callServer("getDateTimeGmt", qx.lang.Array.fromArguments(arguments));
