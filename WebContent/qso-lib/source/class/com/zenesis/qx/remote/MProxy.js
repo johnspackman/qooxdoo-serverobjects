@@ -484,7 +484,9 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
       }
 
       for (var name of qx.Class.getProperties(clazz)) {
-        var def = qx.Class.getPropertyDefinition(clazz, name);
+        let prop = qx.Class.getByProperty(clazz, name);
+        if (prop.isPseudoProperty()) continue;
+        var def = prop.getDefinition();
         if (def.isServer) {
           if (def.onDemand) {
             this.addOnDemandProperty(clazz, name, !!def.readOnly);
