@@ -1214,13 +1214,15 @@ public class RequestHandler {
     // Set property values
     jp.nextToken();
     ArrayList<Boolean> valueTypes = null;
+    
+    String propertyName = null;
     while (jp.getCurrentToken() == JsonToken.FIELD_NAME) {
       jp.nextToken();
       if (jp.getCurrentName().equals("properties")) {
         if (jp.getCurrentToken() != JsonToken.START_OBJECT)
           throw new ServletException("Unexpected properties definiton for 'new' command");
         while (jp.nextToken() != JsonToken.END_OBJECT) {
-          String propertyName = jp.getCurrentName();
+          propertyName = jp.getCurrentName();
           jp.nextToken();
   
           // Read a Proxied object?
@@ -1332,7 +1334,12 @@ public class RequestHandler {
         }
         jp.nextToken();
         com.zenesis.qx.remote.collections.ArrayList arr = (com.zenesis.qx.remote.collections.ArrayList)proxied;
-        arr.replace(tmp);
+        tracker.beginMutate(proxied, propertyName);
+        try {
+          arr.replace(tmp);                    
+        } finally {
+          tracker.endMutate(proxied, propertyName);
+        }
       }
     }
   }
