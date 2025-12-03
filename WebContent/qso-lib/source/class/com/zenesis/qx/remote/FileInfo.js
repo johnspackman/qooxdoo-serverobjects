@@ -39,7 +39,8 @@ qx.Class.define("com.zenesis.qx.remote.FileInfo", {
 
   properties: {
     /**
-     * The absolute path of the file, relative to the FileApi's root
+     * The path of the file, relative to the FileApi's root
+     * This is a misnomer.
      */
     absolutePath: {
       nullable: false,
