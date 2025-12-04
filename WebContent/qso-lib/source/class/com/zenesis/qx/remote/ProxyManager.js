@@ -1951,11 +1951,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           this._sendCommandToServer(data);
         }
       }
-
-      // OnDemand properties need to have their event fired for them
-      if (pd.onDemand && pd.event) {
-        serverObject.fireDataEvent(pd.event, value, oldValue);
-      }
     },
 
     /**
