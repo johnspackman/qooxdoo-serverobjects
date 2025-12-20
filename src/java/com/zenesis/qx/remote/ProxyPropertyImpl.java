@@ -322,14 +322,6 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
     if (value == oldValue)
       return;
     try {
-      if (field != null) {
-        if (!readOnly) {
-          field.set(proxied, value);
-          changedValue(proxied, value, oldValue);
-          return;
-        }
-      }
-
       if (setMethod != null) {
         // If it's not a collection then we don't try to handle it because we want Java
         // autoboxing to handle conversions between primitive types
@@ -341,6 +333,14 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
         Class type = setMethod.getParameterTypes()[0];
         if (type.isAssignableFrom(value.getClass())) {
           setMethod.invoke(proxied, value);
+          changedValue(proxied, value, oldValue);
+          return;
+        }
+      }
+
+      if (field != null) {
+        if (!readOnly) {
+          field.set(proxied, value);
           changedValue(proxied, value, oldValue);
           return;
         }
