@@ -322,30 +322,6 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
     if (value == oldValue)
       return;
     try {
-      if (setMethod != null) {
-        // If it's not a collection then we don't try to handle it because we want Java
-        // autoboxing to handle conversions between primitive types
-        if (value == null || !propertyClass.isCollection()) {
-          setMethod.invoke(proxied, value);
-          changedValue(proxied, value, oldValue);
-          return;
-        }
-        Class type = setMethod.getParameterTypes()[0];
-        if (type.isAssignableFrom(value.getClass())) {
-          setMethod.invoke(proxied, value);
-          changedValue(proxied, value, oldValue);
-          return;
-        }
-      }
-
-      if (field != null) {
-        if (!readOnly) {
-          field.set(proxied, value);
-          changedValue(proxied, value, oldValue);
-          return;
-        }
-      }
-
       // If we're setting a collection or array, then we can choose to replace the
       // contents
       // of the current property value if we don't have a setXxx method
@@ -374,12 +350,43 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
             for (Object obj : src)
               coll.add(obj);
           }
-          if (setValue)
-            setMethod.invoke(proxied, coll);
+          if (setValue) {
+            if (readOnly) {
+              throw new IllegalStateException("Cannot set the value on a read only property " + this);
+            }
+            if (setMethod != null)
+              setMethod.invoke(proxied, coll);
+            else
+              field.set(proxied, value);
+          }
           changedValue(proxied, value, oldValue);
           return;
         }
       }
+      
+      if (setMethod != null) {
+        // If it's not a collection then we don't try to handle it because we want Java
+        // autoboxing to handle conversions between primitive types
+        if (value == null || !propertyClass.isCollection()) {
+          setMethod.invoke(proxied, value);
+          changedValue(proxied, value, oldValue);
+          return;
+        }
+        Class type = setMethod.getParameterTypes()[0];
+        if (type.isAssignableFrom(value.getClass())) {
+          setMethod.invoke(proxied, value);
+          changedValue(proxied, value, oldValue);
+          return;
+        }
+      }
+
+      if (field != null) {
+        if (!readOnly) {
+          field.set(proxied, value);
+          changedValue(proxied, value, oldValue);
+          return;
+        }
+      }      
 
       // If a field is a collection then there doesn't have to be a setXxx method -
       // but if the
