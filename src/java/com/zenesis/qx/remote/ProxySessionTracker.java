@@ -756,6 +756,17 @@ public class ProxySessionTracker implements UploadInterceptor {
     Integer serverId = objectIds.get(proxied);
     return serverId != null;
   }
+  
+  /**
+   * Returns the server ID for an object, if it is known to the client
+   * 
+   * @param proxied
+   * @return the server id, null if not sent to the client yet
+   */
+  public synchronized Integer getServerId(Proxied proxied) {
+    Integer serverId = objectIds.get(proxied);
+    return serverId;
+  }
 
   /**
    * Registers a client object; the
