@@ -32,7 +32,7 @@ qx.Class.define("com.zenesis.qx.remote.UploadingFile", {
   },
   "members" : {
     "expireBytesUploaded" : function(sendToServer) {
-    return this._expirePropertyOnDemand('bytesUploaded', sendToServer);
+    return this.expirePropertyOnDemand('bytesUploaded', sendToServer);
  },
     "setBytesUploaded" : function(value, async) {
     return this._setPropertyOnDemand('bytesUploaded', value, async);

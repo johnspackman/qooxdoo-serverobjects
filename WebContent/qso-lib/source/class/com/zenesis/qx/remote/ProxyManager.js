@@ -833,7 +833,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         } else if (type == "expire") {
           var obj = this.readProxyObject(elem.object, stats);
           var upname = qx.lang.String.firstUp(elem.name);
-          obj["expire" + upname](false);
+          obj.expirePropertyOnDemand(upname, false);
 
           // A server property value changed, update the client
         } else if (type == "edit-array") {
@@ -1397,7 +1397,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
             // onDemand properties - patch it later
             if (fromDef.onDemand) {
               def.members["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
-              def.members["expire" + upname] = new Function("sendToServer", "return this._expirePropertyOnDemand('" + propName + "', sendToServer);");
+              def.members["expire" + upname] = new Function("sendToServer", "return this.expirePropertyOnDemand('" + propName + "', sendToServer);");
               def.members["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
               def.members["get" + upname + "Async"] = new Function("async", "return this._getPropertyOnDemandAsync('" + propName + "');");
               def.members["get" + upname + "Async"] = new Function(
@@ -1712,15 +1712,15 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
      *          {Data} original "change" event for the array
      * @param serverObject
      *          {Object} the Proxy instance for a server object
-     * @param propDef
-     *          {Map} the property definition
+     * @param {qx.core.property.Property} prop
      */
-    onWrappedArrayChange(evt, serverObject, propDef) {
-      if (propDef.readOnly) {
+    onWrappedArrayChange(evt, serverObject, prop) {
+      let propDef = prop.getDefinition();
+      if (prop.isReadOnly()) {
         return;
       }
       // Changing a property from the server
-      if (serverObject === this.__setPropertyObject && propDef.name == this.__setPropertyName) {
+      if (serverObject === this.__setPropertyObject && prop.getPropertyName() == this.__setPropertyName) {
         return;
       }
       // Server is updating the array or map
@@ -1742,7 +1742,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         info = this.__dirtyArrays[array.toHashCode()] = {
           array: array,
           serverObject: serverObject,
-          propertyName: propDef.name
+          propertyName: prop.getPropertyName()
         };
       }
 
@@ -1950,11 +1950,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
         } else {
           this._sendCommandToServer(data);
         }
-      }
-
-      // OnDemand properties need to have their event fired for them
-      if (pd.onDemand && pd.event) {
-        serverObject.fireDataEvent(pd.event, value, oldValue);
       }
     },
 
