@@ -329,10 +329,8 @@ public abstract class AbstractProxyProperty implements ProxyProperty {
     }
     
     if (onDemand) {
-      pdef.put("async", true);
       pdef.put("storage", new RawValue("com.zenesis.qx.remote.OnDemandPropertyStorage"));
     }
-      
 
     if (!cw.isInterface()) {
       HashMap<String, Object> meta = new HashMap<>();

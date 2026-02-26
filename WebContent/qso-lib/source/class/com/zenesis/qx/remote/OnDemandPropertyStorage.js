@@ -29,7 +29,7 @@ qx.Bootstrap.define("com.zenesis.qx.remote.OnDemandPropertyStorage", {
     dereference(thisObj, property) {},
 
     /**@override */
-    isAsyncStorage() {
+    supportsAsyncGet() {
       return true;
     }
   }
