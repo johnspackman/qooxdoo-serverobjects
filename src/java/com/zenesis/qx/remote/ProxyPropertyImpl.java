@@ -346,6 +346,7 @@ public class ProxyPropertyImpl extends AbstractProxyProperty {
             for (Object obj : src)
               coll.add(obj);
           } else if (value instanceof Collection) {
+            coll.clear();
             Collection src = (Collection) value;
             for (Object obj : src)
               coll.add(obj);
