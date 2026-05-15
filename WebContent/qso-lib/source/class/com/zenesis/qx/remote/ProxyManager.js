@@ -832,9 +832,7 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
           // An on demand server property value changed, clear the cache
         } else if (type == "expire") {
           var obj = this.readProxyObject(elem.object, stats);
-          var upname = qx.lang.String.firstUp(elem.name);
-          obj.expirePropertyOnDemand(upname, false);
-
+          obj.reset(elem.name);
           // A server property value changed, update the client
         } else if (type == "edit-array") {
           (function () {
@@ -1394,19 +1392,6 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
               def.members["_transform" + upname] = new Function("value", "oldValue", 'this._transformProperty("' + propName + '", value, oldValue);');
             }
 
-            // onDemand properties - patch it later
-            if (fromDef.onDemand) {
-              def.members["get" + upname] = new Function("async", "return this._getPropertyOnDemand('" + propName + "', async);");
-              def.members["expire" + upname] = new Function("sendToServer", "return this.expirePropertyOnDemand('" + propName + "', sendToServer);");
-              def.members["set" + upname] = new Function("value", "async", "return this._setPropertyOnDemand('" + propName + "', value, async);");
-              def.members["get" + upname + "Async"] = new Function("async", "return this._getPropertyOnDemandAsync('" + propName + "');");
-              def.members["get" + upname + "Async"] = new Function(
-                "return new qx.Promise(function(resolve) {" + "  this._getPropertyOnDemand('" + propName + "', function(result) {" + "    resolve(result);" + "  });" + "}, this);"
-              );
-            } else {
-              def.members["get" + upname + "Async"] = new Function("return qx.Promise.resolve(this.get" + upname + "()).bind(this);");
-            }
-
             // Meta data
             strDeferCode +=
               "qx.lang.Object.mergeWith(clazz.$$properties." +
@@ -1892,64 +1877,62 @@ qx.Class.define("com.zenesis.qx.remote.ProxyManager", {
       }
       let pd = qx.Class.getPropertyDefinition(serverObject.constructor, propertyName);
 
-      if (!this.isSettingProperty(serverObject, propertyName)) {
-        let annoDate = null;
-        if (value) {
-          if (pd.check === "Date") {
-            annoDate = qx.Annotation.getProperty(serverObject.constructor, propertyName, com.zenesis.qx.remote.annotations.PropertyDate)[0] || null;
-          }
+      let annoDate = null;
+      if (value) {
+        if (pd.check === "Date") {
+          annoDate = qx.Annotation.getProperty(serverObject.constructor, propertyName, com.zenesis.qx.remote.annotations.PropertyDate)[0] || null;
         }
+      }
 
-        // Skip changing date instances if they are equivalent
-        if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime()) {
+      // Skip changing date instances if they are equivalent
+      if (value instanceof Date && oldValue instanceof Date && value.getTime() == oldValue.getTime()) {
+        return;
+      }
+
+      let valueServerId = null;
+      if (value && value instanceof qx.core.Object && qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
+        valueServerId = value.getServerId();
+      }
+
+      let serializedValue = this.serializeValue(value, {
+        dateValue: annoDate ? annoDate.getValue() : null
+      });
+
+      if (serverObject.getServerId() < 0 && valueServerId === null) {
+        // If the server object is not yet created, then we queue the property change with the new operator;
+        // the snag is that if we have a new client object as the value, then that value may not have arrived
+        // at the server yet, so we do not do this where the value is a client object
+        let data = this.__queue && this.__queue.find(data => data.cmd == "new" && data.clientId == serverObject.getServerId());
+        if (data) {
+          // If the server object is not yet created, then we queue the property change
+          if (!data.properties) {
+            data.properties = {};
+          }
+          data.properties[propertyName] = serializedValue;
           return;
         }
+      }
+      var data = {
+        cmd: "set",
+        serverId: serverObject.getServerId(),
+        propertyName: propertyName,
+        value: serializedValue
+      };
 
-        let valueServerId = null;
-        if (value && value instanceof qx.core.Object && qx.Class.hasMixin(value.constructor, com.zenesis.qx.remote.MProxy)) {
-          valueServerId = value.getServerId();
-        }
-
-        let serializedValue = this.serializeValue(value, {
-          dateValue: annoDate ? annoDate.getValue() : null
-        });
-
-        if (serverObject.getServerId() < 0 && valueServerId === null) {
-          // If the server object is not yet created, then we queue the property change with the new operator;
-          // the snag is that if we have a new client object as the value, then that value may not have arrived
-          // at the server yet, so we do not do this where the value is a client object
-          let data = this.__queue && this.__queue.find(data => data.cmd == "new" && data.clientId == serverObject.getServerId());
-          if (data) {
-            // If the server object is not yet created, then we queue the property change
-            if (!data.properties) {
-              data.properties = {};
-            }
-            data.properties[propertyName] = serializedValue;
-            return;
-          }
-        }
-        var data = {
-          cmd: "set",
-          serverId: serverObject.getServerId(),
-          propertyName: propertyName,
-          value: serializedValue
-        };
-
-        if (pd.sync == "queue") {
-          var queue = this.__queue;
-          if (queue) {
-            for (var i = 0; i < queue.length; i++) {
-              var qd = queue[i];
-              if (qd.cmd == "set" && qd.serverId == serverObject.getServerId() && qd.propertyName == propertyName) {
-                queue.splice(i, 1);
-                break;
-              }
+      if (pd.sync == "queue") {
+        var queue = this.__queue;
+        if (queue) {
+          for (var i = 0; i < queue.length; i++) {
+            var qd = queue[i];
+            if (qd.cmd == "set" && qd.serverId == serverObject.getServerId() && qd.propertyName == propertyName) {
+              queue.splice(i, 1);
+              break;
             }
           }
-          this._queueCommandToServer(data);
-        } else {
-          this._sendCommandToServer(data);
         }
+        this._queueCommandToServer(data);
+      } else {
+        this._sendCommandToServer(data);
       }
     },
 

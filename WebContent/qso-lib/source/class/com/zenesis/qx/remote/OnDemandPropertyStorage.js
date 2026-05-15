@@ -3,30 +3,83 @@ qx.Bootstrap.define("com.zenesis.qx.remote.OnDemandPropertyStorage", {
   implement: qx.core.property.IPropertyStorage,
 
   members: {
-    /**@override */
+    /**
+     * @override
+     * @param {qx.core.Object} thisObj
+     * @param {qx.core.propety.IProperty} property
+     * @return {*}
+     */
     get(thisObj, property) {
-      return thisObj.getPropertyOnDemand(property.getPropertyName());
+      return thisObj.$$proxy.onDemand?.[property.getPropertyName()];
     },
 
+    /**
+     * @override
+     * @param {qx.core.Object} thisObj
+     * @param {qx.core.propety.IProperty} property
+     * @return {Promise<*>}
+     */
     async getAsync(thisObj, property) {
-      return thisObj.getPropertyOnDemandAsync(property.getPropertyName());
+      let propName = property.getPropertyName();
+      let propDef = property.getDefinition();
+      if (thisObj.$$proxy.onDemandPromise === undefined) {
+        thisObj.$$proxy.onDemandPromise = {};
+      }
+      var promise = thisObj.$$proxy.onDemandPromise[propName];
+      var upname = qx.lang.String.firstUp(propName);
+      var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
+
+      const checkWrapArray = value => {
+        if (value && propDef.array == "wrap") {
+          if (!!propDef.map) {
+            if (!(value instanceof com.zenesis.qx.remote.Map)) {
+              value = new com.zenesis.qx.remote.Map(value);
+            }
+          } else if (!(value instanceof qx.data.Array)) {
+            value = new qx.data.Array(value);
+          }
+        }
+        return value;
+      };
+
+      if (!promise) {
+        promise = new Promise((resolve, reject) => {
+          PM.callServerMethod(thisObj, "get" + upname, [
+            function (value) {
+              delete this.$$proxy.onDemandPromise[propName];
+              value = checkWrapArray(value);
+              var ex = PM.clearException();
+              if (ex) {
+                reject(ex);
+              } else {
+                resolve(value);
+              }
+            }
+          ]);
+        });
+        thisObj.$$proxy.onDemandPromise[propName] = promise;
+      }
+
+      return promise;
     },
 
-    /**@override */
+    /**
+     * @override
+     * @param {qx.core.Object} thisObj
+     * @param {qx.core.propety.IProperty} property the property to set the value of
+     * @param {*} value
+     */
     set(thisObj, property, value) {
-      thisObj.setPropertyOnDemand(property.getPropertyName(), value);
+      if (!thisObj.$$proxy.onDemand) {
+        thisObj.$$proxy.onDemand = {};
+      }
+      thisObj.$$proxy.onDemand[property.getPropertyName()] = value;
     },
 
     /**@override */
-    async setAsync(thisObj, property, value) {
-      thisObj.setPropertyOnDemand(property.getPropertyName(), value);
+    dereference(thisObj, property) {
+      delete thisObj.$$proxy.onDemand[property.getPropertyName()];
     },
-
-    /**@override */
-    reset() {},
-
-    /**@override */
-    dereference(thisObj, property) {},
 
     /**@override */
     supportsGetAsync() {

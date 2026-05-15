@@ -40,7 +40,7 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
 
   members: {
     __serverId: null,
-    // __isPending: undefined,
+    __isPending: undefined,
 
     /**
      * Called by the constructor to initialise the instance
@@ -256,158 +256,20 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
         return;
       }
       PM.clearException();
-      PM.setPropertyValue(this, propertyName, value, oldValue);
+
+      //We only send the changes to the server if we're not in the middle of a server response,
+      //and we are not fetching a property asynchronously
+      if (!PM.isInResponse() && !(prop.supportsGetAsync() && prop.isInitializing(this))) {
+        if (!prop.hasLocalValue(this) && prop.supportsGetAsync()) {
+          PM.expireProperty(this, propertyName);
+        } else {
+          PM.setPropertyValue(this, propertyName, value, oldValue);
+        }
+      }
       var ex = PM.clearException();
       if (ex) {
         throw ex;
       }
-    },
-
-    /**
-     * Called exclusively by this class and com.zenesis.qx.remote.OnDemandPropertyStorage
-     * @param {string} propName
-     * @returns {*}
-     */
-    getPropertyOnDemandAsync(propName) {
-      if (this.$$proxy.onDemandPromise === undefined) {
-        this.$$proxy.onDemandPromise = {};
-      }
-      var promise = this.$$proxy.onDemandPromise[propName];
-      if (promise) {
-        return promise;
-      }
-
-      return (this.$$proxy.onDemandPromise[propName] = new qx.Promise(function (resolve) {
-        this.getPropertyOnDemand(propName, resolve);
-      }, this));
-    },
-
-    /**
-     * Called exclusively by this class and com.zenesis.qx.remote.OnDemandPropertyStorage
-     *
-     * Called when an on-demand property's get method is called
-     * @param propName {String} name of the property to get
-     * @param async {Boolean|Function} whether asynchronous or not
-     */
-    getPropertyOnDemand(propName, async) {
-      // Check the cache
-      if (this.$$proxy.onDemand) {
-        var value = this.$$proxy.onDemand[propName];
-        if (value !== undefined) {
-          if (typeof async == "function") {
-            async.call(this, value);
-          }
-          return value;
-        }
-      } else this.$$proxy.onDemand = {};
-
-      if (async === undefined) {
-        return;
-      }
-
-      // Call the server
-      var upname = qx.lang.String.firstUp(propName);
-      var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
-      let prop = qx.Class.getByProperty(this.constructor, propName);
-
-      if (async) {
-        PM.callServerMethod(this, "get" + upname, [
-          function (value) {
-            var ex = PM.clearException();
-            if (!ex) {
-              value = this.__storePropertyOnDemand(prop, value);
-            } else value = undefined;
-            if (typeof async == "function") {
-              async(value, ex);
-            }
-          }
-        ]);
-      } else {
-        var value = PM.callServerMethod(this, "get" + upname, []);
-        var ex = PM.clearException();
-        if (ex) {
-          throw ex;
-        }
-
-        // Update the cache and done
-        return this.__storePropertyOnDemand(prop, value);
-      }
-    },
-
-    /**
-     * Stores a value for an on-demand property, adding and removing listeners
-     * as required
-     *
-     * @param {qx.core.property.Property} prop
-     * @param value
-     *          {Object}
-     * @returns
-     */
-    __storePropertyOnDemand(prop, value) {
-      var oldValue;
-      let propName = prop.getPropertyName();
-      let propDef = prop.getDefinition();
-      if (this.$$proxy.onDemand && (oldValue = this.$$proxy.onDemand[propName])) {
-        if (propDef.array == "wrap" && propDef.changeListenerId) {
-          oldValue.removeListenerById(propDef.changeListenerId);
-          propDef.changeListenerId = null;
-        }
-        delete this.$$proxy.onDemand[propName];
-      }
-      if (value !== undefined) {
-        if (value && propDef.array == "wrap") {
-          if (!!propDef.map) {
-            if (!(value instanceof com.zenesis.qx.remote.Map)) {
-              value = new com.zenesis.qx.remote.Map(value);
-            }
-          } else if (!(value instanceof qx.data.Array)) {
-            value = new qx.data.Array(value);
-          }
-          propDef.changeListenerId = value.addListener("change", evt => {
-            var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
-            PM.onWrappedArrayChange(evt, this, prop);
-          });
-        }
-        this.$$proxy.onDemand[propName] = value;
-      }
-      return value;
-    },
-
-    /**
-     * Called when an on-demand property's expire method is called
-     * Called exclusively by this class and com.zenesis.qx.remote.ProxyManager
-     */
-    expirePropertyOnDemand(propName, sendToServer) {
-      if (this.$$proxy.onDemand && this.$$proxy.onDemand[propName]) {
-        let prop = qx.Class.getByProperty(this.constructor, propName);
-        this.__storePropertyOnDemand(prop, undefined);
-      }
-
-      if (sendToServer === undefined || sendToServer) {
-        var PM = com.zenesis.qx.remote.ProxyManager.getInstance();
-        PM.expireProperty(this, propName);
-      }
-    },
-
-    /**
-     * Called when an on-demand property's set method is called
-     * Called exclusively by this class and com.zenesis.qx.remote.OnDemandPropertyStorage
-     */
-    setPropertyOnDemand(propName, value) {
-      // Update the cache
-      var oldValue;
-      if (!this.$$proxy.onDemand) {
-        this.$$proxy.onDemand = {};
-      } else oldValue = this.$$proxy.onDemand[propName];
-
-      // Don't use __storePropertyOnDemand here - use _applyProperty instead
-      var propDef = qx.Class.getPropertyDefinition(this.constructor, propName);
-      if (propDef.array == "wrap" && !(value instanceof qx.data.Array)) {
-        value = new qx.data.Array(value);
-      }
-
-      this.$$proxy.onDemand[propName] = value;
-      this._applyProperty(propName, value, oldValue);
     },
 
     /*
@@ -435,63 +297,12 @@ qx.Mixin.define("com.zenesis.qx.remote.MProxy", {
   },
 
   statics: {
-    /**
-     * Patches a normal property so that it can take a callback as the parameter and have the
-     * value passed to the callback; this is important because it allows a uniform coding pattern
-     * which is the same for on demand and normal properties
-     */
-    patchNormalProperty(clazz, name) {
-      var upname = qx.lang.String.firstUp(name);
-      var get = clazz.prototype["get" + upname];
-      var fn = (clazz.prototype["get" + upname] = function (cb) {
-        // qx.core.Property.executeOptimisedSetter changes the implementation of the
-        //  get method the first time it is called; we detect that and swap our overridden
-        //  method back in
-        var currentGet = clazz.prototype["get" + upname];
-        var value = get.call(this);
-        var newGet = clazz.prototype["get" + upname];
-        if (newGet != currentGet) {
-          get = newGet;
-          clazz.prototype["get" + upname] = currentGet;
-        }
-        if (typeof cb == "function") {
-          cb(value);
-        }
-        return value;
-      });
-      if (get.$$install) {
-        fn.$$install = get.$$install;
-      }
-    },
-
-    /**
-     * Adds an on-demand property
-     */
-    addOnDemandProperty(clazz, propName, readOnly) {
-      var upname = qx.lang.String.firstUp(propName);
-      clazz.prototype["get" + upname] = new Function("async", "return this.getPropertyOnDemand('" + propName + "', async);");
-      clazz.prototype["expire" + upname] = new Function("sendToServer", "return this.expirePropertyOnDemand('" + propName + "', sendToServer);");
-      clazz.prototype["set" + upname] = new Function("value", "async", "return this.setPropertyOnDemand('" + propName + "', value, async);");
-      clazz.prototype["get" + upname + "Async"] = new Function("return new qx.Promise(function(resolve) {" + "this.getPropertyOnDemand('" + propName + "', function(result) {" + "resolve(result);" + "});" + "}, this);");
-    },
-
     deferredClassInitialisation(clazz) {
       // Make sure it has this mixin - but check first because a super class may have already
       //	included it
       if (!qx.Class.hasMixin(clazz, com.zenesis.qx.remote.MProxy)) {
         qx.Class.patch(clazz, com.zenesis.qx.remote.MProxy);
         clazz = qx.Class.getByName(clazz.classname);
-      }
-
-      for (var name of qx.Class.getProperties(clazz)) {
-        let prop = qx.Class.getByProperty(clazz, name);
-        if (prop.isPseudoProperty()) continue;
-        var def = prop.getDefinition();
-        if (def.isServer) {
-          if (def.onDemand) {
-            this.addOnDemandProperty(clazz, name, !!def.readOnly);
-          } else this.patchNormalProperty(clazz, name);
-        }
       }
 
       // Update Packages global - this is for compatibility with Rhino server apps
